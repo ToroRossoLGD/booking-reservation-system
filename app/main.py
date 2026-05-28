@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.api.routers.auth import router as auth_router
+from app.api.routers.venues import router as venues_router
 from app.core.config import settings
 
 app = FastAPI(
@@ -16,3 +17,4 @@ async def health_check():
 
 
 app.include_router(auth_router)
+app.include_router(venues_router)

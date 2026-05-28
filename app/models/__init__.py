@@ -1,3 +1,9 @@
+from app.models.resource import Resource
 from app.models.user import User
+from app.models.venue import Venue
 
-__all__ = ["User"]
+__all__ = [
+    "User",
+    "Venue",
+    "Resource",
+]
