@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.dependencies import get_current_user, require_roles
 from app.db.session import get_db
+from app.models.user import User
 from app.schemas.auth import Token, UserCreate, UserRead
 from app.services.auth_service import AuthService
 
@@ -34,3 +36,16 @@ async def login(
     )
 
     return Token(access_token=access_token)
+
+
+@router.get("/me", response_model=UserRead)
+async def get_me(
+    current_user: User = Depends(get_current_user),
+):
+    return current_user
+
+@router.get("/owner-only", response_model=UserRead)
+async def owner_only(
+    current_user: User = Depends(require_roles("owner", "admin")),
+):
+    return current_user
