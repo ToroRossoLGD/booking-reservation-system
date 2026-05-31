@@ -52,3 +52,21 @@ class ReservationRepository:
         reservation = result.scalar_one_or_none()
 
         return reservation is not None
+    
+    async def get_by_id(
+        self,
+        reservation_id: int,
+    ) -> Reservation | None:
+        result = await self.db.execute(
+            select(Reservation).where(Reservation.id == reservation_id)
+        )
+
+        return result.scalar_one_or_none()
+
+    async def update(
+        self,
+        reservation: Reservation,
+    ) -> Reservation:
+        await self.db.commit()
+        await self.db.refresh(reservation)
+        return reservation
