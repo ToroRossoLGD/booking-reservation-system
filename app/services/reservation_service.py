@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.reservation import Reservation
+from app.models.reservation import Reservation, ReservationStatus
 from app.models.user import User
 from app.repositories.reservation_repository import ReservationRepository
 from app.schemas.reservation import ReservationCreate
@@ -51,3 +51,33 @@ class ReservationService:
         return await self.reservation_repository.get_user_reservations(
             current_user.id
         )
+    async def cancel_reservation(
+        self,
+        reservation_id: int,
+        current_user: User,
+    ) -> Reservation:
+        reservation = await self.reservation_repository.get_by_id(
+            reservation_id
+        )
+
+        if reservation is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reservation not found",
+            )
+
+        if current_user.role != "admin" and reservation.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can cancel only your own reservations",
+            )
+
+        if reservation.status == ReservationStatus.CANCELLED.value:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Reservation is already cancelled",
+            )
+
+        reservation.status = ReservationStatus.CANCELLED.value
+
+        return await self.reservation_repository.update(reservation)

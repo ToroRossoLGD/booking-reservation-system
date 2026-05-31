@@ -41,3 +41,18 @@ async def get_my_reservations(
     return await service.get_my_reservations(
         current_user
     )
+@router.patch(
+    "/{reservation_id}/cancel",
+    response_model=ReservationRead,
+)
+async def cancel_reservation(
+    reservation_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = ReservationService(db)
+
+    return await service.cancel_reservation(
+        reservation_id=reservation_id,
+        current_user=current_user,
+    )
