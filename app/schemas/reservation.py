@@ -1,0 +1,22 @@
+from datetime import datetime
+
+from pydantic import BaseModel
+
+
+class ReservationCreate(BaseModel):
+    resource_id: int
+    start_time: datetime
+    end_time: datetime
+
+
+class ReservationRead(BaseModel):
+    id: int
+    start_time: datetime
+    end_time: datetime
+    status: str
+    user_id: int
+    resource_id: int
+
+    model_config = {
+        "from_attributes": True
+    }

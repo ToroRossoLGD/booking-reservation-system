@@ -1,0 +1,54 @@
+from datetime import datetime
+
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.reservation import Reservation
+
+
+class ReservationRepository:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def create(
+        self,
+        reservation: Reservation,
+    ) -> Reservation:
+        self.db.add(reservation)
+        await self.db.commit()
+        await self.db.refresh(reservation)
+        return reservation
+
+    async def get_user_reservations(
+        self,
+        user_id: int,
+    ) -> list[Reservation]:
+        result = await self.db.execute(
+            select(Reservation)
+            .where(Reservation.user_id == user_id)
+            .order_by(Reservation.start_time)
+        )
+
+        return list(result.scalars().all())
+
+    async def has_conflicting_reservation(
+        self,
+        resource_id: int,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> bool:
+        result = await self.db.execute(
+            select(Reservation).where(
+                and_(
+                    Reservation.resource_id == resource_id,
+                    Reservation.status != "cancelled",
+
+                    Reservation.start_time < end_time,
+                    Reservation.end_time > start_time,
+                )
+            )
+        )
+
+        reservation = result.scalar_one_or_none()
+
+        return reservation is not None
