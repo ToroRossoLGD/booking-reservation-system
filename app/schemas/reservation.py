@@ -20,3 +20,10 @@ class ReservationRead(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class AvailabilityRead(BaseModel):
+    resource_id: int
+    start_time: datetime
+    end_time: datetime
+    available: bool

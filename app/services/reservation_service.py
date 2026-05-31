@@ -5,11 +5,13 @@ from app.models.reservation import Reservation, ReservationStatus
 from app.models.user import User
 from app.repositories.reservation_repository import ReservationRepository
 from app.schemas.reservation import ReservationCreate
+from app.repositories.resource_repository import ResourceRepository
 
 
 class ReservationService:
     def __init__(self, db: AsyncSession):
         self.reservation_repository = ReservationRepository(db)
+        self.resource_repository = ResourceRepository(db)
 
     async def create_reservation(
         self,
@@ -81,3 +83,36 @@ class ReservationService:
         reservation.status = ReservationStatus.CANCELLED.value
 
         return await self.reservation_repository.update(reservation)
+    
+    async def check_availability(
+        self,
+        resource_id: int,
+        start_time,
+        end_time,
+    ) -> dict:
+        if start_time >= end_time:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Start time must be before end time",
+            )
+
+        resource = await self.resource_repository.get_by_id(resource_id)
+
+        if resource is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resource not found",
+            )
+
+        has_conflict = await self.reservation_repository.has_conflicting_reservation(
+            resource_id=resource_id,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+        return {
+            "resource_id": resource_id,
+            "start_time": start_time,
+            "end_time": end_time,
+            "available": not has_conflict,
+        }
