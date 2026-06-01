@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, require_roles
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.reservation import (
@@ -75,4 +75,36 @@ async def check_resource_availability(
         resource_id=resource_id,
         start_time=start_time,
         end_time=end_time,
+    )
+@router.patch(
+    "/{reservation_id}/confirm",
+    response_model=ReservationRead,
+)
+async def confirm_reservation(
+    reservation_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("owner", "admin")),
+):
+    service = ReservationService(db)
+
+    return await service.confirm_reservation(
+        reservation_id=reservation_id,
+        current_user=current_user,
+    )
+
+
+@router.patch(
+    "/{reservation_id}/complete",
+    response_model=ReservationRead,
+)
+async def complete_reservation(
+    reservation_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("owner", "admin")),
+):
+    service = ReservationService(db)
+
+    return await service.complete_reservation(
+        reservation_id=reservation_id,
+        current_user=current_user,
     )
