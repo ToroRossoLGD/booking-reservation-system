@@ -6,12 +6,14 @@ from app.models.user import User
 from app.repositories.reservation_repository import ReservationRepository
 from app.schemas.reservation import ReservationCreate
 from app.repositories.resource_repository import ResourceRepository
+from app.repositories.venue_repository import VenueRepository
 
 
 class ReservationService:
     def __init__(self, db: AsyncSession):
         self.reservation_repository = ReservationRepository(db)
         self.resource_repository = ResourceRepository(db)
+        self.venue_repository = VenueRepository(db)
 
     async def create_reservation(
         self,
@@ -116,3 +118,97 @@ class ReservationService:
             "end_time": end_time,
             "available": not has_conflict,
         }
+    
+    async def _ensure_owner_can_manage_reservation(
+        self,
+        reservation: Reservation,
+        current_user: User,
+    ) -> None:
+        if current_user.role == "admin":
+            return
+
+        resource = await self.resource_repository.get_by_id(
+            reservation.resource_id
+        )
+
+        if resource is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resource not found",
+            )
+
+        venue = await self.venue_repository.get_by_id(
+            resource.venue_id
+        )
+
+        if venue is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Venue not found",
+            )
+
+        if venue.owner_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can manage only reservations for your own venues",
+            )
+
+    async def confirm_reservation(
+        self,
+        reservation_id: int,
+        current_user: User,
+    ) -> Reservation:
+        reservation = await self.reservation_repository.get_by_id(
+            reservation_id
+        )
+
+        if reservation is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reservation not found",
+            )
+
+        await self._ensure_owner_can_manage_reservation(
+            reservation,
+            current_user,
+        )
+
+        if reservation.status != ReservationStatus.PENDING.value:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only pending reservations can be confirmed",
+            )
+
+        reservation.status = ReservationStatus.CONFIRMED.value
+
+        return await self.reservation_repository.update(reservation)
+
+    async def complete_reservation(
+        self,
+        reservation_id: int,
+        current_user: User,
+    ) -> Reservation:
+        reservation = await self.reservation_repository.get_by_id(
+            reservation_id
+        )
+
+        if reservation is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reservation not found",
+            )
+
+        await self._ensure_owner_can_manage_reservation(
+            reservation,
+            current_user,
+        )
+
+        if reservation.status != ReservationStatus.CONFIRMED.value:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only confirmed reservations can be completed",
+            )
+
+        reservation.status = ReservationStatus.COMPLETED.value
+
+        return await self.reservation_repository.update(reservation)
