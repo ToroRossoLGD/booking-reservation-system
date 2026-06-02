@@ -25,3 +25,15 @@ class VenueRepository:
             select(Venue).where(Venue.id == venue_id)
         )
         return result.scalar_one_or_none()
+    
+    async def get_by_owner_id(
+        self,
+        owner_id: int,
+    ) -> list[Venue]:
+        result = await self.db.execute(
+            select(Venue)
+            .where(Venue.owner_id == owner_id)
+            .order_by(Venue.id)
+        )
+
+        return list(result.scalars().all())

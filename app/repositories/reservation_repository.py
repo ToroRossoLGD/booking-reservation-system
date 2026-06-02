@@ -2,6 +2,8 @@ from datetime import datetime
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.resource import Resource
+from app.models.venue import Venue
 
 from app.models.reservation import Reservation
 
@@ -70,3 +72,17 @@ class ReservationRepository:
         await self.db.commit()
         await self.db.refresh(reservation)
         return reservation
+    
+    async def get_by_owner_id(
+        self,
+        owner_id: int,
+    ):
+        result = await self.db.execute(
+            select(Reservation, Resource, Venue)
+            .join(Resource, Reservation.resource_id == Resource.id)
+            .join(Venue, Resource.venue_id == Venue.id)
+            .where(Venue.owner_id == owner_id)
+            .order_by(Reservation.start_time)
+        )
+
+        return result.all()

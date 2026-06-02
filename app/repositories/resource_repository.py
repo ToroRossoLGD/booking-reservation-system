@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.venue import Venue
 from app.models.resource import Resource
 
 
@@ -31,3 +32,16 @@ class ResourceRepository:
     async def delete(self, resource: Resource) -> None:
         await self.db.delete(resource)
         await self.db.commit()
+
+    async def get_by_owner_id(
+        self,
+        owner_id: int,
+    ):
+        result = await self.db.execute(
+            select(Resource, Venue)
+            .join(Venue, Resource.venue_id == Venue.id)
+            .where(Venue.owner_id == owner_id)
+            .order_by(Resource.id)
+        )
+
+        return result.all()
