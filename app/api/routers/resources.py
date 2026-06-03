@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from datetime import date
 from app.core.dependencies import require_roles
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.resource import ResourceCreate, ResourceRead
 from app.services.resource_service import ResourceService
+from app.schemas.reservation import AvailableSlotRead
+from app.services.reservation_service import ReservationService
 
 
 router = APIRouter(
@@ -69,4 +72,22 @@ async def delete_resource(
     await service.delete_resource(
         resource_id=resource_id,
         current_user=current_user,
+    )
+
+@router.get(
+    "/resources/{resource_id}/available-slots",
+    response_model=list[AvailableSlotRead],
+)
+async def get_available_slots(
+    resource_id: int,
+    date: date,
+    slot_minutes: int = 60,
+    db: AsyncSession = Depends(get_db),
+):
+    service = ReservationService(db)
+
+    return await service.get_available_slots(
+        resource_id=resource_id,
+        selected_date=date,
+        slot_minutes=slot_minutes,
     )

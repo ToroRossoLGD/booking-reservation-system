@@ -7,6 +7,7 @@ from app.repositories.reservation_repository import ReservationRepository
 from app.schemas.reservation import ReservationCreate
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
+from datetime import date, datetime, time, timedelta, timezone
 
 
 class ReservationService:
@@ -212,3 +213,60 @@ class ReservationService:
         reservation.status = ReservationStatus.COMPLETED.value
 
         return await self.reservation_repository.update(reservation)
+    
+    async def get_available_slots(
+        self,
+        resource_id: int,
+        selected_date: date,
+        slot_minutes: int,
+    ) -> list[dict]:
+        if slot_minutes <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="slot_minutes must be greater than 0",
+            )
+
+        resource = await self.resource_repository.get_by_id(resource_id)
+
+        if resource is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resource not found",
+            )
+
+        working_start = datetime.combine(
+            selected_date,
+            time(hour=9, minute=0),
+            tzinfo=timezone.utc,
+        )
+
+        working_end = datetime.combine(
+            selected_date,
+            time(hour=17, minute=0),
+            tzinfo=timezone.utc,
+        )
+
+        slots = []
+        current_start = working_start
+        slot_delta = timedelta(minutes=slot_minutes)
+
+        while current_start + slot_delta <= working_end:
+            current_end = current_start + slot_delta
+
+            has_conflict = await self.reservation_repository.has_conflicting_reservation(
+                resource_id=resource_id,
+                start_time=current_start,
+                end_time=current_end,
+            )
+
+            slots.append(
+                {
+                    "start_time": current_start,
+                    "end_time": current_end,
+                    "available": not has_conflict,
+                }
+            )
+
+            current_start = current_end
+
+        return slots

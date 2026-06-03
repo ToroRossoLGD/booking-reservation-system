@@ -27,3 +27,8 @@ class AvailabilityRead(BaseModel):
     start_time: datetime
     end_time: datetime
     available: bool
+
+class AvailableSlotRead(BaseModel):
+    start_time: datetime
+    end_time: datetime
+    available: bool   
