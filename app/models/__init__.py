@@ -1,4 +1,5 @@
 from app.models.notification import Notification
+from app.models.payment import Payment
 from app.models.reservation import Reservation
 from app.models.resource import Resource
 from app.models.user import User
@@ -10,4 +11,5 @@ __all__ = [
     "Resource",
     "Reservation",
     "Notification",
+    "Payment",
 ]
