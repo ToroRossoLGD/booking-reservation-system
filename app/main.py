@@ -7,6 +7,7 @@ from app.api.routers.resources import router as resources_router
 from app.api.routers.venues import router as venues_router
 from app.core.config import settings
 from app.api.routers.notifications import router as notifications_router
+from app.api.routers.payments import router as payments_router
 
 app = FastAPI(
     title=settings.APP_NAME
@@ -26,3 +27,4 @@ app.include_router(resources_router)
 app.include_router(reservations_router)
 app.include_router(owner_router)
 app.include_router(notifications_router)
+app.include_router(payments_router)
