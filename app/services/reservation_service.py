@@ -8,6 +8,12 @@ from app.schemas.reservation import ReservationCreate
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
 from datetime import date, datetime, time, timedelta, timezone
+from app.core.cache import (
+    build_available_slots_cache_key,
+    delete_available_slots_cache_for_resource,
+    get_cache,
+    set_cache,
+)
 
 
 class ReservationService:
@@ -47,7 +53,15 @@ class ReservationService:
             resource_id=data.resource_id,
         )
 
-        return await self.reservation_repository.create(reservation)
+        created_reservation = await self.reservation_repository.create(
+            reservation
+        )
+
+        await delete_available_slots_cache_for_resource(
+            data.resource_id
+        )
+
+        return created_reservation
 
     async def get_my_reservations(
         self,
@@ -85,7 +99,15 @@ class ReservationService:
 
         reservation.status = ReservationStatus.CANCELLED.value
 
-        return await self.reservation_repository.update(reservation)
+        updated_reservation = await self.reservation_repository.update(
+            reservation
+        )
+
+        await delete_available_slots_cache_for_resource(
+            reservation.resource_id
+        )
+
+        return updated_reservation
     
     async def check_availability(
         self,
@@ -182,7 +204,15 @@ class ReservationService:
 
         reservation.status = ReservationStatus.CONFIRMED.value
 
-        return await self.reservation_repository.update(reservation)
+        updated_reservation = await self.reservation_repository.update(
+            reservation
+        )
+
+        await delete_available_slots_cache_for_resource(
+            reservation.resource_id
+        )
+
+        return updated_reservation
 
     async def complete_reservation(
         self,
@@ -212,7 +242,15 @@ class ReservationService:
 
         reservation.status = ReservationStatus.COMPLETED.value
 
-        return await self.reservation_repository.update(reservation)
+        updated_reservation = await self.reservation_repository.update(
+            reservation
+        )
+
+        await delete_available_slots_cache_for_resource(
+            reservation.resource_id
+        )
+
+        return updated_reservation
     
     async def get_available_slots(
         self,
@@ -225,6 +263,17 @@ class ReservationService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="slot_minutes must be greater than 0",
             )
+
+        cache_key = build_available_slots_cache_key(
+            resource_id=resource_id,
+            selected_date=selected_date,
+            slot_minutes=slot_minutes,
+        )
+
+        cached_slots = await get_cache(cache_key)
+
+        if cached_slots is not None:
+            return cached_slots
 
         resource = await self.resource_repository.get_by_id(resource_id)
 
@@ -268,5 +317,10 @@ class ReservationService:
             )
 
             current_start = current_end
+
+        await set_cache(
+            key=cache_key,
+            value=slots,
+        )
 
         return slots
