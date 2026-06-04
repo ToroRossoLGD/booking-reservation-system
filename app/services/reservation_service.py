@@ -8,6 +8,7 @@ from app.schemas.reservation import ReservationCreate
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
 from datetime import date, datetime, time, timedelta, timezone
+from app.services.notification_service import NotificationService
 from app.core.cache import (
     build_available_slots_cache_key,
     delete_available_slots_cache_for_resource,
@@ -21,6 +22,7 @@ class ReservationService:
         self.reservation_repository = ReservationRepository(db)
         self.resource_repository = ResourceRepository(db)
         self.venue_repository = VenueRepository(db)
+        self.notification_service = NotificationService(db)
 
     async def create_reservation(
         self,
@@ -59,6 +61,12 @@ class ReservationService:
 
         await delete_available_slots_cache_for_resource(
             data.resource_id
+        )
+
+        await self.notification_service.create_notification(
+            user_id=current_user.id,
+            title="Reservation created",
+            message=f"Your reservation #{created_reservation.id} has been created.",
         )
 
         return created_reservation
@@ -101,6 +109,12 @@ class ReservationService:
 
         updated_reservation = await self.reservation_repository.update(
             reservation
+        )
+
+        await self.notification_service.create_notification(
+            user_id=reservation.user_id,
+            title="Reservation cancelled",
+            message=f"Your reservation #{reservation.id} has been cancelled.",
         )
 
         await delete_available_slots_cache_for_resource(
@@ -208,6 +222,12 @@ class ReservationService:
             reservation
         )
 
+        await self.notification_service.create_notification(
+            user_id=reservation.user_id,
+            title="Reservation confirmed",
+            message=f"Your reservation #{reservation.id} has been confirmed.",
+        )
+
         await delete_available_slots_cache_for_resource(
             reservation.resource_id
         )
@@ -244,6 +264,12 @@ class ReservationService:
 
         updated_reservation = await self.reservation_repository.update(
             reservation
+        )
+
+        await self.notification_service.create_notification(
+            user_id=reservation.user_id,
+            title="Reservation completed",
+            message=f"Your reservation #{reservation.id} has been completed.",
         )
 
         await delete_available_slots_cache_for_resource(

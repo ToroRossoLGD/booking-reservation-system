@@ -1,3 +1,4 @@
+from app.models.notification import Notification
 from app.models.reservation import Reservation
 from app.models.resource import Resource
 from app.models.user import User
@@ -8,4 +9,5 @@ __all__ = [
     "Venue",
     "Resource",
     "Reservation",
+    "Notification",
 ]
