@@ -67,7 +67,8 @@ class ReservationService:
             user_id=current_user.id,
             title="Reservation created",
             message=f"Your reservation #{created_reservation.id} has been created.",
-        )
+            user_email=current_user.email,
+)
 
         return created_reservation
 

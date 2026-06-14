@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     REDIS_HOST: str
     REDIS_PORT: int
     REDIS_DB: int = 0
+
+    SMTP_HOST: str = "localhost"
+    SMTP_PORT: int = 1025
+    SMTP_FROM_EMAIL: str = "no-reply@booking.local"
+    SMTP_FROM_NAME: str = "Booking Reservation System"
+    
     CACHE_TTL_SECONDS: int = 60
 
     model_config = SettingsConfigDict(
