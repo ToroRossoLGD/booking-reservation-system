@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, require_roles
@@ -22,14 +22,16 @@ router = APIRouter(
 @router.post("", response_model=ReservationRead, status_code=201)
 async def create_reservation(
     data: ReservationCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     service = ReservationService(db)
 
     return await service.create_reservation(
-        data,
-        current_user,
+        data=data,
+        current_user=current_user,
+        background_tasks=background_tasks,
     )
 
 

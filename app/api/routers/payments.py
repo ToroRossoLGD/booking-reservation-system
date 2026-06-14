@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user
@@ -22,6 +22,7 @@ router = APIRouter(
 async def pay_for_reservation(
     reservation_id: int,
     data: PaymentCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -31,4 +32,5 @@ async def pay_for_reservation(
         reservation_id=reservation_id,
         data=data,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
