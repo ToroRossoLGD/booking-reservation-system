@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.reservation import Reservation, ReservationStatus
@@ -28,6 +28,7 @@ class ReservationService:
         self,
         data: ReservationCreate,
         current_user: User,
+        background_tasks: BackgroundTasks | None = None,
     ) -> Reservation:
 
         if data.start_time >= data.end_time:
@@ -68,7 +69,8 @@ class ReservationService:
             title="Reservation created",
             message=f"Your reservation #{created_reservation.id} has been created.",
             user_email=current_user.email,
-)
+            background_tasks=background_tasks,
+        )
 
         return created_reservation
 
