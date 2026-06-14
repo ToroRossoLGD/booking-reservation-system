@@ -14,3 +14,8 @@ JWT_EXPIRE_MINUTES=60
 
 REDIS_HOST=localhost
 REDIS_PORT=6379
+
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_FROM_EMAIL=no-reply@booking.local
+SMTP_FROM_NAME=Booking Reservation System

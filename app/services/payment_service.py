@@ -79,6 +79,7 @@ class PaymentService:
             user_id=current_user.id,
             title="Payment successful",
             message=f"Payment for reservation #{reservation.id} was successful.",
-        )
+            user_email=current_user.email,
+)
 
         return paid_payment
