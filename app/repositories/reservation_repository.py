@@ -43,8 +43,7 @@ class ReservationRepository:
             select(Reservation).where(
                 and_(
                     Reservation.resource_id == resource_id,
-                    Reservation.status != "cancelled",
-
+                    Reservation.status.in_(["pending", "confirmed"]),
                     Reservation.start_time < end_time,
                     Reservation.end_time > start_time,
                 )
@@ -86,3 +85,16 @@ class ReservationRepository:
         )
 
         return result.all()
+    
+    async def get_expired_pending_reservations(
+        self,
+        older_than,
+    ) -> list[Reservation]:
+        result = await self.db.execute(
+            select(Reservation).where(
+                Reservation.status == "pending",
+                Reservation.created_at < older_than,
+            )
+        )
+
+        return list(result.scalars().all())

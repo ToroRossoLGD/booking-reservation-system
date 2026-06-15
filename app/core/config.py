@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 1025
     SMTP_FROM_EMAIL: str = "no-reply@booking.local"
     SMTP_FROM_NAME: str = "Booking Reservation System"
+
+    RESERVATION_EXPIRE_MINUTES: int = 15
     
     CACHE_TTL_SECONDS: int = 60
 

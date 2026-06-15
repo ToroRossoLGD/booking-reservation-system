@@ -110,3 +110,12 @@ async def complete_reservation(
         reservation_id=reservation_id,
         current_user=current_user,
     )
+
+@router.post("/expire-pending")
+async def expire_pending_reservations(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("admin")),
+):
+    service = ReservationService(db)
+
+    return await service.expire_pending_reservations()

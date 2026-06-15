@@ -8,6 +8,7 @@ from app.schemas.reservation import ReservationCreate
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
 from datetime import date, datetime, time, timedelta, timezone
+from app.core.config import settings
 from app.services.notification_service import NotificationService
 from app.core.cache import (
     build_available_slots_cache_key,
@@ -353,3 +354,32 @@ class ReservationService:
         )
 
         return slots
+    
+
+    async def expire_pending_reservations(self) -> dict:
+        cutoff_time = datetime.now(timezone.utc) - timedelta(
+            minutes=settings.RESERVATION_EXPIRE_MINUTES
+        )
+
+        expired_reservations = (
+            await self.reservation_repository.get_expired_pending_reservations(
+                older_than=cutoff_time
+            )
+        )
+
+        expired_count = 0
+
+        for reservation in expired_reservations:
+            reservation.status = ReservationStatus.EXPIRED.value
+
+            await self.reservation_repository.update(reservation)
+
+            await delete_available_slots_cache_for_resource(
+                reservation.resource_id
+            )
+
+            expired_count += 1
+
+        return {
+            "expired_count": expired_count
+        }
