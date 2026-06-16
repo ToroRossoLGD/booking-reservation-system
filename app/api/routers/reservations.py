@@ -10,6 +10,7 @@ from app.schemas.reservation import (
     ReservationRead,
 )
 from app.services.reservation_service import ReservationService
+from app.tasks.reservation_tasks import expire_pending_reservations_task
 from datetime import datetime
 
 
@@ -119,3 +120,14 @@ async def expire_pending_reservations(
     service = ReservationService(db)
 
     return await service.expire_pending_reservations()
+
+@router.post("/expire-pending/background")
+async def expire_pending_reservations_background(
+    current_user: User = Depends(require_roles("admin")),
+):
+    task = expire_pending_reservations_task.delay()
+
+    return {
+        "task_id": task.id,
+        "status": "queued",
+    }
