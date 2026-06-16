@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str = "no-reply@booking.local"
     SMTP_FROM_NAME: str = "Booking Reservation System"
 
+    CELERY_BROKER_URL: str = "redis://localhost:6379/1"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
+
     RESERVATION_EXPIRE_MINUTES: int = 15
     
     CACHE_TTL_SECONDS: int = 60
