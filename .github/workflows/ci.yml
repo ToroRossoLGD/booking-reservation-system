@@ -36,6 +36,12 @@ jobs:
     env:
       APP_NAME: Booking Reservation System
 
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: booking_db
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+
       DATABASE_URL: postgresql+asyncpg://postgres:postgres123@localhost:5432/booking_db
 
       JWT_SECRET: test-secret
