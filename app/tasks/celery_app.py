@@ -18,4 +18,10 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
+    beat_schedule={
+        "expire-pending-reservations-periodically": {
+            "task": "expire_pending_reservations_task",
+            "schedule": settings.CELERY_EXPIRE_PENDING_INTERVAL_MINUTES * 60,
+        },
+    },
 )
