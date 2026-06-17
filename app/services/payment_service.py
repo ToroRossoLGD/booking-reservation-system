@@ -21,6 +21,7 @@ class PaymentService:
         reservation_id: int,
         data: PaymentCreate,
         current_user: User,
+        background_tasks: BackgroundTasks | None = None,
     ) -> Payment:
         reservation = await self.reservation_repository.get_by_id(
             reservation_id
@@ -80,6 +81,7 @@ class PaymentService:
             title="Payment successful",
             message=f"Payment for reservation #{reservation.id} was successful.",
             user_email=current_user.email,
-)
+            background_tasks=background_tasks,
+        )
 
         return paid_payment
