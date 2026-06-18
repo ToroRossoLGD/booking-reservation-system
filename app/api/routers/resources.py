@@ -1,15 +1,15 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from datetime import date
 from app.core.dependencies import require_roles
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.resource import ResourceCreate, ResourceRead
-from app.services.resource_service import ResourceService
 from app.schemas.reservation import AvailableSlotRead
+from app.schemas.resource import ResourceCreate, ResourceRead
 from app.services.reservation_service import ReservationService
-
+from app.services.resource_service import ResourceService
 
 router = APIRouter(
     tags=["Resources"],
@@ -73,6 +73,7 @@ async def delete_resource(
         resource_id=resource_id,
         current_user=current_user,
     )
+
 
 @router.get(
     "/resources/{resource_id}/available-slots",

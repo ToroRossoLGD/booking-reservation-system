@@ -14,6 +14,4 @@ class ResourceRead(BaseModel):
     capacity: int
     venue_id: int
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}

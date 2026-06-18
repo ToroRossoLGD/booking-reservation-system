@@ -2,10 +2,10 @@ from datetime import datetime
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.resource import Resource
-from app.models.venue import Venue
 
 from app.models.reservation import Reservation
+from app.models.resource import Resource
+from app.models.venue import Venue
 
 
 class ReservationRepository:
@@ -53,7 +53,7 @@ class ReservationRepository:
         reservation = result.scalar_one_or_none()
 
         return reservation is not None
-    
+
     async def get_by_id(
         self,
         reservation_id: int,
@@ -71,7 +71,7 @@ class ReservationRepository:
         await self.db.commit()
         await self.db.refresh(reservation)
         return reservation
-    
+
     async def get_by_owner_id(
         self,
         owner_id: int,
@@ -85,7 +85,7 @@ class ReservationRepository:
         )
 
         return result.all()
-    
+
     async def get_expired_pending_reservations(
         self,
         older_than,

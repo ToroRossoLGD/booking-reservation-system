@@ -20,17 +20,13 @@ class OwnerService:
         self,
         current_user: User,
     ):
-        return await self.venue_repository.get_by_owner_id(
-            current_user.id
-        )
+        return await self.venue_repository.get_by_owner_id(current_user.id)
 
     async def get_my_resources(
         self,
         current_user: User,
     ) -> list[OwnerResourceRead]:
-        rows = await self.resource_repository.get_by_owner_id(
-            current_user.id
-        )
+        rows = await self.resource_repository.get_by_owner_id(current_user.id)
 
         return [
             OwnerResourceRead(
@@ -48,9 +44,7 @@ class OwnerService:
         self,
         current_user: User,
     ) -> list[OwnerReservationRead]:
-        rows = await self.reservation_repository.get_by_owner_id(
-            current_user.id
-        )
+        rows = await self.reservation_repository.get_by_owner_id(current_user.id)
 
         return [
             OwnerReservationRead(

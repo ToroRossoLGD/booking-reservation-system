@@ -15,25 +15,19 @@ class VenueRepository:
         return venue
 
     async def get_all(self) -> list[Venue]:
-        result = await self.db.execute(
-            select(Venue).order_by(Venue.id)
-        )
+        result = await self.db.execute(select(Venue).order_by(Venue.id))
         return list(result.scalars().all())
 
     async def get_by_id(self, venue_id: int) -> Venue | None:
-        result = await self.db.execute(
-            select(Venue).where(Venue.id == venue_id)
-        )
+        result = await self.db.execute(select(Venue).where(Venue.id == venue_id))
         return result.scalar_one_or_none()
-    
+
     async def get_by_owner_id(
         self,
         owner_id: int,
     ) -> list[Venue]:
         result = await self.db.execute(
-            select(Venue)
-            .where(Venue.owner_id == owner_id)
-            .order_by(Venue.id)
+            select(Venue).where(Venue.owner_id == owner_id).order_by(Venue.id)
         )
 
         return list(result.scalars().all())

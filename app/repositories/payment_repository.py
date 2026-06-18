@@ -22,9 +22,7 @@ class PaymentRepository:
         reservation_id: int,
     ) -> Payment | None:
         result = await self.db.execute(
-            select(Payment).where(
-                Payment.reservation_id == reservation_id
-            )
+            select(Payment).where(Payment.reservation_id == reservation_id)
         )
 
         return result.scalar_one_or_none()

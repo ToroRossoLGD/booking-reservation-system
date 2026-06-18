@@ -14,9 +14,7 @@ class UserRead(BaseModel):
     email: EmailStr
     role: str
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class Token(BaseModel):

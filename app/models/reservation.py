@@ -1,5 +1,5 @@
 import enum
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -41,7 +41,7 @@ class Reservation(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
     )
 
     user_id: Mapped[int] = mapped_column(
@@ -56,6 +56,5 @@ class Reservation(Base):
         index=True,
     )
 
-    
     user = relationship("User")
     resource = relationship("Resource")

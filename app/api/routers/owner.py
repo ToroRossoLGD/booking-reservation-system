@@ -11,7 +11,6 @@ from app.schemas.owner import (
 )
 from app.services.owner_service import OwnerService
 
-
 router = APIRouter(
     prefix="/owner",
     tags=["Owner Dashboard"],
@@ -28,9 +27,7 @@ async def get_owner_venues(
 ):
     service = OwnerService(db)
 
-    return await service.get_my_venues(
-        current_user
-    )
+    return await service.get_my_venues(current_user)
 
 
 @router.get(
@@ -43,9 +40,7 @@ async def get_owner_resources(
 ):
     service = OwnerService(db)
 
-    return await service.get_my_resources(
-        current_user
-    )
+    return await service.get_my_resources(current_user)
 
 
 @router.get(
@@ -58,6 +53,4 @@ async def get_owner_reservations(
 ):
     service = OwnerService(db)
 
-    return await service.get_my_reservations(
-        current_user
-    )
+    return await service.get_my_reservations(current_user)

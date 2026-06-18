@@ -1,0 +1,18 @@
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+exclude = [
+    ".venv",
+    "alembic/versions",
+    "celerybeat-schedule*",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

@@ -7,7 +7,6 @@ from app.models.user import User
 from app.schemas.venue import VenueCreate, VenueRead
 from app.services.venue_service import VenueService
 
-
 router = APIRouter(
     prefix="/venues",
     tags=["Venues"],

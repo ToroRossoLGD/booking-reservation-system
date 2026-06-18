@@ -8,7 +8,6 @@ from app.models.user import User
 from app.schemas.auth import Token, UserCreate, UserRead
 from app.services.auth_service import AuthService
 
-
 router = APIRouter(
     prefix="/auth",
     tags=["Auth"],
@@ -43,6 +42,7 @@ async def get_me(
     current_user: User = Depends(get_current_user),
 ):
     return current_user
+
 
 @router.get("/owner-only", response_model=UserRead)
 async def owner_only(

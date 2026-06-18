@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.venue import Venue
 from app.models.resource import Resource
+from app.models.venue import Venue
 
 
 class ResourceRepository:
@@ -23,9 +23,7 @@ class ResourceRepository:
 
     async def get_by_venue_id(self, venue_id: int) -> list[Resource]:
         result = await self.db.execute(
-            select(Resource)
-            .where(Resource.venue_id == venue_id)
-            .order_by(Resource.id)
+            select(Resource).where(Resource.venue_id == venue_id).order_by(Resource.id)
         )
         return list(result.scalars().all())
 
