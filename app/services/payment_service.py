@@ -23,9 +23,7 @@ class PaymentService:
         current_user: User,
         background_tasks: BackgroundTasks | None = None,
     ) -> Payment:
-        reservation = await self.reservation_repository.get_by_id(
-            reservation_id
-        )
+        reservation = await self.reservation_repository.get_by_id(reservation_id)
 
         if reservation is None:
             raise HTTPException(

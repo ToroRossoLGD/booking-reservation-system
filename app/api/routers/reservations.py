@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,8 +13,6 @@ from app.schemas.reservation import (
 )
 from app.services.reservation_service import ReservationService
 from app.tasks.reservation_tasks import expire_pending_reservations_task
-from datetime import datetime
-
 
 router = APIRouter(
     prefix="/reservations",
@@ -43,9 +43,9 @@ async def get_my_reservations(
 ):
     service = ReservationService(db)
 
-    return await service.get_my_reservations(
-        current_user
-    )
+    return await service.get_my_reservations(current_user)
+
+
 @router.patch(
     "/{reservation_id}/cancel",
     response_model=ReservationRead,
@@ -61,6 +61,7 @@ async def cancel_reservation(
         reservation_id=reservation_id,
         current_user=current_user,
     )
+
 
 @router.get(
     "/resources/{resource_id}/availability",
@@ -79,6 +80,8 @@ async def check_resource_availability(
         start_time=start_time,
         end_time=end_time,
     )
+
+
 @router.patch(
     "/{reservation_id}/confirm",
     response_model=ReservationRead,
@@ -112,6 +115,7 @@ async def complete_reservation(
         current_user=current_user,
     )
 
+
 @router.post("/expire-pending")
 async def expire_pending_reservations(
     db: AsyncSession = Depends(get_db),
@@ -120,6 +124,7 @@ async def expire_pending_reservations(
     service = ReservationService(db)
 
     return await service.expire_pending_reservations()
+
 
 @router.post("/expire-pending/background")
 async def expire_pending_reservations_background(

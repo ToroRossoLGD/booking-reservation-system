@@ -1,21 +1,22 @@
+from datetime import UTC, date, datetime, time, timedelta
+
 from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.reservation import Reservation, ReservationStatus
-from app.models.user import User
-from app.repositories.reservation_repository import ReservationRepository
-from app.schemas.reservation import ReservationCreate
-from app.repositories.resource_repository import ResourceRepository
-from app.repositories.venue_repository import VenueRepository
-from datetime import date, datetime, time, timedelta, timezone
-from app.core.config import settings
-from app.services.notification_service import NotificationService
 from app.core.cache import (
     build_available_slots_cache_key,
     delete_available_slots_cache_for_resource,
     get_cache,
     set_cache,
 )
+from app.core.config import settings
+from app.models.reservation import Reservation, ReservationStatus
+from app.models.user import User
+from app.repositories.reservation_repository import ReservationRepository
+from app.repositories.resource_repository import ResourceRepository
+from app.repositories.venue_repository import VenueRepository
+from app.schemas.reservation import ReservationCreate
+from app.services.notification_service import NotificationService
 
 
 class ReservationService:
@@ -57,13 +58,9 @@ class ReservationService:
             resource_id=data.resource_id,
         )
 
-        created_reservation = await self.reservation_repository.create(
-            reservation
-        )
+        created_reservation = await self.reservation_repository.create(reservation)
 
-        await delete_available_slots_cache_for_resource(
-            data.resource_id
-        )
+        await delete_available_slots_cache_for_resource(data.resource_id)
 
         await self.notification_service.create_notification(
             user_id=current_user.id,
@@ -79,17 +76,14 @@ class ReservationService:
         self,
         current_user: User,
     ):
-        return await self.reservation_repository.get_user_reservations(
-            current_user.id
-        )
+        return await self.reservation_repository.get_user_reservations(current_user.id)
+
     async def cancel_reservation(
         self,
         reservation_id: int,
         current_user: User,
     ) -> Reservation:
-        reservation = await self.reservation_repository.get_by_id(
-            reservation_id
-        )
+        reservation = await self.reservation_repository.get_by_id(reservation_id)
 
         if reservation is None:
             raise HTTPException(
@@ -111,9 +105,7 @@ class ReservationService:
 
         reservation.status = ReservationStatus.CANCELLED.value
 
-        updated_reservation = await self.reservation_repository.update(
-            reservation
-        )
+        updated_reservation = await self.reservation_repository.update(reservation)
 
         await self.notification_service.create_notification(
             user_id=reservation.user_id,
@@ -121,12 +113,10 @@ class ReservationService:
             message=f"Your reservation #{reservation.id} has been cancelled.",
         )
 
-        await delete_available_slots_cache_for_resource(
-            reservation.resource_id
-        )
+        await delete_available_slots_cache_for_resource(reservation.resource_id)
 
         return updated_reservation
-    
+
     async def check_availability(
         self,
         resource_id: int,
@@ -159,7 +149,7 @@ class ReservationService:
             "end_time": end_time,
             "available": not has_conflict,
         }
-    
+
     async def _ensure_owner_can_manage_reservation(
         self,
         reservation: Reservation,
@@ -168,9 +158,7 @@ class ReservationService:
         if current_user.role == "admin":
             return
 
-        resource = await self.resource_repository.get_by_id(
-            reservation.resource_id
-        )
+        resource = await self.resource_repository.get_by_id(reservation.resource_id)
 
         if resource is None:
             raise HTTPException(
@@ -178,9 +166,7 @@ class ReservationService:
                 detail="Resource not found",
             )
 
-        venue = await self.venue_repository.get_by_id(
-            resource.venue_id
-        )
+        venue = await self.venue_repository.get_by_id(resource.venue_id)
 
         if venue is None:
             raise HTTPException(
@@ -199,9 +185,7 @@ class ReservationService:
         reservation_id: int,
         current_user: User,
     ) -> Reservation:
-        reservation = await self.reservation_repository.get_by_id(
-            reservation_id
-        )
+        reservation = await self.reservation_repository.get_by_id(reservation_id)
 
         if reservation is None:
             raise HTTPException(
@@ -222,9 +206,7 @@ class ReservationService:
 
         reservation.status = ReservationStatus.CONFIRMED.value
 
-        updated_reservation = await self.reservation_repository.update(
-            reservation
-        )
+        updated_reservation = await self.reservation_repository.update(reservation)
 
         await self.notification_service.create_notification(
             user_id=reservation.user_id,
@@ -232,9 +214,7 @@ class ReservationService:
             message=f"Your reservation #{reservation.id} has been confirmed.",
         )
 
-        await delete_available_slots_cache_for_resource(
-            reservation.resource_id
-        )
+        await delete_available_slots_cache_for_resource(reservation.resource_id)
 
         return updated_reservation
 
@@ -243,9 +223,7 @@ class ReservationService:
         reservation_id: int,
         current_user: User,
     ) -> Reservation:
-        reservation = await self.reservation_repository.get_by_id(
-            reservation_id
-        )
+        reservation = await self.reservation_repository.get_by_id(reservation_id)
 
         if reservation is None:
             raise HTTPException(
@@ -266,9 +244,7 @@ class ReservationService:
 
         reservation.status = ReservationStatus.COMPLETED.value
 
-        updated_reservation = await self.reservation_repository.update(
-            reservation
-        )
+        updated_reservation = await self.reservation_repository.update(reservation)
 
         await self.notification_service.create_notification(
             user_id=reservation.user_id,
@@ -276,12 +252,10 @@ class ReservationService:
             message=f"Your reservation #{reservation.id} has been completed.",
         )
 
-        await delete_available_slots_cache_for_resource(
-            reservation.resource_id
-        )
+        await delete_available_slots_cache_for_resource(reservation.resource_id)
 
         return updated_reservation
-    
+
     async def get_available_slots(
         self,
         resource_id: int,
@@ -316,13 +290,13 @@ class ReservationService:
         working_start = datetime.combine(
             selected_date,
             time(hour=9, minute=0),
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         )
 
         working_end = datetime.combine(
             selected_date,
             time(hour=17, minute=0),
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         )
 
         slots = []
@@ -332,10 +306,12 @@ class ReservationService:
         while current_start + slot_delta <= working_end:
             current_end = current_start + slot_delta
 
-            has_conflict = await self.reservation_repository.has_conflicting_reservation(
-                resource_id=resource_id,
-                start_time=current_start,
-                end_time=current_end,
+            has_conflict = (
+                await self.reservation_repository.has_conflicting_reservation(
+                    resource_id=resource_id,
+                    start_time=current_start,
+                    end_time=current_end,
+                )
             )
 
             slots.append(
@@ -354,10 +330,9 @@ class ReservationService:
         )
 
         return slots
-    
 
     async def expire_pending_reservations(self) -> dict:
-        cutoff_time = datetime.now(timezone.utc) - timedelta(
+        cutoff_time = datetime.now(UTC) - timedelta(
             minutes=settings.RESERVATION_EXPIRE_MINUTES
         )
 
@@ -374,12 +349,8 @@ class ReservationService:
 
             await self.reservation_repository.update(reservation)
 
-            await delete_available_slots_cache_for_resource(
-                reservation.resource_id
-            )
+            await delete_available_slots_cache_for_resource(reservation.resource_id)
 
             expired_count += 1
 
-        return {
-            "expired_count": expired_count
-        }
+        return {"expired_count": expired_count}

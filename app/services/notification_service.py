@@ -25,9 +25,7 @@ class NotificationService:
             message=message,
         )
 
-        created_notification = await self.notification_repository.create(
-            notification
-        )
+        created_notification = await self.notification_repository.create(notification)
 
         if user_email:
             if background_tasks:

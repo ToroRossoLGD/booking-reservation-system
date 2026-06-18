@@ -7,7 +7,6 @@ from app.models.user import User
 from app.schemas.payment import PaymentCreate, PaymentRead
 from app.services.payment_service import PaymentService
 
-
 router = APIRouter(
     prefix="/payments",
     tags=["Payments"],

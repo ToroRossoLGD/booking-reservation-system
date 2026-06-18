@@ -7,7 +7,6 @@ from app.models.user import User
 from app.schemas.notification import NotificationRead
 from app.services.notification_service import NotificationService
 
-
 router = APIRouter(
     prefix="/notifications",
     tags=["Notifications"],
@@ -24,6 +23,4 @@ async def get_my_notifications(
 ):
     service = NotificationService(db)
 
-    return await service.get_my_notifications(
-        current_user.id
-    )
+    return await service.get_my_notifications(current_user.id)
