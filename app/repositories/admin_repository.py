@@ -13,27 +13,19 @@ class AdminRepository:
         self.db = db
 
     async def count_users(self) -> int:
-        result = await self.db.execute(
-            select(func.count(User.id))
-        )
+        result = await self.db.execute(select(func.count(User.id)))
         return result.scalar_one()
 
     async def count_venues(self) -> int:
-        result = await self.db.execute(
-            select(func.count(Venue.id))
-        )
+        result = await self.db.execute(select(func.count(Venue.id)))
         return result.scalar_one()
 
     async def count_resources(self) -> int:
-        result = await self.db.execute(
-            select(func.count(Resource.id))
-        )
+        result = await self.db.execute(select(func.count(Resource.id)))
         return result.scalar_one()
 
     async def count_reservations(self) -> int:
-        result = await self.db.execute(
-            select(func.count(Reservation.id))
-        )
+        result = await self.db.execute(select(func.count(Reservation.id)))
         return result.scalar_one()
 
     async def count_reservations_by_status(self) -> dict[str, int]:
@@ -41,19 +33,13 @@ class AdminRepository:
             select(
                 Reservation.status,
                 func.count(Reservation.id),
-            )
-            .group_by(Reservation.status)
+            ).group_by(Reservation.status)
         )
 
-        return {
-            status: count
-            for status, count in result.all()
-        }
+        return {status: count for status, count in result.all()}
 
     async def count_payments(self) -> int:
-        result = await self.db.execute(
-            select(func.count(Payment.id))
-        )
+        result = await self.db.execute(select(func.count(Payment.id)))
         return result.scalar_one()
 
     async def get_total_revenue_cents(self) -> int:
@@ -63,9 +49,7 @@ class AdminRepository:
                     func.sum(Payment.amount_cents),
                     0,
                 )
-            ).where(
-                Payment.status == PaymentStatus.PAID.value
-            )
+            ).where(Payment.status == PaymentStatus.PAID.value)
         )
 
         return result.scalar_one()
