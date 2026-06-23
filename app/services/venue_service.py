@@ -38,3 +38,43 @@ class VenueService:
             )
 
         return venue
+
+    async def search_venues(
+        self,
+        query_text: str,
+        limit: int,
+        offset: int,
+    ) -> dict:
+        if len(query_text.strip()) < 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Search query must contain at least 2 characters",
+            )
+
+        if limit < 1 or limit > 100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="limit must be between 1 and 100",
+            )
+
+        if offset < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="offset must be greater than or equal to 0",
+            )
+
+        items = await self.venue_repository.search(
+            query_text=query_text.strip(),
+            limit=limit,
+            offset=offset,
+        )
+
+        total = await self.venue_repository.count_search(query_text=query_text.strip())
+
+        return {
+            "items": items,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_next": offset + limit < total,
+        }

@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.venue import Venue
@@ -31,3 +31,43 @@ class VenueRepository:
         )
 
         return list(result.scalars().all())
+
+    async def search(
+        self,
+        query_text: str,
+        limit: int,
+        offset: int,
+    ) -> list[Venue]:
+        search_pattern = f"%{query_text}%"
+
+        result = await self.db.execute(
+            select(Venue)
+            .where(
+                or_(
+                    Venue.name.ilike(search_pattern),
+                    Venue.address.ilike(search_pattern),
+                )
+            )
+            .order_by(Venue.id)
+            .limit(limit)
+            .offset(offset)
+        )
+
+        return list(result.scalars().all())
+
+    async def count_search(
+        self,
+        query_text: str,
+    ) -> int:
+        search_pattern = f"%{query_text}%"
+
+        result = await self.db.execute(
+            select(func.count(Venue.id)).where(
+                or_(
+                    Venue.name.ilike(search_pattern),
+                    Venue.address.ilike(search_pattern),
+                )
+            )
+        )
+
+        return result.scalar_one()
