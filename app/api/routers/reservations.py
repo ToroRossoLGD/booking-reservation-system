@@ -38,12 +38,20 @@ async def create_reservation(
 
 @router.get("/my", response_model=list[ReservationRead])
 async def get_my_reservations(
+    limit: int = 20,
+    offset: int = 0,
+    status: str | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     service = ReservationService(db)
 
-    return await service.get_my_reservations(current_user)
+    return await service.get_my_reservations(
+        current_user=current_user,
+        limit=limit,
+        offset=offset,
+        status_filter=status,
+    )
 
 
 @router.patch(
