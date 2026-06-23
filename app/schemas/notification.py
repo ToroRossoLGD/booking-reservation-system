@@ -12,3 +12,15 @@ class NotificationRead(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class UnreadNotificationCount(BaseModel):
+    unread_count: int
+
+
+class NotificationListRead(BaseModel):
+    items: list[NotificationRead]
+    total: int
+    limit: int
+    offset: int
+    has_next: bool
