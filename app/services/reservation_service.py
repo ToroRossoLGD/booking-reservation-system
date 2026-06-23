@@ -75,8 +75,42 @@ class ReservationService:
     async def get_my_reservations(
         self,
         current_user: User,
+        limit: int,
+        offset: int,
+        status_filter: str | None = None,
     ):
-        return await self.reservation_repository.get_user_reservations(current_user.id)
+        if limit < 1 or limit > 100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="limit must be between 1 and 100",
+            )
+
+        if offset < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="offset must be greater than or equal to 0",
+            )
+
+        valid_statuses = {
+            ReservationStatus.PENDING.value,
+            ReservationStatus.CONFIRMED.value,
+            ReservationStatus.CANCELLED.value,
+            ReservationStatus.COMPLETED.value,
+            ReservationStatus.EXPIRED.value,
+        }
+
+        if status_filter is not None and status_filter not in valid_statuses:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid reservation status filter",
+            )
+
+        return await self.reservation_repository.get_user_reservations(
+            user_id=current_user.id,
+            limit=limit,
+            offset=offset,
+            status=status_filter,
+        )
 
     async def cancel_reservation(
         self,

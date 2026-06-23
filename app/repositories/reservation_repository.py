@@ -24,12 +24,20 @@ class ReservationRepository:
     async def get_user_reservations(
         self,
         user_id: int,
+        limit: int,
+        offset: int,
+        status: str | None = None,
     ) -> list[Reservation]:
-        result = await self.db.execute(
-            select(Reservation)
-            .where(Reservation.user_id == user_id)
-            .order_by(Reservation.start_time)
+        query = select(Reservation).where(Reservation.user_id == user_id)
+
+        if status is not None:
+            query = query.where(Reservation.status == status)
+
+        query = (
+            query.order_by(Reservation.start_time.desc()).limit(limit).offset(offset)
         )
+
+        result = await self.db.execute(query)
 
         return list(result.scalars().all())
 
