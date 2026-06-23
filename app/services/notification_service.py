@@ -47,8 +47,41 @@ class NotificationService:
     async def get_my_notifications(
         self,
         user_id: int,
-    ) -> list[Notification]:
-        return await self.notification_repository.get_by_user_id(user_id)
+        limit: int,
+        offset: int,
+        is_read: bool | None = None,
+    ) -> dict:
+        if limit < 1 or limit > 100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="limit must be between 1 and 100",
+            )
+
+        if offset < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="offset must be greater than or equal to 0",
+            )
+
+        items = await self.notification_repository.get_by_user_id(
+            user_id=user_id,
+            limit=limit,
+            offset=offset,
+            is_read=is_read,
+        )
+
+        total = await self.notification_repository.count_by_user_id(
+            user_id=user_id,
+            is_read=is_read,
+        )
+
+        return {
+            "items": items,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_next": offset + limit < total,
+        }
 
     async def mark_notification_as_read(
         self,
