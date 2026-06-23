@@ -9,6 +9,7 @@ from app.models.user import User
 from app.schemas.reservation import (
     AvailabilityRead,
     ReservationCreate,
+    ReservationListRead,
     ReservationRead,
 )
 from app.services.reservation_service import ReservationService
@@ -36,7 +37,7 @@ async def create_reservation(
     )
 
 
-@router.get("/my", response_model=list[ReservationRead])
+@router.get("/my", response_model=ReservationListRead)
 async def get_my_reservations(
     limit: int = 20,
     offset: int = 0,

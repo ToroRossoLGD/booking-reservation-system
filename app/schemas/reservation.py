@@ -31,3 +31,11 @@ class AvailableSlotRead(BaseModel):
     start_time: datetime
     end_time: datetime
     available: bool
+
+
+class ReservationListRead(BaseModel):
+    items: list[ReservationRead]
+    total: int
+    limit: int
+    offset: int
+    has_next: bool

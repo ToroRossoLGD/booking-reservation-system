@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.reservation import Reservation
@@ -106,3 +106,17 @@ class ReservationRepository:
         )
 
         return list(result.scalars().all())
+
+    async def count_user_reservations(
+        self,
+        user_id: int,
+        status: str | None = None,
+    ) -> int:
+        query = select(func.count(Reservation.id)).where(Reservation.user_id == user_id)
+
+        if status is not None:
+            query = query.where(Reservation.status == status)
+
+        result = await self.db.execute(query)
+
+        return result.scalar_one()

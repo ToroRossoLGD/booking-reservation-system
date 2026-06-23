@@ -78,7 +78,7 @@ class ReservationService:
         limit: int,
         offset: int,
         status_filter: str | None = None,
-    ):
+    ) -> dict:
         if limit < 1 or limit > 100:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -105,12 +105,25 @@ class ReservationService:
                 detail="Invalid reservation status filter",
             )
 
-        return await self.reservation_repository.get_user_reservations(
+        items = await self.reservation_repository.get_user_reservations(
             user_id=current_user.id,
             limit=limit,
             offset=offset,
             status=status_filter,
         )
+
+        total = await self.reservation_repository.count_user_reservations(
+            user_id=current_user.id,
+            status=status_filter,
+        )
+
+        return {
+            "items": items,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_next": offset + limit < total,
+        }
 
     async def cancel_reservation(
         self,
