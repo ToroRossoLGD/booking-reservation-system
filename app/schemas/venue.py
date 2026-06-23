@@ -15,3 +15,11 @@ class VenueRead(BaseModel):
     owner_id: int
 
     model_config = {"from_attributes": True}
+
+
+class VenueListRead(BaseModel):
+    items: list[VenueRead]
+    total: int
+    limit: int
+    offset: int
+    has_next: bool

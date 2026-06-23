@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import require_roles
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.venue import VenueCreate, VenueRead
+from app.schemas.venue import VenueCreate, VenueListRead, VenueRead
 from app.services.venue_service import VenueService
 
 router = APIRouter(
@@ -29,6 +29,25 @@ async def get_venues(
 ):
     service = VenueService(db)
     return await service.get_all_venues()
+
+
+@router.get(
+    "/search",
+    response_model=VenueListRead,
+)
+async def search_venues(
+    q: str,
+    limit: int = 20,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+):
+    service = VenueService(db)
+
+    return await service.search_venues(
+        query_text=q,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{venue_id}", response_model=VenueRead)
