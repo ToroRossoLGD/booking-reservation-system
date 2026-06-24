@@ -1,3 +1,4 @@
+from app.models.favorite_resource import FavoriteResource
 from app.models.notification import Notification
 from app.models.payment import Payment
 from app.models.reservation import Reservation
@@ -9,6 +10,7 @@ __all__ = [
     "User",
     "Venue",
     "Resource",
+    "FavoriteResource",
     "Reservation",
     "Notification",
     "Payment",
