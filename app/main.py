@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from app.api.routers.admin import router as admin_router
 from app.api.routers.auth import router as auth_router
+from app.api.routers.favorites import router as favorites_router
 from app.api.routers.notifications import router as notifications_router
 from app.api.routers.owner import router as owner_router
 from app.api.routers.payments import router as payments_router
@@ -26,3 +27,4 @@ app.include_router(owner_router)
 app.include_router(notifications_router)
 app.include_router(payments_router)
 app.include_router(admin_router)
+app.include_router(favorites_router)
