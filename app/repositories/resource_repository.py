@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.resource import Resource
@@ -43,3 +43,61 @@ class ResourceRepository:
         )
 
         return result.all()
+
+    async def search(
+        self,
+        query_text: str,
+        limit: int,
+        offset: int,
+        resource_type: str | None = None,
+    ):
+        search_pattern = f"%{query_text}%"
+
+        query = (
+            select(Resource, Venue)
+            .join(Venue, Resource.venue_id == Venue.id)
+            .where(
+                or_(
+                    Resource.name.ilike(search_pattern),
+                    Resource.resource_type.ilike(search_pattern),
+                    Venue.name.ilike(search_pattern),
+                    Venue.address.ilike(search_pattern),
+                )
+            )
+        )
+
+        if resource_type is not None:
+            query = query.where(Resource.resource_type == resource_type)
+
+        query = query.order_by(Resource.id).limit(limit).offset(offset)
+
+        result = await self.db.execute(query)
+
+        return result.all()
+
+    async def count_search(
+        self,
+        query_text: str,
+        resource_type: str | None = None,
+    ) -> int:
+        search_pattern = f"%{query_text}%"
+
+        query = (
+            select(func.count(Resource.id))
+            .join(Venue, Resource.venue_id == Venue.id)
+            .where(
+                or_(
+                    Resource.name.ilike(search_pattern),
+                    Resource.resource_type.ilike(search_pattern),
+                    Venue.name.ilike(search_pattern),
+                    Venue.address.ilike(search_pattern),
+                )
+            )
+        )
+
+        if resource_type is not None:
+            query = query.where(Resource.resource_type == resource_type)
+
+        result = await self.db.execute(query)
+
+        return result.scalar_one()

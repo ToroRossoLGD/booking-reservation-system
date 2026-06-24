@@ -7,7 +7,11 @@ from app.core.dependencies import require_roles
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.reservation import AvailableSlotRead
-from app.schemas.resource import ResourceCreate, ResourceRead
+from app.schemas.resource import (
+    ResourceCreate,
+    ResourceListRead,
+    ResourceRead,
+)
 from app.services.reservation_service import ReservationService
 from app.services.resource_service import ResourceService
 
@@ -45,6 +49,27 @@ async def get_resources_by_venue(
 ):
     service = ResourceService(db)
     return await service.get_resources_by_venue(venue_id)
+
+
+@router.get(
+    "/resources/search",
+    response_model=ResourceListRead,
+)
+async def search_resources(
+    q: str,
+    resource_type: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+):
+    service = ResourceService(db)
+
+    return await service.search_resources(
+        query_text=q,
+        resource_type=resource_type,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get(
