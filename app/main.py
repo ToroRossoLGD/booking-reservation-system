@@ -7,6 +7,7 @@ from app.api.routers.notifications import router as notifications_router
 from app.api.routers.owner import router as owner_router
 from app.api.routers.payments import router as payments_router
 from app.api.routers.reservations import router as reservations_router
+from app.api.routers.resource_reviews import router as resource_reviews_router
 from app.api.routers.resources import router as resources_router
 from app.api.routers.venues import router as venues_router
 from app.core.config import settings
@@ -28,3 +29,4 @@ app.include_router(notifications_router)
 app.include_router(payments_router)
 app.include_router(admin_router)
 app.include_router(favorites_router)
+app.include_router(resource_reviews_router)
