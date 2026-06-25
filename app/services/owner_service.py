@@ -1,12 +1,16 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.reservation import ReservationStatus
 from app.models.user import User
+from app.repositories.owner_repository import OwnerRepository
 from app.repositories.reservation_repository import ReservationRepository
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
 from app.schemas.owner import (
     OwnerReservationRead,
     OwnerResourceRead,
+    OwnerStatsRead,
+    OwnerTopResourceRead,
 )
 
 
@@ -15,6 +19,7 @@ class OwnerService:
         self.venue_repository = VenueRepository(db)
         self.resource_repository = ResourceRepository(db)
         self.reservation_repository = ReservationRepository(db)
+        self.owner_repository = OwnerRepository(db)
 
     async def get_my_venues(
         self,
@@ -60,3 +65,48 @@ class OwnerService:
             )
             for reservation, resource, venue in rows
         ]
+
+    async def get_owner_stats(
+        self,
+        current_user: User,
+    ) -> OwnerStatsRead:
+        reservations_by_status = (
+            await self.owner_repository.count_owner_reservations_by_status(
+                current_user.id
+            )
+        )
+
+        normalized_statuses = {
+            status.value: reservations_by_status.get(status.value, 0)
+            for status in ReservationStatus
+        }
+
+        top_resource_rows = await self.owner_repository.get_owner_top_resources(
+            owner_id=current_user.id
+        )
+
+        top_resources = [
+            OwnerTopResourceRead(
+                resource_id=resource_id,
+                resource_name=resource_name,
+                reservation_count=reservation_count,
+            )
+            for resource_id, resource_name, reservation_count in top_resource_rows
+        ]
+
+        return OwnerStatsRead(
+            total_venues=await self.owner_repository.count_owner_venues(
+                current_user.id
+            ),
+            total_resources=await self.owner_repository.count_owner_resources(
+                current_user.id
+            ),
+            total_reservations=await self.owner_repository.count_owner_reservations(
+                current_user.id
+            ),
+            reservations_by_status=normalized_statuses,
+            total_revenue_cents=await self.owner_repository.get_owner_total_revenue_cents(
+                current_user.id
+            ),
+            top_resources=top_resources,
+        )
