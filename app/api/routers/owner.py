@@ -7,6 +7,7 @@ from app.models.user import User
 from app.schemas.owner import (
     OwnerReservationRead,
     OwnerResourceRead,
+    OwnerStatsRead,
     OwnerVenueRead,
 )
 from app.services.owner_service import OwnerService
@@ -54,3 +55,16 @@ async def get_owner_reservations(
     service = OwnerService(db)
 
     return await service.get_my_reservations(current_user)
+
+
+@router.get(
+    "/stats",
+    response_model=OwnerStatsRead,
+)
+async def get_owner_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("owner", "admin")),
+):
+    service = OwnerService(db)
+
+    return await service.get_owner_stats(current_user=current_user)

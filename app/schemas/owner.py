@@ -32,3 +32,18 @@ class OwnerReservationRead(BaseModel):
     resource_name: str
     venue_id: int
     venue_name: str
+
+
+class OwnerTopResourceRead(BaseModel):
+    resource_id: int
+    resource_name: str
+    reservation_count: int
+
+
+class OwnerStatsRead(BaseModel):
+    total_venues: int
+    total_resources: int
+    total_reservations: int
+    reservations_by_status: dict[str, int]
+    total_revenue_cents: int
+    top_resources: list[OwnerTopResourceRead]
