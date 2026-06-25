@@ -105,8 +105,10 @@ class OwnerService:
                 current_user.id
             ),
             reservations_by_status=normalized_statuses,
-            total_revenue_cents=await self.owner_repository.get_owner_total_revenue_cents(
-                current_user.id
+            total_revenue_cents=(
+                await self.owner_repository.get_owner_total_revenue_cents(
+                    current_user.id
+                )
             ),
             top_resources=top_resources,
         )
