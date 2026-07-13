@@ -1,3 +1,4 @@
+from app.models.availability_rule import AvailabilityRule
 from app.models.favorite_resource import FavoriteResource
 from app.models.notification import Notification
 from app.models.payment import Payment
@@ -16,4 +17,5 @@ __all__ = [
     "Reservation",
     "Notification",
     "Payment",
+    "AvailabilityRule",
 ]
