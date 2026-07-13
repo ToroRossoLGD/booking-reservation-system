@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +30,31 @@ class ReservationService:
         self.notification_service = NotificationService(db)
         self.availability_rule_repository = AvailabilityRuleRepository(db)
 
+    async def _is_within_availability_rules(
+        self,
+        resource_id: int,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> bool:
+        if start_time.date() != end_time.date():
+            return False
+
+        weekday = start_time.weekday()
+
+        rules = await self.availability_rule_repository.get_for_resource_and_weekday(
+            resource_id=resource_id,
+            weekday=weekday,
+        )
+
+        requested_start_time = start_time.time()
+        requested_end_time = end_time.time()
+
+        return any(
+            rule.start_time <= requested_start_time
+            and rule.end_time >= requested_end_time
+            for rule in rules
+        )
+
     async def create_reservation(
         self,
         data: ReservationCreate,
@@ -41,6 +66,26 @@ class ReservationService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Start time must be before end time",
+            )
+
+        resource = await self.resource_repository.get_by_id(data.resource_id)
+
+        if resource is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resource not found",
+            )
+
+        is_within_rules = await self._is_within_availability_rules(
+            resource_id=data.resource_id,
+            start_time=data.start_time,
+            end_time=data.end_time,
+        )
+
+        if not is_within_rules:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=("Requested time is outside the resource availability rules"),
             )
 
         has_conflict = await self.reservation_repository.has_conflicting_reservation(
@@ -171,8 +216,8 @@ class ReservationService:
     async def check_availability(
         self,
         resource_id: int,
-        start_time,
-        end_time,
+        start_time: datetime,
+        end_time: datetime,
     ) -> dict:
         if start_time >= end_time:
             raise HTTPException(
@@ -187,6 +232,20 @@ class ReservationService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Resource not found",
             )
+
+        is_within_rules = await self._is_within_availability_rules(
+            resource_id=resource_id,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+        if not is_within_rules:
+            return {
+                "resource_id": resource_id,
+                "start_time": start_time,
+                "end_time": end_time,
+                "available": False,
+            }
 
         has_conflict = await self.reservation_repository.has_conflicting_reservation(
             resource_id=resource_id,
@@ -338,42 +397,50 @@ class ReservationService:
                 detail="Resource not found",
             )
 
-        working_start = datetime.combine(
-            selected_date,
-            time(hour=9, minute=0),
-            tzinfo=UTC,
+        weekday = selected_date.weekday()
+
+        rules = await self.availability_rule_repository.get_for_resource_and_weekday(
+            resource_id=resource_id,
+            weekday=weekday,
         )
 
-        working_end = datetime.combine(
-            selected_date,
-            time(hour=17, minute=0),
-            tzinfo=UTC,
-        )
-
-        slots = []
-        current_start = working_start
+        slots: list[dict] = []
         slot_delta = timedelta(minutes=slot_minutes)
 
-        while current_start + slot_delta <= working_end:
-            current_end = current_start + slot_delta
+        for rule in rules:
+            rule_start = datetime.combine(
+                selected_date,
+                rule.start_time,
+                tzinfo=UTC,
+            )
+            rule_end = datetime.combine(
+                selected_date,
+                rule.end_time,
+                tzinfo=UTC,
+            )
 
-            has_conflict = (
-                await self.reservation_repository.has_conflicting_reservation(
-                    resource_id=resource_id,
-                    start_time=current_start,
-                    end_time=current_end,
+            current_start = rule_start
+
+            while current_start + slot_delta <= rule_end:
+                current_end = current_start + slot_delta
+
+                has_conflict = (
+                    await self.reservation_repository.has_conflicting_reservation(
+                        resource_id=resource_id,
+                        start_time=current_start,
+                        end_time=current_end,
+                    )
                 )
-            )
 
-            slots.append(
-                {
-                    "start_time": current_start,
-                    "end_time": current_end,
-                    "available": not has_conflict,
-                }
-            )
+                slots.append(
+                    {
+                        "start_time": current_start,
+                        "end_time": current_end,
+                        "available": not has_conflict,
+                    }
+                )
 
-            current_start = current_end
+                current_start = current_end
 
         await set_cache(
             key=cache_key,
