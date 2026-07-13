@@ -12,6 +12,9 @@ from app.core.cache import (
 from app.core.config import settings
 from app.models.reservation import Reservation, ReservationStatus
 from app.models.user import User
+from app.repositories.availability_rule_repository import (
+    AvailabilityRuleRepository,
+)
 from app.repositories.reservation_repository import ReservationRepository
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
@@ -25,6 +28,7 @@ class ReservationService:
         self.resource_repository = ResourceRepository(db)
         self.venue_repository = VenueRepository(db)
         self.notification_service = NotificationService(db)
+        self.availability_rule_repository = AvailabilityRuleRepository(db)
 
     async def create_reservation(
         self,
