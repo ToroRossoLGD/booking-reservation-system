@@ -12,6 +12,9 @@ from app.core.cache import (
 from app.core.config import settings
 from app.models.reservation import Reservation, ReservationStatus
 from app.models.user import User
+from app.repositories.availability_exception_repository import (
+    AvailabilityExceptionRepository,
+)
 from app.repositories.availability_rule_repository import (
     AvailabilityRuleRepository,
 )
@@ -29,6 +32,19 @@ class ReservationService:
         self.venue_repository = VenueRepository(db)
         self.notification_service = NotificationService(db)
         self.availability_rule_repository = AvailabilityRuleRepository(db)
+        self.availability_exception_repository = AvailabilityExceptionRepository(db)
+
+    async def _has_availability_exception(
+        self,
+        resource_id: int,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> bool:
+        return await self.availability_exception_repository.has_overlapping_exception(
+            resource_id=resource_id,
+            start_time=start_time,
+            end_time=end_time,
+        )
 
     async def _is_within_availability_rules(
         self,
@@ -98,6 +114,17 @@ class ReservationService:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Resource is already booked for this time slot",
+            )
+        has_exception = await self._has_availability_exception(
+            resource_id=data.resource_id,
+            start_time=data.start_time,
+            end_time=data.end_time,
+        )
+
+        if has_exception:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=("Resource is unavailable during the requested time"),
             )
 
         reservation = Reservation(
@@ -240,6 +267,19 @@ class ReservationService:
         )
 
         if not is_within_rules:
+            return {
+                "resource_id": resource_id,
+                "start_time": start_time,
+                "end_time": end_time,
+                "available": False,
+            }
+        has_exception = await self._has_availability_exception(
+            resource_id=resource_id,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+        if has_exception:
             return {
                 "resource_id": resource_id,
                 "start_time": start_time,
@@ -424,6 +464,14 @@ class ReservationService:
             while current_start + slot_delta <= rule_end:
                 current_end = current_start + slot_delta
 
+                exception_repository = self.availability_exception_repository
+
+                has_exception = await exception_repository.has_overlapping_exception(
+                    resource_id=resource_id,
+                    start_time=current_start,
+                    end_time=current_end,
+                )
+
                 has_conflict = (
                     await self.reservation_repository.has_conflicting_reservation(
                         resource_id=resource_id,
@@ -436,7 +484,7 @@ class ReservationService:
                     {
                         "start_time": current_start,
                         "end_time": current_end,
-                        "available": not has_conflict,
+                        "available": not has_conflict and not has_exception,
                     }
                 )
 

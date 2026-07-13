@@ -1,3 +1,4 @@
+from app.models.availability_exception import AvailabilityException
 from app.models.availability_rule import AvailabilityRule
 from app.models.favorite_resource import FavoriteResource
 from app.models.notification import Notification
@@ -18,4 +19,5 @@ __all__ = [
     "Notification",
     "Payment",
     "AvailabilityRule",
+    "AvailabilityException",
 ]
