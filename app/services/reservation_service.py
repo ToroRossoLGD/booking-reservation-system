@@ -134,7 +134,15 @@ class ReservationService:
             resource_id=data.resource_id,
         )
 
-        created_reservation = await self.reservation_repository.create(reservation)
+        created_reservation = (
+            await self.reservation_repository.create_with_conflict_lock(reservation)
+        )
+
+        if created_reservation is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Resource is already booked for this time slot",
+            )
 
         await delete_available_slots_cache_for_resource(data.resource_id)
 

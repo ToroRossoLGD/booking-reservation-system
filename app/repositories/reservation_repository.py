@@ -21,6 +21,46 @@ class ReservationRepository:
         await self.db.refresh(reservation)
         return reservation
 
+    async def create_with_conflict_lock(
+        self,
+        reservation: Reservation,
+    ) -> Reservation | None:
+        resource_result = await self.db.execute(
+            select(Resource)
+            .where(Resource.id == reservation.resource_id)
+            .with_for_update()
+        )
+
+        resource = resource_result.scalar_one_or_none()
+
+        if resource is None:
+            await self.db.rollback()
+            return None
+
+        conflict_result = await self.db.execute(
+            select(Reservation.id)
+            .where(
+                Reservation.resource_id == reservation.resource_id,
+                Reservation.status.in_(["pending", "confirmed"]),
+                Reservation.start_time < reservation.end_time,
+                Reservation.end_time > reservation.start_time,
+            )
+            .limit(1)
+        )
+
+        has_conflict = conflict_result.scalar_one_or_none() is not None
+
+        if has_conflict:
+            await self.db.rollback()
+            return None
+
+        self.db.add(reservation)
+
+        await self.db.commit()
+        await self.db.refresh(reservation)
+
+        return reservation
+
     async def get_user_reservations(
         self,
         user_id: int,
