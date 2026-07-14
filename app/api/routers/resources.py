@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.reservation import AvailableSlotRead
 from app.schemas.resource import (
+    AvailableResourceListRead,
     ResourceCreate,
     ResourceListRead,
     ResourceRead,
@@ -67,6 +68,33 @@ async def search_resources(
     return await service.search_resources(
         query_text=q,
         resource_type=resource_type,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get(
+    "/resources/search/available",
+    response_model=AvailableResourceListRead,
+)
+async def search_available_resources(
+    start_time: datetime,
+    end_time: datetime,
+    minimum_capacity: int = 1,
+    resource_type: str | None = None,
+    q: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+):
+    service = ResourceService(db)
+
+    return await service.search_available_resources(
+        start_time=start_time,
+        end_time=end_time,
+        minimum_capacity=minimum_capacity,
+        resource_type=resource_type,
+        query_text=q,
         limit=limit,
         offset=offset,
     )
