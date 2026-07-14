@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from app.schemas.payment import PaymentRead
+
 
 class ReservationCreate(BaseModel):
     resource_id: int
@@ -39,3 +41,11 @@ class ReservationListRead(BaseModel):
     limit: int
     offset: int
     has_next: bool
+
+
+class ReservationCancellationRead(BaseModel):
+    reservation: ReservationRead
+    payment: PaymentRead | None
+    refund_percentage: int
+    refund_amount_cents: int
+    cancellation_fee_cents: int

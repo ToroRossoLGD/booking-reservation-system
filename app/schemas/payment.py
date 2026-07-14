@@ -16,5 +16,8 @@ class PaymentRead(BaseModel):
     status: str
     provider: str
     created_at: datetime
+    refunded_amount_cents: int
+    cancellation_fee_cents: int
+    refunded_at: datetime | None
 
     model_config = {"from_attributes": True}

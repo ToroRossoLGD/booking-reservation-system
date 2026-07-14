@@ -10,6 +10,7 @@ from app.core.cache import (
     set_cache,
 )
 from app.core.config import settings
+from app.models.payment import PaymentStatus
 from app.models.reservation import Reservation, ReservationStatus
 from app.models.user import User
 from app.repositories.availability_exception_repository import (
@@ -18,6 +19,7 @@ from app.repositories.availability_exception_repository import (
 from app.repositories.availability_rule_repository import (
     AvailabilityRuleRepository,
 )
+from app.repositories.payment_repository import PaymentRepository
 from app.repositories.reservation_repository import ReservationRepository
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
@@ -33,6 +35,8 @@ class ReservationService:
         self.notification_service = NotificationService(db)
         self.availability_rule_repository = AvailabilityRuleRepository(db)
         self.availability_exception_repository = AvailabilityExceptionRepository(db)
+        self.payment_repository = PaymentRepository(db)
+        self.db = db
 
     async def _has_availability_exception(
         self,
@@ -209,11 +213,31 @@ class ReservationService:
             "has_next": offset + limit < total,
         }
 
+    def _get_refund_percentage(
+        self,
+        reservation: Reservation,
+        current_time: datetime,
+    ) -> int:
+        if reservation.start_time <= current_time:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=("A reservation cannot be cancelled after its start time"),
+            )
+
+        time_until_start = reservation.start_time - current_time
+        hours_until_start = time_until_start.total_seconds() / 3600
+
+        if hours_until_start >= settings.FREE_CANCELLATION_HOURS:
+            return 100
+
+        return settings.LATE_CANCELLATION_REFUND_PERCENT
+
     async def cancel_reservation(
         self,
         reservation_id: int,
         current_user: User,
-    ) -> Reservation:
+        background_tasks: BackgroundTasks | None = None,
+    ) -> dict:
         reservation = await self.reservation_repository.get_by_id(reservation_id)
 
         if reservation is None:
@@ -222,7 +246,10 @@ class ReservationService:
                 detail="Reservation not found",
             )
 
-        if current_user.role != "admin" and reservation.user_id != current_user.id:
+        is_admin = current_user.role == "admin"
+        is_owner = reservation.user_id == current_user.id
+
+        if not is_admin and not is_owner:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You can cancel only your own reservations",
@@ -234,19 +261,91 @@ class ReservationService:
                 detail="Reservation is already cancelled",
             )
 
+        if reservation.status == ReservationStatus.COMPLETED.value:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Completed reservations cannot be cancelled",
+            )
+
+        if reservation.status == ReservationStatus.EXPIRED.value:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Expired reservations cannot be cancelled",
+            )
+
+        current_time = datetime.now(UTC)
+
+        refund_percentage = self._get_refund_percentage(
+            reservation=reservation,
+            current_time=current_time,
+        )
+
+        payment = await self.payment_repository.get_by_reservation_id(reservation_id)
+
+        refund_amount_cents = 0
+        cancellation_fee_cents = 0
+
+        if payment is not None and payment.status == PaymentStatus.PAID.value:
+            refund_amount_cents = payment.amount_cents * refund_percentage // 100
+
+            cancellation_fee_cents = payment.amount_cents - refund_amount_cents
+
+            payment.refunded_amount_cents = refund_amount_cents
+            payment.cancellation_fee_cents = cancellation_fee_cents
+            payment.refunded_at = current_time
+
+            if refund_percentage == 100:
+                payment.status = PaymentStatus.REFUNDED.value
+            else:
+                payment.status = PaymentStatus.PARTIALLY_REFUNDED.value
+
         reservation.status = ReservationStatus.CANCELLED.value
 
-        updated_reservation = await self.reservation_repository.update(reservation)
+        try:
+            await self.db.commit()
+            await self.db.refresh(reservation)
+
+            if payment is not None:
+                await self.db.refresh(payment)
+        except Exception:
+            await self.db.rollback()
+            raise
+
+        await delete_available_slots_cache_for_resource(reservation.resource_id)
+
+        if refund_amount_cents > 0:
+            message = (
+                f"Your reservation #{reservation.id} was cancelled. "
+                f"Refund: {refund_amount_cents} "
+                f"{payment.currency} cents."
+            )
+        else:
+            message = f"Your reservation #{reservation.id} has been cancelled."
 
         await self.notification_service.create_notification(
             user_id=reservation.user_id,
             title="Reservation cancelled",
-            message=f"Your reservation #{reservation.id} has been cancelled.",
+            message=message,
+            user_email=current_user.email,
+            background_tasks=background_tasks,
         )
 
-        await delete_available_slots_cache_for_resource(reservation.resource_id)
-
-        return updated_reservation
+        return {
+            "reservation": reservation,
+            "payment": payment,
+            "refund_percentage": (
+                refund_percentage
+                if payment is not None
+                and payment.status
+                in {
+                    PaymentStatus.REFUNDED.value,
+                    PaymentStatus.PARTIALLY_REFUNDED.value,
+                }
+                else 0
+            ),
+            "refund_amount_cents": refund_amount_cents,
+            "cancellation_fee_cents": cancellation_fee_cents,
+        }
 
     async def check_availability(
         self,

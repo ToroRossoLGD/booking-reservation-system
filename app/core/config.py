@@ -33,6 +33,9 @@ class Settings(BaseSettings):
 
     CACHE_TTL_SECONDS: int = 60
 
+    FREE_CANCELLATION_HOURS: int = 24
+    LATE_CANCELLATION_REFUND_PERCENT: int = 50
+
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
 

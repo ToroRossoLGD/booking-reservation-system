@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.reservation import (
     AvailabilityRead,
+    ReservationCancellationRead,
     ReservationCreate,
     ReservationListRead,
     ReservationRead,
@@ -57,10 +58,11 @@ async def get_my_reservations(
 
 @router.patch(
     "/{reservation_id}/cancel",
-    response_model=ReservationRead,
+    response_model=ReservationCancellationRead,
 )
 async def cancel_reservation(
     reservation_id: int,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -69,6 +71,7 @@ async def cancel_reservation(
     return await service.cancel_reservation(
         reservation_id=reservation_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
 
