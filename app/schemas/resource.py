@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -29,6 +31,26 @@ class ResourceSearchRead(BaseModel):
 
 class ResourceListRead(BaseModel):
     items: list[ResourceSearchRead]
+    total: int
+    limit: int
+    offset: int
+    has_next: bool
+
+
+class AvailableResourceRead(BaseModel):
+    id: int
+    name: str
+    resource_type: str
+    capacity: int
+    venue_id: int
+    venue_name: str
+    venue_address: str
+
+
+class AvailableResourceListRead(BaseModel):
+    items: list[AvailableResourceRead]
+    start_time: datetime
+    end_time: datetime
     total: int
     limit: int
     offset: int

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +8,8 @@ from app.models.user import User
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
 from app.schemas.resource import (
+    AvailableResourceListRead,
+    AvailableResourceRead,
     ResourceCreate,
     ResourceListRead,
     ResourceSearchRead,
@@ -161,6 +165,114 @@ class ResourceService:
 
         return ResourceListRead(
             items=items,
+            total=total,
+            limit=limit,
+            offset=offset,
+            has_next=offset + limit < total,
+        )
+
+    async def search_available_resources(
+        self,
+        start_time: datetime,
+        end_time: datetime,
+        minimum_capacity: int,
+        limit: int,
+        offset: int,
+        query_text: str | None = None,
+        resource_type: str | None = None,
+    ) -> AvailableResourceListRead:
+        if start_time.tzinfo is None or end_time.tzinfo is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=("start_time and end_time must include timezone information"),
+            )
+
+        if start_time >= end_time:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Start time must be before end time",
+            )
+
+        if start_time.date() != end_time.date():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Available resource search currently supports "
+                    "only same-day intervals"
+                ),
+            )
+
+        if minimum_capacity < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="minimum_capacity must be greater than 0",
+            )
+
+        if limit < 1 or limit > 100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="limit must be between 1 and 100",
+            )
+
+        if offset < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="offset must be greater than or equal to 0",
+            )
+
+        clean_query = (
+            query_text.strip()
+            if query_text is not None and query_text.strip()
+            else None
+        )
+
+        if clean_query is not None and len(clean_query) < 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=("Search query must contain at least 2 characters"),
+            )
+
+        clean_resource_type = (
+            resource_type.strip()
+            if resource_type is not None and resource_type.strip()
+            else None
+        )
+
+        rows = await self.resource_repository.search_available(
+            start_time=start_time,
+            end_time=end_time,
+            minimum_capacity=minimum_capacity,
+            query_text=clean_query,
+            resource_type=clean_resource_type,
+            limit=limit,
+            offset=offset,
+        )
+
+        total = await self.resource_repository.count_available(
+            start_time=start_time,
+            end_time=end_time,
+            minimum_capacity=minimum_capacity,
+            query_text=clean_query,
+            resource_type=clean_resource_type,
+        )
+
+        items = [
+            AvailableResourceRead(
+                id=resource.id,
+                name=resource.name,
+                resource_type=resource.resource_type,
+                capacity=resource.capacity,
+                venue_id=venue.id,
+                venue_name=venue.name,
+                venue_address=venue.address,
+            )
+            for resource, venue in rows
+        ]
+
+        return AvailableResourceListRead(
+            items=items,
+            start_time=start_time,
+            end_time=end_time,
             total=total,
             limit=limit,
             offset=offset,
