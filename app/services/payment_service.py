@@ -16,6 +16,35 @@ class PaymentService:
         self.reservation_repository = ReservationRepository(db)
         self.notification_service = NotificationService(db)
 
+    async def get_reservation_payment(
+        self,
+        reservation_id: int,
+        current_user: User,
+    ) -> Payment:
+        reservation = await self.reservation_repository.get_by_id(reservation_id)
+
+        if reservation is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reservation not found",
+            )
+
+        if reservation.user_id != current_user.id and current_user.role != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can view payments only for your own reservations",
+            )
+
+        payment = await self.payment_repository.get_by_reservation_id(reservation_id)
+
+        if payment is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Payment not found",
+            )
+
+        return payment
+
     async def pay_for_reservation(
         self,
         reservation_id: int,
