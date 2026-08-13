@@ -13,6 +13,23 @@ router = APIRouter(
 )
 
 
+@router.get(
+    "/reservations/{reservation_id}",
+    response_model=PaymentRead,
+)
+async def get_reservation_payment(
+    reservation_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = PaymentService(db)
+
+    return await service.get_reservation_payment(
+        reservation_id=reservation_id,
+        current_user=current_user,
+    )
+
+
 @router.post(
     "/reservations/{reservation_id}/pay",
     response_model=PaymentRead,
