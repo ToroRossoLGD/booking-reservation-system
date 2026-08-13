@@ -13,10 +13,8 @@ def test_refund_is_full_before_free_cancellation_deadline():
     service = ReservationService(MagicMock())
     current_time = datetime(2026, 8, 13, 12, tzinfo=UTC)
     reservation = Reservation(
-        start_time=current_time
-        + timedelta(hours=settings.FREE_CANCELLATION_HOURS),
-        end_time=current_time
-        + timedelta(hours=settings.FREE_CANCELLATION_HOURS + 1),
+        start_time=current_time + timedelta(hours=settings.FREE_CANCELLATION_HOURS),
+        end_time=current_time + timedelta(hours=settings.FREE_CANCELLATION_HOURS + 1),
     )
 
     refund_percentage = service._get_refund_percentage(
@@ -31,10 +29,8 @@ def test_refund_is_reduced_after_free_cancellation_deadline():
     service = ReservationService(MagicMock())
     current_time = datetime(2026, 8, 13, 12, tzinfo=UTC)
     reservation = Reservation(
-        start_time=current_time
-        + timedelta(hours=settings.FREE_CANCELLATION_HOURS - 1),
-        end_time=current_time
-        + timedelta(hours=settings.FREE_CANCELLATION_HOURS),
+        start_time=current_time + timedelta(hours=settings.FREE_CANCELLATION_HOURS - 1),
+        end_time=current_time + timedelta(hours=settings.FREE_CANCELLATION_HOURS),
     )
 
     refund_percentage = service._get_refund_percentage(
