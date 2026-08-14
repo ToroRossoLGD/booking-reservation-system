@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.reservation import Reservation
@@ -60,6 +60,51 @@ class ReservationRepository:
         await self.db.refresh(reservation)
 
         return reservation
+
+    async def create_series_with_conflict_lock(
+        self,
+        reservations: list[Reservation],
+    ) -> list[Reservation] | None:
+        if not reservations:
+            return []
+
+        resource_id = reservations[0].resource_id
+        resource_result = await self.db.execute(
+            select(Resource).where(Resource.id == resource_id).with_for_update()
+        )
+
+        if resource_result.scalar_one_or_none() is None:
+            await self.db.rollback()
+            return None
+
+        overlap_checks = [
+            and_(
+                Reservation.start_time < reservation.end_time,
+                Reservation.end_time > reservation.start_time,
+            )
+            for reservation in reservations
+        ]
+        conflict_result = await self.db.execute(
+            select(Reservation.id)
+            .where(
+                Reservation.resource_id == resource_id,
+                Reservation.status.in_(["pending", "confirmed"]),
+                or_(*overlap_checks),
+            )
+            .limit(1)
+        )
+
+        if conflict_result.scalar_one_or_none() is not None:
+            await self.db.rollback()
+            return None
+
+        self.db.add_all(reservations)
+        await self.db.commit()
+
+        for reservation in reservations:
+            await self.db.refresh(reservation)
+
+        return reservations
 
     async def reschedule_with_conflict_lock(
         self,
@@ -159,6 +204,17 @@ class ReservationRepository:
         )
 
         return result.scalar_one_or_none()
+
+    async def get_by_series_id(
+        self,
+        recurrence_series_id: str,
+    ) -> list[Reservation]:
+        result = await self.db.execute(
+            select(Reservation)
+            .where(Reservation.recurrence_series_id == recurrence_series_id)
+            .order_by(Reservation.start_time)
+        )
+        return list(result.scalars().all())
 
     async def update(
         self,

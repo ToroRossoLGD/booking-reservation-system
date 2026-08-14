@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from app.core.config import settings
 from app.models.payment import Payment, PaymentStatus
 from app.models.reservation import Reservation, ReservationStatus
-from app.schemas.reservation import ReservationReschedule
+from app.schemas.reservation import RecurringReservationCreate, ReservationReschedule
 from app.services.reservation_service import ReservationService
 
 
@@ -224,3 +224,113 @@ async def test_reschedule_rejects_conflicting_time_slot():
         )
 
     assert exception_info.value.status_code == 409
+
+
+def recurring_data() -> RecurringReservationCreate:
+    start_time = datetime.now(UTC) + timedelta(days=7)
+    return RecurringReservationCreate(
+        resource_id=20,
+        start_time=start_time,
+        end_time=start_time + timedelta(hours=1),
+        frequency="weekly",
+        occurrence_count=3,
+    )
+
+
+@pytest.mark.asyncio
+async def test_recurring_reservations_are_created_as_one_series():
+    service = ReservationService(AsyncMock())
+    data = recurring_data()
+    current_user = MagicMock(id=10, email="user@example.com")
+
+    service.resource_repository.get_by_id = AsyncMock(return_value=MagicMock())
+    service._is_within_availability_rules = AsyncMock(return_value=True)
+    service._has_availability_exception = AsyncMock(return_value=False)
+    service.reservation_repository.has_conflicting_reservation = AsyncMock(
+        return_value=False
+    )
+
+    async def create_series(reservations):
+        for index, reservation in enumerate(reservations, start=1):
+            reservation.id = index
+        return reservations
+
+    service.reservation_repository.create_series_with_conflict_lock = AsyncMock(
+        side_effect=create_series
+    )
+    service.notification_service.create_notification = AsyncMock()
+
+    with patch(
+        "app.services.reservation_service.delete_available_slots_cache_for_resource",
+        new_callable=AsyncMock,
+    ) as delete_cache:
+        result = await service.create_recurring_reservations(data, current_user)
+
+    reservations = result["reservations"]
+    assert result["occurrence_count"] == 3
+    assert len({item.recurrence_series_id for item in reservations}) == 1
+    assert reservations[1].start_time - reservations[0].start_time == timedelta(days=7)
+    service.reservation_repository.create_series_with_conflict_lock.assert_awaited_once()
+    service.notification_service.create_notification.assert_awaited_once()
+    delete_cache.assert_awaited_once_with(data.resource_id)
+
+
+@pytest.mark.asyncio
+async def test_recurring_reservations_reject_entire_series_on_preflight_conflict():
+    service = ReservationService(AsyncMock())
+    data = recurring_data()
+    current_user = MagicMock(id=10)
+
+    service.resource_repository.get_by_id = AsyncMock(return_value=MagicMock())
+    service._is_within_availability_rules = AsyncMock(return_value=True)
+    service._has_availability_exception = AsyncMock(return_value=False)
+    service.reservation_repository.has_conflicting_reservation = AsyncMock(
+        side_effect=[False, True]
+    )
+    service.reservation_repository.create_series_with_conflict_lock = AsyncMock()
+
+    with pytest.raises(HTTPException) as exception_info:
+        await service.create_recurring_reservations(data, current_user)
+
+    assert exception_info.value.status_code == 409
+    assert "Occurrence 2" in exception_info.value.detail
+    service.reservation_repository.create_series_with_conflict_lock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_recurring_reservations_handle_conflict_found_under_lock():
+    service = ReservationService(AsyncMock())
+    data = recurring_data()
+    current_user = MagicMock(id=10)
+
+    service.resource_repository.get_by_id = AsyncMock(return_value=MagicMock())
+    service._is_within_availability_rules = AsyncMock(return_value=True)
+    service._has_availability_exception = AsyncMock(return_value=False)
+    service.reservation_repository.has_conflicting_reservation = AsyncMock(
+        return_value=False
+    )
+    service.reservation_repository.create_series_with_conflict_lock = AsyncMock(
+        return_value=None
+    )
+
+    with pytest.raises(HTTPException) as exception_info:
+        await service.create_recurring_reservations(data, current_user)
+
+    assert exception_info.value.status_code == 409
+    assert "became unavailable" in exception_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_user_cannot_view_another_users_recurring_series():
+    service = ReservationService(AsyncMock())
+    service.reservation_repository.get_by_series_id = AsyncMock(
+        return_value=[MagicMock(user_id=10)]
+    )
+
+    with pytest.raises(HTTPException) as exception_info:
+        await service.get_recurring_reservations(
+            recurrence_series_id="series-id",
+            current_user=MagicMock(id=99, role="customer"),
+        )
+
+    assert exception_info.value.status_code == 403

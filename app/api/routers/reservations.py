@@ -9,6 +9,8 @@ from app.models.user import User
 from app.schemas.reservation import (
     AvailabilityRead,
     AvailableSlotRead,
+    RecurringReservationCreate,
+    RecurringReservationRead,
     ReservationCancellationRead,
     ReservationCreate,
     ReservationListRead,
@@ -37,6 +39,41 @@ async def create_reservation(
         data=data,
         current_user=current_user,
         background_tasks=background_tasks,
+    )
+
+
+@router.post(
+    "/recurring",
+    response_model=RecurringReservationRead,
+    status_code=201,
+)
+async def create_recurring_reservations(
+    data: RecurringReservationCreate,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = ReservationService(db)
+    return await service.create_recurring_reservations(
+        data=data,
+        current_user=current_user,
+        background_tasks=background_tasks,
+    )
+
+
+@router.get(
+    "/series/{recurrence_series_id}",
+    response_model=RecurringReservationRead,
+)
+async def get_recurring_reservations(
+    recurrence_series_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = ReservationService(db)
+    return await service.get_recurring_reservations(
+        recurrence_series_id=recurrence_series_id,
+        current_user=current_user,
     )
 
 
