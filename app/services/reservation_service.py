@@ -25,6 +25,7 @@ from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
 from app.schemas.reservation import ReservationCreate, ReservationReschedule
 from app.services.notification_service import NotificationService
+from app.services.waitlist_service import WaitlistService
 
 
 class ReservationService:
@@ -36,6 +37,7 @@ class ReservationService:
         self.availability_rule_repository = AvailabilityRuleRepository(db)
         self.availability_exception_repository = AvailabilityExceptionRepository(db)
         self.payment_repository = PaymentRepository(db)
+        self.waitlist_service = WaitlistService(db)
         self.db = db
 
     async def _has_availability_exception(
@@ -305,6 +307,9 @@ class ReservationService:
                 detail="Resource is unavailable during the requested time",
             )
 
+        previous_start_time = reservation.start_time
+        previous_end_time = reservation.end_time
+
         updated_reservation = (
             await self.reservation_repository.reschedule_with_conflict_lock(
                 reservation=reservation,
@@ -320,6 +325,12 @@ class ReservationService:
             )
 
         await delete_available_slots_cache_for_resource(reservation.resource_id)
+
+        await self.waitlist_service.notify_next_for_slot(
+            resource_id=reservation.resource_id,
+            start_time=previous_start_time,
+            end_time=previous_end_time,
+        )
 
         await self.notification_service.create_notification(
             user_id=reservation.user_id,
@@ -431,6 +442,12 @@ class ReservationService:
             raise
 
         await delete_available_slots_cache_for_resource(reservation.resource_id)
+
+        await self.waitlist_service.notify_next_for_slot(
+            resource_id=reservation.resource_id,
+            start_time=reservation.start_time,
+            end_time=reservation.end_time,
+        )
 
         if refund_amount_cents > 0:
             message = (
