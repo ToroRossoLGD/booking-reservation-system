@@ -1,4 +1,5 @@
 from datetime import UTC, date, datetime, timedelta
+from uuid import uuid4
 
 from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +24,11 @@ from app.repositories.payment_repository import PaymentRepository
 from app.repositories.reservation_repository import ReservationRepository
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
-from app.schemas.reservation import ReservationCreate, ReservationReschedule
+from app.schemas.reservation import (
+    RecurringReservationCreate,
+    ReservationCreate,
+    ReservationReschedule,
+)
 from app.services.notification_service import NotificationService
 from app.services.waitlist_service import WaitlistService
 
@@ -161,6 +166,145 @@ class ReservationService:
         )
 
         return created_reservation
+
+    async def create_recurring_reservations(
+        self,
+        data: RecurringReservationCreate,
+        current_user: User,
+        background_tasks: BackgroundTasks | None = None,
+    ) -> dict:
+        if data.start_time.tzinfo is None or data.end_time.tzinfo is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Reservation times must include a timezone",
+            )
+
+        if data.start_time >= data.end_time:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Start time must be before end time",
+            )
+
+        if data.start_time <= datetime.now(UTC):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Recurring reservations must start in the future",
+            )
+
+        resource = await self.resource_repository.get_by_id(data.resource_id)
+        if resource is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resource not found",
+            )
+
+        interval = timedelta(days=1 if data.frequency == "daily" else 7)
+        occurrences = [
+            (data.start_time + interval * index, data.end_time + interval * index)
+            for index in range(data.occurrence_count)
+        ]
+
+        for index, (start_time, end_time) in enumerate(occurrences, start=1):
+            if not await self._is_within_availability_rules(
+                resource_id=data.resource_id,
+                start_time=start_time,
+                end_time=end_time,
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Occurrence {index} is outside the resource availability rules"
+                    ),
+                )
+
+            if await self._has_availability_exception(
+                resource_id=data.resource_id,
+                start_time=start_time,
+                end_time=end_time,
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Occurrence {index} overlaps an availability exception",
+                )
+
+            if await self.reservation_repository.has_conflicting_reservation(
+                resource_id=data.resource_id,
+                start_time=start_time,
+                end_time=end_time,
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Occurrence {index} conflicts with another reservation",
+                )
+
+        series_id = str(uuid4())
+        reservations = [
+            Reservation(
+                start_time=start_time,
+                end_time=end_time,
+                user_id=current_user.id,
+                resource_id=data.resource_id,
+                recurrence_series_id=series_id,
+            )
+            for start_time, end_time in occurrences
+        ]
+        created_reservations = (
+            await self.reservation_repository.create_series_with_conflict_lock(
+                reservations
+            )
+        )
+
+        if created_reservations is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="One or more occurrences became unavailable",
+            )
+
+        await delete_available_slots_cache_for_resource(data.resource_id)
+        await self.notification_service.create_notification(
+            user_id=current_user.id,
+            title="Recurring reservations created",
+            message=(
+                f"Your series of {len(created_reservations)} reservations "
+                f"has been created. Series: {series_id}."
+            ),
+            user_email=current_user.email,
+            background_tasks=background_tasks,
+        )
+
+        return {
+            "recurrence_series_id": series_id,
+            "occurrence_count": len(created_reservations),
+            "reservations": created_reservations,
+        }
+
+    async def get_recurring_reservations(
+        self,
+        recurrence_series_id: str,
+        current_user: User,
+    ) -> dict:
+        reservations = await self.reservation_repository.get_by_series_id(
+            recurrence_series_id
+        )
+        if not reservations:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Recurring reservation series not found",
+            )
+
+        if current_user.role != "admin" and any(
+            reservation.user_id != current_user.id for reservation in reservations
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can view only your own recurring reservation series",
+            )
+
+        return {
+            "recurrence_series_id": recurrence_series_id,
+            "occurrence_count": len(reservations),
+            "reservations": reservations,
+        }
 
     async def get_my_reservations(
         self,

@@ -44,6 +44,12 @@ class Reservation(Base):
         default=lambda: datetime.now(UTC),
     )
 
+    recurrence_series_id: Mapped[str | None] = mapped_column(
+        String(36),
+        nullable=True,
+        index=True,
+    )
+
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         nullable=False,

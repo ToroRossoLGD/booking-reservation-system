@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.payment import PaymentRead
 
@@ -16,6 +17,11 @@ class ReservationReschedule(BaseModel):
     end_time: datetime
 
 
+class RecurringReservationCreate(ReservationCreate):
+    frequency: Literal["daily", "weekly"]
+    occurrence_count: int = Field(ge=2, le=52)
+
+
 class ReservationRead(BaseModel):
     id: int
     start_time: datetime
@@ -23,8 +29,15 @@ class ReservationRead(BaseModel):
     status: str
     user_id: int
     resource_id: int
+    recurrence_series_id: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class RecurringReservationRead(BaseModel):
+    recurrence_series_id: str
+    occurrence_count: int
+    reservations: list[ReservationRead]
 
 
 class AvailabilityRead(BaseModel):
