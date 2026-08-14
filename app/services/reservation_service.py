@@ -213,6 +213,29 @@ class ReservationService:
             "has_next": offset + limit < total,
         }
 
+    async def get_reservation(
+        self,
+        reservation_id: int,
+        current_user: User,
+    ) -> Reservation:
+        reservation = await self.reservation_repository.get_by_id(reservation_id)
+
+        if reservation is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reservation not found",
+            )
+
+        if current_user.role == "admin" or reservation.user_id == current_user.id:
+            return reservation
+
+        await self._ensure_owner_can_manage_reservation(
+            reservation=reservation,
+            current_user=current_user,
+        )
+
+        return reservation
+
     def _get_refund_percentage(
         self,
         reservation: Reservation,
