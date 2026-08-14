@@ -8,6 +8,7 @@ from app.models.resource import Resource
 from app.models.resource_review import ResourceReview
 from app.models.user import User
 from app.models.venue import Venue
+from app.models.waitlist_entry import WaitlistEntry
 
 __all__ = [
     "User",
@@ -20,4 +21,5 @@ __all__ = [
     "Payment",
     "AvailabilityRule",
     "AvailabilityException",
+    "WaitlistEntry",
 ]

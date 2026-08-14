@@ -127,6 +127,16 @@ class ReservationRepository:
         start_time: datetime,
         end_time: datetime,
     ) -> bool:
+        return (
+            await self.get_conflicting_reservation(resource_id, start_time, end_time)
+        ) is not None
+
+    async def get_conflicting_reservation(
+        self,
+        resource_id: int,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> Reservation | None:
         result = await self.db.execute(
             select(Reservation).where(
                 and_(
@@ -138,9 +148,7 @@ class ReservationRepository:
             )
         )
 
-        reservation = result.scalar_one_or_none()
-
-        return reservation is not None
+        return result.scalar_one_or_none()
 
     async def get_by_id(
         self,

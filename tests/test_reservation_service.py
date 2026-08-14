@@ -91,6 +91,7 @@ async def test_cancelling_paid_reservation_updates_both_states():
     service.reservation_repository.get_by_id = AsyncMock(return_value=reservation)
     service.payment_repository.get_by_reservation_id = AsyncMock(return_value=payment)
     service.notification_service.create_notification = AsyncMock()
+    service.waitlist_service.notify_next_for_slot = AsyncMock(return_value=None)
 
     with patch(
         "app.services.reservation_service.delete_available_slots_cache_for_resource",
@@ -134,6 +135,7 @@ async def test_user_can_reschedule_own_pending_reservation():
         return_value=reservation
     )
     service.notification_service.create_notification = AsyncMock()
+    service.waitlist_service.notify_next_for_slot = AsyncMock(return_value=None)
 
     with patch(
         "app.services.reservation_service.delete_available_slots_cache_for_resource",
