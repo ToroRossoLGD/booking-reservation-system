@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from app.core.config import settings
 from app.models.payment import Payment, PaymentStatus
 from app.models.reservation import Reservation, ReservationStatus
+from app.schemas.reservation import ReservationReschedule
 from app.services.reservation_service import ReservationService
 
 
@@ -105,3 +106,119 @@ async def test_cancelling_paid_reservation_updates_both_states():
     assert payment.refunded_amount_cents == payment.amount_cents
     assert result["refund_percentage"] == 100
     db.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_user_can_reschedule_own_pending_reservation():
+    service = ReservationService(AsyncMock())
+    start_time = datetime.now(UTC) + timedelta(days=2)
+    new_start_time = start_time + timedelta(hours=2)
+    reservation = Reservation(
+        id=1,
+        user_id=10,
+        resource_id=20,
+        start_time=start_time,
+        end_time=start_time + timedelta(hours=1),
+        status=ReservationStatus.PENDING.value,
+    )
+    current_user = MagicMock(id=reservation.user_id, role="customer")
+    data = ReservationReschedule(
+        start_time=new_start_time,
+        end_time=new_start_time + timedelta(hours=1),
+    )
+
+    service.reservation_repository.get_by_id = AsyncMock(return_value=reservation)
+    service._is_within_availability_rules = AsyncMock(return_value=True)
+    service._has_availability_exception = AsyncMock(return_value=False)
+    service.reservation_repository.reschedule_with_conflict_lock = AsyncMock(
+        return_value=reservation
+    )
+    service.notification_service.create_notification = AsyncMock()
+
+    with patch(
+        "app.services.reservation_service.delete_available_slots_cache_for_resource",
+        new_callable=AsyncMock,
+    ) as delete_cache:
+        result = await service.reschedule_reservation(
+            reservation_id=reservation.id,
+            data=data,
+            current_user=current_user,
+        )
+
+    assert result is reservation
+    service.reservation_repository.reschedule_with_conflict_lock.assert_awaited_once()
+    service.notification_service.create_notification.assert_awaited_once()
+    delete_cache.assert_awaited_once_with(reservation.resource_id)
+
+
+@pytest.mark.asyncio
+async def test_user_cannot_reschedule_another_users_reservation():
+    service = ReservationService(AsyncMock())
+    reservation = MagicMock(id=1, user_id=10)
+    current_user = MagicMock(id=99, role="customer")
+    service.reservation_repository.get_by_id = AsyncMock(return_value=reservation)
+
+    with pytest.raises(HTTPException) as exception_info:
+        await service.reschedule_reservation(
+            reservation_id=reservation.id,
+            data=MagicMock(),
+            current_user=current_user,
+        )
+
+    assert exception_info.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_cancelled_reservation_cannot_be_rescheduled():
+    service = ReservationService(AsyncMock())
+    reservation = MagicMock(
+        id=1,
+        user_id=10,
+        status=ReservationStatus.CANCELLED.value,
+    )
+    current_user = MagicMock(id=reservation.user_id, role="customer")
+    service.reservation_repository.get_by_id = AsyncMock(return_value=reservation)
+
+    with pytest.raises(HTTPException) as exception_info:
+        await service.reschedule_reservation(
+            reservation_id=reservation.id,
+            data=MagicMock(),
+            current_user=current_user,
+        )
+
+    assert exception_info.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_reschedule_rejects_conflicting_time_slot():
+    service = ReservationService(AsyncMock())
+    start_time = datetime.now(UTC) + timedelta(days=2)
+    reservation = Reservation(
+        id=1,
+        user_id=10,
+        resource_id=20,
+        start_time=start_time,
+        end_time=start_time + timedelta(hours=1),
+        status=ReservationStatus.CONFIRMED.value,
+    )
+    current_user = MagicMock(id=reservation.user_id, role="customer")
+    data = ReservationReschedule(
+        start_time=start_time + timedelta(hours=2),
+        end_time=start_time + timedelta(hours=3),
+    )
+
+    service.reservation_repository.get_by_id = AsyncMock(return_value=reservation)
+    service._is_within_availability_rules = AsyncMock(return_value=True)
+    service._has_availability_exception = AsyncMock(return_value=False)
+    service.reservation_repository.reschedule_with_conflict_lock = AsyncMock(
+        return_value=None
+    )
+
+    with pytest.raises(HTTPException) as exception_info:
+        await service.reschedule_reservation(
+            reservation_id=reservation.id,
+            data=data,
+            current_user=current_user,
+        )
+
+    assert exception_info.value.status_code == 409
