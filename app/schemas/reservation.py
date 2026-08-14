@@ -11,6 +11,11 @@ class ReservationCreate(BaseModel):
     end_time: datetime
 
 
+class ReservationReschedule(BaseModel):
+    start_time: datetime
+    end_time: datetime
+
+
 class ReservationRead(BaseModel):
     id: int
     start_time: datetime

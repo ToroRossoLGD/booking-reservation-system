@@ -23,7 +23,7 @@ from app.repositories.payment_repository import PaymentRepository
 from app.repositories.reservation_repository import ReservationRepository
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
-from app.schemas.reservation import ReservationCreate
+from app.schemas.reservation import ReservationCreate, ReservationReschedule
 from app.services.notification_service import NotificationService
 
 
@@ -235,6 +235,102 @@ class ReservationService:
         )
 
         return reservation
+
+    async def reschedule_reservation(
+        self,
+        reservation_id: int,
+        data: ReservationReschedule,
+        current_user: User,
+    ) -> Reservation:
+        reservation = await self.reservation_repository.get_by_id(reservation_id)
+
+        if reservation is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reservation not found",
+            )
+
+        if current_user.role != "admin" and reservation.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can reschedule only your own reservations",
+            )
+
+        if reservation.status not in {
+            ReservationStatus.PENDING.value,
+            ReservationStatus.CONFIRMED.value,
+        }:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only pending or confirmed reservations can be rescheduled",
+            )
+
+        if data.start_time.tzinfo is None or data.end_time.tzinfo is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Reservation times must include a timezone",
+            )
+
+        if data.start_time >= data.end_time:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Start time must be before end time",
+            )
+
+        if data.start_time <= datetime.now(UTC):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A reservation must be rescheduled to a future time",
+            )
+
+        is_within_rules = await self._is_within_availability_rules(
+            resource_id=reservation.resource_id,
+            start_time=data.start_time,
+            end_time=data.end_time,
+        )
+
+        if not is_within_rules:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Requested time is outside the resource availability rules",
+            )
+
+        if await self._has_availability_exception(
+            resource_id=reservation.resource_id,
+            start_time=data.start_time,
+            end_time=data.end_time,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Resource is unavailable during the requested time",
+            )
+
+        updated_reservation = (
+            await self.reservation_repository.reschedule_with_conflict_lock(
+                reservation=reservation,
+                start_time=data.start_time,
+                end_time=data.end_time,
+            )
+        )
+
+        if updated_reservation is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Resource is already booked for this time slot",
+            )
+
+        await delete_available_slots_cache_for_resource(reservation.resource_id)
+
+        await self.notification_service.create_notification(
+            user_id=reservation.user_id,
+            title="Reservation rescheduled",
+            message=(
+                f"Your reservation #{reservation.id} was rescheduled to "
+                f"{data.start_time.isoformat()}."
+            ),
+        )
+
+        return updated_reservation
 
     def _get_refund_percentage(
         self,
