@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, require_roles
@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.reservation import (
     AvailabilityRead,
+    AvailableSlotRead,
     ReservationCancellationRead,
     ReservationCreate,
     ReservationListRead,
@@ -91,6 +92,25 @@ async def check_resource_availability(
         resource_id=resource_id,
         start_time=start_time,
         end_time=end_time,
+    )
+
+
+@router.get(
+    "/resources/{resource_id}/available-slots",
+    response_model=list[AvailableSlotRead],
+)
+async def get_available_slots(
+    resource_id: int,
+    selected_date: date,
+    slot_minutes: int = Query(default=60, gt=0, le=1440),
+    db: AsyncSession = Depends(get_db),
+):
+    service = ReservationService(db)
+
+    return await service.get_available_slots(
+        resource_id=resource_id,
+        selected_date=selected_date,
+        slot_minutes=slot_minutes,
     )
 
 
