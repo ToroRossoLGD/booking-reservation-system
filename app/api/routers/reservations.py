@@ -114,6 +114,23 @@ async def get_available_slots(
     )
 
 
+@router.get(
+    "/{reservation_id}",
+    response_model=ReservationRead,
+)
+async def get_reservation(
+    reservation_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = ReservationService(db)
+
+    return await service.get_reservation(
+        reservation_id=reservation_id,
+        current_user=current_user,
+    )
+
+
 @router.patch(
     "/{reservation_id}/confirm",
     response_model=ReservationRead,
