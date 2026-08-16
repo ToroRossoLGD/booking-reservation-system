@@ -12,3 +12,8 @@ class PricingService:
         duration_seconds = Decimal(str((end_time - start_time).total_seconds()))
         amount = Decimal(hourly_rate_cents) * duration_seconds / Decimal(3600)
         return max(1, int(amount.quantize(Decimal("1"), rounding=ROUND_HALF_UP)))
+
+    @staticmethod
+    def calculate_discount_cents(amount_cents: int, discount_percent: int) -> int:
+        discount = Decimal(amount_cents) * Decimal(discount_percent) / Decimal(100)
+        return int(discount.quantize(Decimal("1"), rounding=ROUND_HALF_UP))

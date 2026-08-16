@@ -32,6 +32,7 @@ async def get_price_quote(
     resource_id: int,
     start_time: datetime,
     end_time: datetime,
+    promotion_code: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     service = ReservationService(db)
@@ -39,6 +40,7 @@ async def get_price_quote(
         resource_id=resource_id,
         start_time=start_time,
         end_time=end_time,
+        promotion_code=promotion_code,
     )
 
 

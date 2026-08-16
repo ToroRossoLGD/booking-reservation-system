@@ -21,7 +21,11 @@ from app.repositories.availability_rule_repository import (
     AvailabilityRuleRepository,
 )
 from app.repositories.payment_repository import PaymentRepository
-from app.repositories.reservation_repository import ReservationRepository
+from app.repositories.promotion_repository import PromotionRepository
+from app.repositories.reservation_repository import (
+    PromotionRedemptionUnavailable,
+    ReservationRepository,
+)
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
 from app.schemas.reservation import (
@@ -43,8 +47,66 @@ class ReservationService:
         self.availability_rule_repository = AvailabilityRuleRepository(db)
         self.availability_exception_repository = AvailabilityExceptionRepository(db)
         self.payment_repository = PaymentRepository(db)
+        self.promotion_repository = PromotionRepository(db)
         self.waitlist_service = WaitlistService(db)
         self.db = db
+
+    async def _resolve_promotion(
+        self,
+        promotion_code: str | None,
+        venue_id: int,
+        redemption_count: int = 1,
+    ):
+        if promotion_code is None:
+            return None
+
+        promotion = await self.promotion_repository.get_by_code(promotion_code)
+        now = datetime.now(UTC)
+        if promotion is None:
+            raise HTTPException(status_code=404, detail="Promotion code not found")
+        if promotion.venue_id != venue_id:
+            raise HTTPException(
+                status_code=400, detail="Promotion is not valid for this venue"
+            )
+        if not promotion.is_active:
+            raise HTTPException(status_code=400, detail="Promotion is inactive")
+        if not promotion.valid_from <= now < promotion.valid_until:
+            raise HTTPException(
+                status_code=400, detail="Promotion is outside its validity period"
+            )
+        if (
+            promotion.max_redemptions is not None
+            and promotion.redemption_count + redemption_count
+            > promotion.max_redemptions
+        ):
+            raise HTTPException(
+                status_code=409, detail="Promotion redemption limit reached"
+            )
+        return promotion
+
+    @staticmethod
+    def _price_details(resource, start_time, end_time, promotion=None) -> dict:
+        base_amount = PricingService.calculate_amount_cents(
+            resource.hourly_rate_cents, start_time, end_time
+        )
+        discount_amount = (
+            PricingService.calculate_discount_cents(
+                base_amount, promotion.discount_percent
+            )
+            if promotion is not None
+            else 0
+        )
+        return {
+            "base_amount_cents": base_amount,
+            "discount_amount_cents": discount_amount,
+            "quoted_amount_cents": max(0, base_amount - discount_amount),
+            "quoted_currency": resource.currency,
+            "promotion_id": promotion.id if promotion is not None else None,
+            "promotion_code": promotion.code if promotion is not None else None,
+            "promotion_discount_percent": (
+                promotion.discount_percent if promotion is not None else None
+            ),
+        }
 
     async def _has_availability_exception(
         self,
@@ -104,6 +166,10 @@ class ReservationService:
                 detail="Resource not found",
             )
 
+        promotion = await self._resolve_promotion(
+            data.promotion_code, resource.venue_id
+        )
+
         is_within_rules = await self._is_within_availability_rules(
             resource_id=data.resource_id,
             start_time=data.start_time,
@@ -139,22 +205,29 @@ class ReservationService:
                 detail=("Resource is unavailable during the requested time"),
             )
 
+        price_details = self._price_details(
+            resource, data.start_time, data.end_time, promotion
+        )
         reservation = Reservation(
             start_time=data.start_time,
             end_time=data.end_time,
             user_id=current_user.id,
             resource_id=data.resource_id,
-            quoted_amount_cents=PricingService.calculate_amount_cents(
-                resource.hourly_rate_cents,
-                data.start_time,
-                data.end_time,
-            ),
-            quoted_currency=resource.currency,
+            **price_details,
         )
 
-        created_reservation = (
-            await self.reservation_repository.create_with_conflict_lock(reservation)
-        )
+        try:
+            created_reservation = (
+                await self.reservation_repository.create_with_conflict_lock(
+                    reservation,
+                    promotion_redemptions=1 if promotion is not None else 0,
+                )
+            )
+        except PromotionRedemptionUnavailable as error:
+            raise HTTPException(
+                status_code=409,
+                detail="Promotion became unavailable",
+            ) from error
 
         if created_reservation is None:
             raise HTTPException(
@@ -205,6 +278,12 @@ class ReservationService:
                 detail="Resource not found",
             )
 
+        promotion = await self._resolve_promotion(
+            data.promotion_code,
+            resource.venue_id,
+            redemption_count=data.occurrence_count,
+        )
+
         interval = timedelta(days=1 if data.frequency == "daily" else 7)
         occurrences = [
             (data.start_time + interval * index, data.end_time + interval * index)
@@ -252,20 +331,21 @@ class ReservationService:
                 user_id=current_user.id,
                 resource_id=data.resource_id,
                 recurrence_series_id=series_id,
-                quoted_amount_cents=PricingService.calculate_amount_cents(
-                    resource.hourly_rate_cents,
-                    start_time,
-                    end_time,
-                ),
-                quoted_currency=resource.currency,
+                **self._price_details(resource, start_time, end_time, promotion),
             )
             for start_time, end_time in occurrences
         ]
-        created_reservations = (
-            await self.reservation_repository.create_series_with_conflict_lock(
-                reservations
+        try:
+            created_reservations = (
+                await self.reservation_repository.create_series_with_conflict_lock(
+                    reservations
+                )
             )
-        )
+        except PromotionRedemptionUnavailable as error:
+            raise HTTPException(
+                status_code=409,
+                detail="Promotion became unavailable",
+            ) from error
 
         if created_reservations is None:
             raise HTTPException(
@@ -474,10 +554,22 @@ class ReservationService:
                 detail="Resource not found",
             )
 
-        reservation.quoted_amount_cents = PricingService.calculate_amount_cents(
+        reservation.base_amount_cents = PricingService.calculate_amount_cents(
             resource.hourly_rate_cents,
             data.start_time,
             data.end_time,
+        )
+        reservation.discount_amount_cents = (
+            PricingService.calculate_discount_cents(
+                reservation.base_amount_cents,
+                reservation.promotion_discount_percent,
+            )
+            if reservation.promotion_discount_percent is not None
+            else 0
+        )
+        reservation.quoted_amount_cents = max(
+            0,
+            reservation.base_amount_cents - reservation.discount_amount_cents,
         )
         reservation.quoted_currency = resource.currency
 
@@ -719,6 +811,7 @@ class ReservationService:
         resource_id: int,
         start_time: datetime,
         end_time: datetime,
+        promotion_code: str | None = None,
     ) -> dict:
         if start_time.tzinfo is None or end_time.tzinfo is None:
             raise HTTPException(
@@ -739,6 +832,9 @@ class ReservationService:
                 detail="Resource not found",
             )
 
+        promotion = await self._resolve_promotion(promotion_code, resource.venue_id)
+        details = self._price_details(resource, start_time, end_time, promotion)
+
         duration_minutes = int((end_time - start_time).total_seconds() / 60)
         return {
             "resource_id": resource_id,
@@ -746,12 +842,12 @@ class ReservationService:
             "end_time": end_time,
             "duration_minutes": duration_minutes,
             "hourly_rate_cents": resource.hourly_rate_cents,
-            "amount_cents": PricingService.calculate_amount_cents(
-                resource.hourly_rate_cents,
-                start_time,
-                end_time,
-            ),
+            "amount_cents": details["quoted_amount_cents"],
             "currency": resource.currency,
+            "base_amount_cents": details["base_amount_cents"],
+            "discount_amount_cents": details["discount_amount_cents"],
+            "promotion_code": details["promotion_code"],
+            "promotion_discount_percent": details["promotion_discount_percent"],
         }
 
     async def _ensure_owner_can_manage_reservation(

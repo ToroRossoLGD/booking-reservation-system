@@ -3,6 +3,7 @@ from app.models.availability_rule import AvailabilityRule
 from app.models.favorite_resource import FavoriteResource
 from app.models.notification import Notification
 from app.models.payment import Payment
+from app.models.promotion import Promotion
 from app.models.reservation import Reservation
 from app.models.resource import Resource
 from app.models.resource_review import ResourceReview
@@ -19,6 +20,7 @@ __all__ = [
     "Reservation",
     "Notification",
     "Payment",
+    "Promotion",
     "AvailabilityRule",
     "AvailabilityException",
     "WaitlistEntry",

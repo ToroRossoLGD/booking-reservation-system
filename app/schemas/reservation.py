@@ -10,6 +10,7 @@ class ReservationCreate(BaseModel):
     resource_id: int
     start_time: datetime
     end_time: datetime
+    promotion_code: str | None = Field(default=None, min_length=3, max_length=50)
 
 
 class ReservationReschedule(BaseModel):
@@ -32,6 +33,10 @@ class ReservationRead(BaseModel):
     recurrence_series_id: str | None = None
     quoted_amount_cents: int
     quoted_currency: str
+    base_amount_cents: int
+    discount_amount_cents: int
+    promotion_code: str | None = None
+    promotion_discount_percent: int | None = None
 
     model_config = {"from_attributes": True}
 
@@ -79,3 +84,7 @@ class ReservationQuoteRead(BaseModel):
     hourly_rate_cents: int
     amount_cents: int
     currency: str
+    base_amount_cents: int
+    discount_amount_cents: int
+    promotion_code: str | None = None
+    promotion_discount_percent: int | None = None
