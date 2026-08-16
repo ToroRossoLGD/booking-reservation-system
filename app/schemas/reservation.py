@@ -30,6 +30,8 @@ class ReservationRead(BaseModel):
     user_id: int
     resource_id: int
     recurrence_series_id: str | None = None
+    quoted_amount_cents: int
+    quoted_currency: str
 
     model_config = {"from_attributes": True}
 
@@ -67,3 +69,13 @@ class ReservationCancellationRead(BaseModel):
     refund_percentage: int
     refund_amount_cents: int
     cancellation_fee_cents: int
+
+
+class ReservationQuoteRead(BaseModel):
+    resource_id: int
+    start_time: datetime
+    end_time: datetime
+    duration_minutes: int
+    hourly_rate_cents: int
+    amount_cents: int
+    currency: str

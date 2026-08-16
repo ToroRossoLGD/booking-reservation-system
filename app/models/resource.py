@@ -25,6 +25,18 @@ class Resource(Base):
         default=1,
     )
 
+    hourly_rate_cents: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1000,
+    )
+
+    currency: Mapped[str] = mapped_column(
+        String(3),
+        nullable=False,
+        default="EUR",
+    )
+
     venue_id: Mapped[int] = mapped_column(
         ForeignKey("venues.id"),
         nullable=False,
