@@ -37,6 +37,9 @@ class ReservationRead(BaseModel):
     discount_amount_cents: int
     promotion_code: str | None = None
     promotion_discount_percent: int | None = None
+    attendance_status: str
+    checked_in_at: datetime | None = None
+    no_show_marked_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 
@@ -88,3 +91,14 @@ class ReservationQuoteRead(BaseModel):
     discount_amount_cents: int
     promotion_code: str | None = None
     promotion_discount_percent: int | None = None
+
+
+class CheckInPassRead(BaseModel):
+    reservation_id: int
+    token: str
+    valid_from: datetime
+    expires_at: datetime
+
+
+class CheckInRequest(BaseModel):
+    token: str = Field(min_length=20)

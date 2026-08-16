@@ -22,5 +22,9 @@ celery_app.conf.update(
             "task": "expire_pending_reservations_task",
             "schedule": settings.CELERY_EXPIRE_PENDING_INTERVAL_MINUTES * 60,
         },
+        "mark-reservation-no-shows-periodically": {
+            "task": "mark_reservation_no_shows_task",
+            "schedule": settings.CELERY_NO_SHOW_INTERVAL_MINUTES * 60,
+        },
     },
 )
