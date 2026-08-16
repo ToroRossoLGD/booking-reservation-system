@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.promotion import Promotion
 from app.models.reservation import Reservation
 from app.models.resource import Resource
 from app.models.venue import Venue
@@ -24,6 +25,7 @@ class ReservationRepository:
     async def create_with_conflict_lock(
         self,
         reservation: Reservation,
+        promotion_redemptions: int = 0,
     ) -> Reservation | None:
         resource_result = await self.db.execute(
             select(Resource)
@@ -36,6 +38,29 @@ class ReservationRepository:
         if resource is None:
             await self.db.rollback()
             return None
+
+        if reservation.promotion_id is not None:
+            promotion_result = await self.db.execute(
+                select(Promotion)
+                .where(Promotion.id == reservation.promotion_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            promotion = promotion_result.scalar_one_or_none()
+            if (
+                promotion is None
+                or not promotion.is_active
+                or promotion.venue_id != resource.venue_id
+                or not promotion.valid_from <= datetime.now(UTC) < promotion.valid_until
+                or (
+                    promotion.max_redemptions is not None
+                    and promotion.redemption_count + promotion_redemptions
+                    > promotion.max_redemptions
+                )
+            ):
+                await self.db.rollback()
+                raise PromotionRedemptionUnavailable
+            promotion.redemption_count += promotion_redemptions
 
         conflict_result = await self.db.execute(
             select(Reservation.id)
@@ -73,9 +98,34 @@ class ReservationRepository:
             select(Resource).where(Resource.id == resource_id).with_for_update()
         )
 
-        if resource_result.scalar_one_or_none() is None:
+        resource = resource_result.scalar_one_or_none()
+        if resource is None:
             await self.db.rollback()
             return None
+
+        promotion_id = reservations[0].promotion_id
+        if promotion_id is not None:
+            promotion_result = await self.db.execute(
+                select(Promotion)
+                .where(Promotion.id == promotion_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            promotion = promotion_result.scalar_one_or_none()
+            if (
+                promotion is None
+                or not promotion.is_active
+                or promotion.venue_id != resource.venue_id
+                or not promotion.valid_from <= datetime.now(UTC) < promotion.valid_until
+                or (
+                    promotion.max_redemptions is not None
+                    and promotion.redemption_count + len(reservations)
+                    > promotion.max_redemptions
+                )
+            ):
+                await self.db.rollback()
+                raise PromotionRedemptionUnavailable
+            promotion.redemption_count += len(reservations)
 
         overlap_checks = [
             and_(
@@ -264,3 +314,7 @@ class ReservationRepository:
         result = await self.db.execute(query)
 
         return result.scalar_one()
+
+
+class PromotionRedemptionUnavailable(Exception):
+    pass

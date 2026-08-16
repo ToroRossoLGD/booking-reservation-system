@@ -7,7 +7,11 @@ from fastapi import HTTPException
 from app.core.config import settings
 from app.models.payment import Payment, PaymentStatus
 from app.models.reservation import Reservation, ReservationStatus
-from app.schemas.reservation import RecurringReservationCreate, ReservationReschedule
+from app.schemas.reservation import (
+    RecurringReservationCreate,
+    ReservationCreate,
+    ReservationReschedule,
+)
 from app.services.reservation_service import ReservationService
 
 
@@ -369,3 +373,75 @@ async def test_price_quote_uses_resource_hourly_rate():
     assert quote["duration_minutes"] == 90
     assert quote["amount_cents"] == 3600
     assert quote["currency"] == "EUR"
+
+
+@pytest.mark.asyncio
+async def test_promotion_is_snapshotted_when_reservation_is_created():
+    service = ReservationService(AsyncMock())
+    start_time = datetime.now(UTC) + timedelta(days=2)
+    data = ReservationCreate(
+        resource_id=20,
+        start_time=start_time,
+        end_time=start_time + timedelta(hours=2),
+        promotion_code="SAVE25",
+    )
+    resource = MagicMock(
+        id=20,
+        venue_id=5,
+        hourly_rate_cents=2000,
+        currency="EUR",
+    )
+    promotion = MagicMock(id=7, code="SAVE25", discount_percent=25)
+    service.resource_repository.get_by_id = AsyncMock(return_value=resource)
+    service._resolve_promotion = AsyncMock(return_value=promotion)
+    service._is_within_availability_rules = AsyncMock(return_value=True)
+    service._has_availability_exception = AsyncMock(return_value=False)
+    service.reservation_repository.has_conflicting_reservation = AsyncMock(
+        return_value=False
+    )
+
+    async def create_reservation(reservation, promotion_redemptions):
+        reservation.id = 1
+        assert promotion_redemptions == 1
+        return reservation
+
+    service.reservation_repository.create_with_conflict_lock = AsyncMock(
+        side_effect=create_reservation
+    )
+    service.notification_service.create_notification = AsyncMock()
+
+    with patch(
+        "app.services.reservation_service.delete_available_slots_cache_for_resource",
+        new_callable=AsyncMock,
+    ):
+        reservation = await service.create_reservation(
+            data, MagicMock(id=10, email="user@example.com")
+        )
+
+    assert reservation.base_amount_cents == 4000
+    assert reservation.discount_amount_cents == 1000
+    assert reservation.quoted_amount_cents == 3000
+    assert reservation.promotion_code == "SAVE25"
+    assert reservation.promotion_discount_percent == 25
+
+
+@pytest.mark.asyncio
+async def test_exhausted_promotion_is_rejected():
+    service = ReservationService(AsyncMock())
+    now = datetime.now(UTC)
+    service.promotion_repository.get_by_code = AsyncMock(
+        return_value=MagicMock(
+            venue_id=5,
+            is_active=True,
+            valid_from=now - timedelta(days=1),
+            valid_until=now + timedelta(days=1),
+            max_redemptions=10,
+            redemption_count=10,
+        )
+    )
+
+    with pytest.raises(HTTPException) as exception_info:
+        await service._resolve_promotion("SOLDOUT", venue_id=5)
+
+    assert exception_info.value.status_code == 409
+    assert exception_info.value.detail == "Promotion redemption limit reached"

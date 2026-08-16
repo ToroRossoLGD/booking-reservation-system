@@ -12,6 +12,7 @@ from app.api.routers.favorites import router as favorites_router
 from app.api.routers.notifications import router as notifications_router
 from app.api.routers.owner import router as owner_router
 from app.api.routers.payments import router as payments_router
+from app.api.routers.promotions import router as promotions_router
 from app.api.routers.reservations import router as reservations_router
 from app.api.routers.resource_reviews import router as resource_reviews_router
 from app.api.routers.resources import router as resources_router
@@ -34,6 +35,7 @@ app.include_router(reservations_router)
 app.include_router(owner_router)
 app.include_router(notifications_router)
 app.include_router(payments_router)
+app.include_router(promotions_router)
 app.include_router(admin_router)
 app.include_router(favorites_router)
 app.include_router(resource_reviews_router)

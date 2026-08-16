@@ -25,3 +25,7 @@ def test_positive_duration_has_a_minimum_price_of_one_cent():
     )
 
     assert amount == 1
+
+
+def test_percentage_discount_is_rounded_to_nearest_cent():
+    assert PricingService.calculate_discount_cents(1001, 15) == 150

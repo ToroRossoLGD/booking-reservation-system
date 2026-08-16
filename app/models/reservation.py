@@ -60,6 +60,18 @@ class Reservation(Base):
         nullable=False,
     )
 
+    base_amount_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    discount_amount_cents: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    promotion_id: Mapped[int | None] = mapped_column(
+        ForeignKey("promotions.id"), nullable=True, index=True
+    )
+    promotion_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    promotion_discount_percent: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )
+
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         nullable=False,
