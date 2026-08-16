@@ -7,6 +7,8 @@ class ResourceCreate(BaseModel):
     name: str = Field(min_length=2, max_length=255)
     resource_type: str = Field(min_length=2, max_length=100)
     capacity: int = Field(default=1, ge=1)
+    hourly_rate_cents: int = Field(ge=1)
+    currency: str = Field(default="EUR", min_length=3, max_length=3)
 
 
 class ResourceRead(BaseModel):
@@ -14,6 +16,8 @@ class ResourceRead(BaseModel):
     name: str
     resource_type: str
     capacity: int
+    hourly_rate_cents: int
+    currency: str
     venue_id: int
 
     model_config = {"from_attributes": True}
@@ -24,6 +28,8 @@ class ResourceSearchRead(BaseModel):
     name: str
     resource_type: str
     capacity: int
+    hourly_rate_cents: int
+    currency: str
     venue_id: int
     venue_name: str
     venue_address: str
@@ -42,6 +48,8 @@ class AvailableResourceRead(BaseModel):
     name: str
     resource_type: str
     capacity: int
+    hourly_rate_cents: int
+    currency: str
     venue_id: int
     venue_name: str
     venue_address: str

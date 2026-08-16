@@ -14,6 +14,7 @@ from app.schemas.reservation import (
     ReservationCancellationRead,
     ReservationCreate,
     ReservationListRead,
+    ReservationQuoteRead,
     ReservationRead,
     ReservationReschedule,
 )
@@ -24,6 +25,21 @@ router = APIRouter(
     prefix="/reservations",
     tags=["Reservations"],
 )
+
+
+@router.get("/quote", response_model=ReservationQuoteRead)
+async def get_price_quote(
+    resource_id: int,
+    start_time: datetime,
+    end_time: datetime,
+    db: AsyncSession = Depends(get_db),
+):
+    service = ReservationService(db)
+    return await service.get_price_quote(
+        resource_id=resource_id,
+        start_time=start_time,
+        end_time=end_time,
+    )
 
 
 @router.post("", response_model=ReservationRead, status_code=201)

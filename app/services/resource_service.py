@@ -45,6 +45,8 @@ class ResourceService:
             name=data.name,
             resource_type=data.resource_type,
             capacity=data.capacity,
+            hourly_rate_cents=data.hourly_rate_cents,
+            currency=data.currency.upper(),
             venue_id=venue_id,
         )
 
@@ -156,6 +158,8 @@ class ResourceService:
                 name=resource.name,
                 resource_type=resource.resource_type,
                 capacity=resource.capacity,
+                hourly_rate_cents=resource.hourly_rate_cents,
+                currency=resource.currency,
                 venue_id=venue.id,
                 venue_name=venue.name,
                 venue_address=venue.address,
@@ -262,6 +266,8 @@ class ResourceService:
                 name=resource.name,
                 resource_type=resource.resource_type,
                 capacity=resource.capacity,
+                hourly_rate_cents=resource.hourly_rate_cents,
+                currency=resource.currency,
                 venue_id=venue.id,
                 venue_name=venue.name,
                 venue_address=venue.address,

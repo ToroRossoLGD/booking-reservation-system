@@ -6,7 +6,6 @@ from app.models.reservation import ReservationStatus
 from app.models.user import User
 from app.repositories.payment_repository import PaymentRepository
 from app.repositories.reservation_repository import ReservationRepository
-from app.schemas.payment import PaymentCreate
 from app.services.notification_service import NotificationService
 
 
@@ -48,7 +47,6 @@ class PaymentService:
     async def pay_for_reservation(
         self,
         reservation_id: int,
-        data: PaymentCreate,
         current_user: User,
         background_tasks: BackgroundTasks | None = None,
     ) -> Payment:
@@ -72,6 +70,15 @@ class PaymentService:
                 detail="Only pending reservations can be paid",
             )
 
+        if (
+            reservation.quoted_amount_cents is None
+            or reservation.quoted_currency is None
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Reservation does not have a price quote",
+            )
+
         existing_payment = await self.payment_repository.get_by_reservation_id(
             reservation_id
         )
@@ -87,16 +94,16 @@ class PaymentService:
         if payment is None:
             payment = Payment(
                 reservation_id=reservation_id,
-                amount_cents=data.amount_cents,
-                currency=data.currency,
+                amount_cents=reservation.quoted_amount_cents,
+                currency=reservation.quoted_currency,
                 status=PaymentStatus.PENDING.value,
                 provider="mock",
             )
             payment = await self.payment_repository.create(payment)
 
         payment.status = PaymentStatus.PAID.value
-        payment.amount_cents = data.amount_cents
-        payment.currency = data.currency
+        payment.amount_cents = reservation.quoted_amount_cents
+        payment.currency = reservation.quoted_currency
 
         paid_payment = await self.payment_repository.update(payment)
 

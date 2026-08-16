@@ -30,6 +30,7 @@ from app.schemas.reservation import (
     ReservationReschedule,
 )
 from app.services.notification_service import NotificationService
+from app.services.pricing_service import PricingService
 from app.services.waitlist_service import WaitlistService
 
 
@@ -143,6 +144,12 @@ class ReservationService:
             end_time=data.end_time,
             user_id=current_user.id,
             resource_id=data.resource_id,
+            quoted_amount_cents=PricingService.calculate_amount_cents(
+                resource.hourly_rate_cents,
+                data.start_time,
+                data.end_time,
+            ),
+            quoted_currency=resource.currency,
         )
 
         created_reservation = (
@@ -245,6 +252,12 @@ class ReservationService:
                 user_id=current_user.id,
                 resource_id=data.resource_id,
                 recurrence_series_id=series_id,
+                quoted_amount_cents=PricingService.calculate_amount_cents(
+                    resource.hourly_rate_cents,
+                    start_time,
+                    end_time,
+                ),
+                quoted_currency=resource.currency,
             )
             for start_time, end_time in occurrences
         ]
@@ -453,6 +466,20 @@ class ReservationService:
 
         previous_start_time = reservation.start_time
         previous_end_time = reservation.end_time
+
+        resource = await self.resource_repository.get_by_id(reservation.resource_id)
+        if resource is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resource not found",
+            )
+
+        reservation.quoted_amount_cents = PricingService.calculate_amount_cents(
+            resource.hourly_rate_cents,
+            data.start_time,
+            data.end_time,
+        )
+        reservation.quoted_currency = resource.currency
 
         updated_reservation = (
             await self.reservation_repository.reschedule_with_conflict_lock(
@@ -685,6 +712,46 @@ class ReservationService:
             "start_time": start_time,
             "end_time": end_time,
             "available": not has_conflict,
+        }
+
+    async def get_price_quote(
+        self,
+        resource_id: int,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> dict:
+        if start_time.tzinfo is None or end_time.tzinfo is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Reservation times must include a timezone",
+            )
+
+        if start_time >= end_time:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Start time must be before end time",
+            )
+
+        resource = await self.resource_repository.get_by_id(resource_id)
+        if resource is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resource not found",
+            )
+
+        duration_minutes = int((end_time - start_time).total_seconds() / 60)
+        return {
+            "resource_id": resource_id,
+            "start_time": start_time,
+            "end_time": end_time,
+            "duration_minutes": duration_minutes,
+            "hourly_rate_cents": resource.hourly_rate_cents,
+            "amount_cents": PricingService.calculate_amount_cents(
+                resource.hourly_rate_cents,
+                start_time,
+                end_time,
+            ),
+            "currency": resource.currency,
         }
 
     async def _ensure_owner_can_manage_reservation(

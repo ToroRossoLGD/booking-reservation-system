@@ -1,11 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
-
-
-class PaymentCreate(BaseModel):
-    amount_cents: int = Field(gt=0)
-    currency: str = Field(default="EUR", min_length=3, max_length=10)
+from pydantic import BaseModel
 
 
 class PaymentRead(BaseModel):

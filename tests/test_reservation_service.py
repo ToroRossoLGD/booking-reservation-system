@@ -129,6 +129,9 @@ async def test_user_can_reschedule_own_pending_reservation():
     )
 
     service.reservation_repository.get_by_id = AsyncMock(return_value=reservation)
+    service.resource_repository.get_by_id = AsyncMock(
+        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR")
+    )
     service._is_within_availability_rules = AsyncMock(return_value=True)
     service._has_availability_exception = AsyncMock(return_value=False)
     service.reservation_repository.reschedule_with_conflict_lock = AsyncMock(
@@ -148,6 +151,8 @@ async def test_user_can_reschedule_own_pending_reservation():
         )
 
     assert result is reservation
+    assert reservation.quoted_amount_cents == 2000
+    assert reservation.quoted_currency == "EUR"
     service.reservation_repository.reschedule_with_conflict_lock.assert_awaited_once()
     service.notification_service.create_notification.assert_awaited_once()
     delete_cache.assert_awaited_once_with(reservation.resource_id)
@@ -210,6 +215,9 @@ async def test_reschedule_rejects_conflicting_time_slot():
     )
 
     service.reservation_repository.get_by_id = AsyncMock(return_value=reservation)
+    service.resource_repository.get_by_id = AsyncMock(
+        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR")
+    )
     service._is_within_availability_rules = AsyncMock(return_value=True)
     service._has_availability_exception = AsyncMock(return_value=False)
     service.reservation_repository.reschedule_with_conflict_lock = AsyncMock(
@@ -243,7 +251,9 @@ async def test_recurring_reservations_are_created_as_one_series():
     data = recurring_data()
     current_user = MagicMock(id=10, email="user@example.com")
 
-    service.resource_repository.get_by_id = AsyncMock(return_value=MagicMock())
+    service.resource_repository.get_by_id = AsyncMock(
+        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR")
+    )
     service._is_within_availability_rules = AsyncMock(return_value=True)
     service._has_availability_exception = AsyncMock(return_value=False)
     service.reservation_repository.has_conflicting_reservation = AsyncMock(
@@ -269,6 +279,8 @@ async def test_recurring_reservations_are_created_as_one_series():
     reservations = result["reservations"]
     assert result["occurrence_count"] == 3
     assert len({item.recurrence_series_id for item in reservations}) == 1
+    assert {item.quoted_amount_cents for item in reservations} == {2000}
+    assert {item.quoted_currency for item in reservations} == {"EUR"}
     assert reservations[1].start_time - reservations[0].start_time == timedelta(days=7)
     service.reservation_repository.create_series_with_conflict_lock.assert_awaited_once()
     service.notification_service.create_notification.assert_awaited_once()
@@ -281,7 +293,9 @@ async def test_recurring_reservations_reject_entire_series_on_preflight_conflict
     data = recurring_data()
     current_user = MagicMock(id=10)
 
-    service.resource_repository.get_by_id = AsyncMock(return_value=MagicMock())
+    service.resource_repository.get_by_id = AsyncMock(
+        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR")
+    )
     service._is_within_availability_rules = AsyncMock(return_value=True)
     service._has_availability_exception = AsyncMock(return_value=False)
     service.reservation_repository.has_conflicting_reservation = AsyncMock(
@@ -303,7 +317,9 @@ async def test_recurring_reservations_handle_conflict_found_under_lock():
     data = recurring_data()
     current_user = MagicMock(id=10)
 
-    service.resource_repository.get_by_id = AsyncMock(return_value=MagicMock())
+    service.resource_repository.get_by_id = AsyncMock(
+        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR")
+    )
     service._is_within_availability_rules = AsyncMock(return_value=True)
     service._has_availability_exception = AsyncMock(return_value=False)
     service.reservation_repository.has_conflicting_reservation = AsyncMock(
@@ -334,3 +350,22 @@ async def test_user_cannot_view_another_users_recurring_series():
         )
 
     assert exception_info.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_price_quote_uses_resource_hourly_rate():
+    service = ReservationService(AsyncMock())
+    start_time = datetime.now(UTC) + timedelta(days=1)
+    service.resource_repository.get_by_id = AsyncMock(
+        return_value=MagicMock(hourly_rate_cents=2400, currency="EUR")
+    )
+
+    quote = await service.get_price_quote(
+        resource_id=20,
+        start_time=start_time,
+        end_time=start_time + timedelta(minutes=90),
+    )
+
+    assert quote["duration_minutes"] == 90
+    assert quote["amount_cents"] == 3600
+    assert quote["currency"] == "EUR"
