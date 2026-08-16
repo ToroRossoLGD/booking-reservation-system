@@ -9,6 +9,8 @@ from app.models.user import User
 from app.schemas.reservation import (
     AvailabilityRead,
     AvailableSlotRead,
+    CheckInPassRead,
+    CheckInRequest,
     RecurringReservationCreate,
     RecurringReservationRead,
     ReservationCancellationRead,
@@ -25,6 +27,26 @@ router = APIRouter(
     prefix="/reservations",
     tags=["Reservations"],
 )
+
+
+@router.post("/check-in", response_model=ReservationRead)
+async def check_in_reservation(
+    data: CheckInRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("owner", "admin")),
+):
+    return await ReservationService(db).check_in_reservation(
+        token=data.token,
+        current_user=current_user,
+    )
+
+
+@router.post("/mark-no-shows")
+async def mark_no_shows(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("admin")),
+):
+    return await ReservationService(db).mark_no_shows()
 
 
 @router.get("/quote", response_model=ReservationQuoteRead)
@@ -182,6 +204,18 @@ async def get_reservation(
     service = ReservationService(db)
 
     return await service.get_reservation(
+        reservation_id=reservation_id,
+        current_user=current_user,
+    )
+
+
+@router.get("/{reservation_id}/check-in-pass", response_model=CheckInPassRead)
+async def get_check_in_pass(
+    reservation_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await ReservationService(db).get_check_in_pass(
         reservation_id=reservation_id,
         current_user=current_user,
     )

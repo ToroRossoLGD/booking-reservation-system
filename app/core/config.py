@@ -28,8 +28,11 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str = "redis://localhost:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
     CELERY_EXPIRE_PENDING_INTERVAL_MINUTES: int = 5
+    CELERY_NO_SHOW_INTERVAL_MINUTES: int = 5
 
     RESERVATION_EXPIRE_MINUTES: int = 15
+    CHECK_IN_EARLY_MINUTES: int = 30
+    NO_SHOW_GRACE_MINUTES: int = 15
 
     CACHE_TTL_SECONDS: int = 60
 

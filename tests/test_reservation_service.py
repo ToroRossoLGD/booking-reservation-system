@@ -6,7 +6,7 @@ from fastapi import HTTPException
 
 from app.core.config import settings
 from app.models.payment import Payment, PaymentStatus
-from app.models.reservation import Reservation, ReservationStatus
+from app.models.reservation import AttendanceStatus, Reservation, ReservationStatus
 from app.schemas.reservation import (
     RecurringReservationCreate,
     ReservationCreate,
@@ -445,3 +445,108 @@ async def test_exhausted_promotion_is_rejected():
 
     assert exception_info.value.status_code == 409
     assert exception_info.value.detail == "Promotion redemption limit reached"
+
+
+@pytest.mark.asyncio
+async def test_customer_can_get_pass_for_confirmed_reservation():
+    service = ReservationService(AsyncMock())
+    reservation = MagicMock(
+        id=1,
+        user_id=10,
+        status=ReservationStatus.CONFIRMED.value,
+        attendance_status=AttendanceStatus.SCHEDULED.value,
+        start_time=datetime.now(UTC) + timedelta(minutes=10),
+        end_time=datetime.now(UTC) + timedelta(hours=1),
+    )
+    service.reservation_repository.get_by_id = AsyncMock(return_value=reservation)
+
+    result = await service.get_check_in_pass(
+        reservation_id=1,
+        current_user=MagicMock(id=10, role="customer"),
+    )
+
+    assert result["reservation_id"] == 1
+    assert isinstance(result["token"], str)
+    assert len(result["token"]) > 20
+
+
+@pytest.mark.asyncio
+async def test_owner_can_check_in_reservation_during_window():
+    service = ReservationService(AsyncMock())
+    reservation = MagicMock(
+        id=1,
+        status=ReservationStatus.CONFIRMED.value,
+        attendance_status=AttendanceStatus.SCHEDULED.value,
+        start_time=datetime.now(UTC) + timedelta(minutes=5),
+        end_time=datetime.now(UTC) + timedelta(hours=1),
+        checked_in_at=None,
+    )
+    service.reservation_repository.get_by_id_for_update = AsyncMock(
+        return_value=reservation
+    )
+    service.reservation_repository.update = AsyncMock(return_value=reservation)
+    service._ensure_owner_can_manage_reservation = AsyncMock()
+
+    with patch(
+        "app.services.reservation_service.decode_check_in_token",
+        return_value=reservation.id,
+    ):
+        result = await service.check_in_reservation(
+            token="signed-token",
+            current_user=MagicMock(id=20, role="owner"),
+        )
+
+    assert result.attendance_status == AttendanceStatus.CHECKED_IN.value
+    assert result.checked_in_at is not None
+    service.reservation_repository.update.assert_awaited_once_with(reservation)
+
+
+@pytest.mark.asyncio
+async def test_check_in_is_rejected_before_window_opens():
+    service = ReservationService(AsyncMock())
+    reservation = MagicMock(
+        id=1,
+        status=ReservationStatus.CONFIRMED.value,
+        attendance_status=AttendanceStatus.SCHEDULED.value,
+        start_time=datetime.now(UTC) + timedelta(hours=2),
+        end_time=datetime.now(UTC) + timedelta(hours=3),
+    )
+    service.reservation_repository.get_by_id_for_update = AsyncMock(
+        return_value=reservation
+    )
+    service._ensure_owner_can_manage_reservation = AsyncMock()
+
+    with (
+        patch(
+            "app.services.reservation_service.decode_check_in_token",
+            return_value=reservation.id,
+        ),
+        pytest.raises(HTTPException) as exception_info,
+    ):
+        await service.check_in_reservation(
+            token="signed-token",
+            current_user=MagicMock(id=20, role="owner"),
+        )
+
+    assert exception_info.value.status_code == 400
+    assert "opens at" in exception_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_no_show_job_marks_overdue_scheduled_reservations():
+    db = AsyncMock()
+    service = ReservationService(db)
+    reservation = MagicMock(
+        attendance_status=AttendanceStatus.SCHEDULED.value,
+        no_show_marked_at=None,
+    )
+    service.reservation_repository.get_no_show_candidates = AsyncMock(
+        return_value=[reservation]
+    )
+
+    result = await service.mark_no_shows()
+
+    assert result == {"no_show_count": 1}
+    assert reservation.attendance_status == AttendanceStatus.NO_SHOW.value
+    assert reservation.no_show_marked_at is not None
+    db.commit.assert_awaited_once()
