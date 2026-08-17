@@ -15,6 +15,12 @@ class ReservationStatus(str, enum.Enum):
     EXPIRED = "expired"
 
 
+class AttendanceStatus(str, enum.Enum):
+    SCHEDULED = "scheduled"
+    CHECKED_IN = "checked_in"
+    NO_SHOW = "no_show"
+
+
 class Reservation(Base):
     __tablename__ = "reservations"
 
@@ -42,6 +48,19 @@ class Reservation(Base):
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(UTC),
+    )
+
+    attendance_status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default=AttendanceStatus.SCHEDULED.value,
+        index=True,
+    )
+    checked_in_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    no_show_marked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
     recurrence_series_id: Mapped[str | None] = mapped_column(

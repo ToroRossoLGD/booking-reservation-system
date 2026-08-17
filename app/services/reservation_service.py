@@ -11,8 +11,9 @@ from app.core.cache import (
     set_cache,
 )
 from app.core.config import settings
+from app.core.security import create_check_in_token, decode_check_in_token
 from app.models.payment import PaymentStatus
-from app.models.reservation import Reservation, ReservationStatus
+from app.models.reservation import AttendanceStatus, Reservation, ReservationStatus
 from app.models.reservation_event import ReservationEvent, ReservationEventType
 from app.models.user import User
 from app.repositories.availability_exception_repository import (
@@ -522,6 +523,110 @@ class ReservationService:
 
         return reservation
 
+    async def get_check_in_pass(
+        self,
+        reservation_id: int,
+        current_user: User,
+    ) -> dict:
+        reservation = await self.reservation_repository.get_by_id(reservation_id)
+        if reservation is None:
+            raise HTTPException(status_code=404, detail="Reservation not found")
+        if current_user.role != "admin" and reservation.user_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You can get a check-in pass only for your own reservation",
+            )
+        if reservation.status != ReservationStatus.CONFIRMED.value:
+            raise HTTPException(
+                status_code=400,
+                detail="Only confirmed reservations have check-in passes",
+            )
+        if reservation.attendance_status == AttendanceStatus.NO_SHOW.value:
+            raise HTTPException(
+                status_code=400, detail="Reservation was marked as a no-show"
+            )
+
+        expires_at = reservation.start_time + timedelta(
+            minutes=settings.NO_SHOW_GRACE_MINUTES
+        )
+        if expires_at <= datetime.now(UTC):
+            raise HTTPException(status_code=400, detail="Check-in pass has expired")
+
+        valid_from = reservation.start_time - timedelta(
+            minutes=settings.CHECK_IN_EARLY_MINUTES
+        )
+        return {
+            "reservation_id": reservation.id,
+            "token": create_check_in_token(
+                reservation_id=reservation.id,
+                expires_at=expires_at,
+            ),
+            "valid_from": valid_from,
+            "expires_at": expires_at,
+        }
+
+    async def check_in_reservation(
+        self,
+        token: str,
+        current_user: User,
+    ) -> Reservation:
+        reservation_id = decode_check_in_token(token)
+        if reservation_id is None:
+            raise HTTPException(
+                status_code=400, detail="Invalid or expired check-in pass"
+            )
+
+        reservation = await self.reservation_repository.get_by_id_for_update(
+            reservation_id
+        )
+        if reservation is None:
+            raise HTTPException(
+                status_code=400, detail="Invalid or expired check-in pass"
+            )
+
+        await self._ensure_owner_can_manage_reservation(reservation, current_user)
+
+        if reservation.status != ReservationStatus.CONFIRMED.value:
+            raise HTTPException(
+                status_code=400, detail="Only confirmed reservations can check in"
+            )
+        if reservation.attendance_status == AttendanceStatus.CHECKED_IN.value:
+            return reservation
+        if reservation.attendance_status == AttendanceStatus.NO_SHOW.value:
+            raise HTTPException(
+                status_code=400, detail="Reservation was marked as a no-show"
+            )
+
+        now = datetime.now(UTC)
+        earliest_check_in = reservation.start_time - timedelta(
+            minutes=settings.CHECK_IN_EARLY_MINUTES
+        )
+        if now < earliest_check_in:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Check-in opens at {earliest_check_in.isoformat()}",
+            )
+        latest_check_in = reservation.start_time + timedelta(
+            minutes=settings.NO_SHOW_GRACE_MINUTES
+        )
+        if now > latest_check_in:
+            raise HTTPException(status_code=400, detail="Check-in window has closed")
+
+        reservation.attendance_status = AttendanceStatus.CHECKED_IN.value
+        reservation.checked_in_at = now
+        return await self.reservation_repository.update(reservation)
+
+    async def mark_no_shows(self) -> dict:
+        now = datetime.now(UTC)
+        cutoff = now - timedelta(minutes=settings.NO_SHOW_GRACE_MINUTES)
+        reservations = await self.reservation_repository.get_no_show_candidates(cutoff)
+        for reservation in reservations:
+            reservation.attendance_status = AttendanceStatus.NO_SHOW.value
+            reservation.no_show_marked_at = now
+        if reservations:
+            await self.db.commit()
+        return {"no_show_count": len(reservations)}
+
     async def reschedule_reservation(
         self,
         reservation_id: int,
@@ -1021,6 +1126,12 @@ class ReservationService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Only confirmed reservations can be completed",
+            )
+
+        if reservation.attendance_status != AttendanceStatus.CHECKED_IN.value:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only checked-in reservations can be completed",
             )
 
         previous_status = reservation.status

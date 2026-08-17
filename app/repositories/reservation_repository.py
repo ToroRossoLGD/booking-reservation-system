@@ -4,7 +4,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.promotion import Promotion
-from app.models.reservation import Reservation
+from app.models.reservation import AttendanceStatus, Reservation, ReservationStatus
 from app.models.resource import Resource
 from app.models.venue import Venue
 
@@ -255,6 +255,17 @@ class ReservationRepository:
 
         return result.scalar_one_or_none()
 
+    async def get_by_id_for_update(
+        self,
+        reservation_id: int,
+    ) -> Reservation | None:
+        result = await self.db.execute(
+            select(Reservation)
+            .where(Reservation.id == reservation_id)
+            .with_for_update()
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_series_id(
         self,
         recurrence_series_id: str,
@@ -299,6 +310,21 @@ class ReservationRepository:
             )
         )
 
+        return list(result.scalars().all())
+
+    async def get_no_show_candidates(
+        self,
+        started_before: datetime,
+    ) -> list[Reservation]:
+        result = await self.db.execute(
+            select(Reservation)
+            .where(
+                Reservation.status == ReservationStatus.CONFIRMED.value,
+                Reservation.attendance_status == AttendanceStatus.SCHEDULED.value,
+                Reservation.start_time < started_before,
+            )
+            .with_for_update(skip_locked=True)
+        )
         return list(result.scalars().all())
 
     async def count_user_reservations(

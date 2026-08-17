@@ -1,7 +1,7 @@
 """add reservation audit history
 
 Revision ID: 91b4e2a6c0d3
-Revises: d42f8c1e5a21
+Revises: e53a9d2f6b32
 """
 
 from collections.abc import Sequence
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "91b4e2a6c0d3"
-down_revision: str | Sequence[str] | None = "d42f8c1e5a21"
+down_revision: str | Sequence[str] | None = "e53a9d2f6b32"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from jose import jwt
+from jose.exceptions import JWTError
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -38,3 +39,37 @@ def create_access_token(
         settings.JWT_SECRET,
         algorithm=settings.JWT_ALGORITHM,
     )
+
+
+def create_check_in_token(
+    reservation_id: int,
+    expires_at: datetime,
+) -> str:
+    return jwt.encode(
+        {
+            "sub": str(reservation_id),
+            "type": "reservation_check_in",
+            "exp": expires_at,
+        },
+        settings.JWT_SECRET,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+
+
+def decode_check_in_token(token: str) -> int | None:
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET,
+            algorithms=[settings.JWT_ALGORITHM],
+        )
+    except JWTError:
+        return None
+
+    if payload.get("type") != "reservation_check_in":
+        return None
+
+    try:
+        return int(payload["sub"])
+    except (KeyError, TypeError, ValueError):
+        return None
