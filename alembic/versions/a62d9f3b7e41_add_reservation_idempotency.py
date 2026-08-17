@@ -1,7 +1,7 @@
 """add reservation idempotency
 
 Revision ID: a62d9f3b7e41
-Revises: e53a9d2f6b32
+Revises: 91b4e2a6c0d3
 """
 
 from collections.abc import Sequence
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "a62d9f3b7e41"
-down_revision: str | Sequence[str] | None = "e53a9d2f6b32"
+down_revision: str | Sequence[str] | None = "91b4e2a6c0d3"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
