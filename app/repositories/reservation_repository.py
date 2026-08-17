@@ -30,9 +30,7 @@ class ReservationRepository:
     ) -> Reservation | None:
         if reservation.idempotency_key is not None:
             await self.db.execute(
-                select(User.id)
-                .where(User.id == reservation.user_id)
-                .with_for_update()
+                select(User.id).where(User.id == reservation.user_id).with_for_update()
             )
 
             existing_result = await self.db.execute(
