@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.core.security import create_check_in_token, decode_check_in_token
 from app.models.payment import PaymentStatus
 from app.models.reservation import AttendanceStatus, Reservation, ReservationStatus
+from app.models.reservation_event import ReservationEvent, ReservationEventType
 from app.models.user import User
 from app.repositories.availability_exception_repository import (
     AvailabilityExceptionRepository,
@@ -23,6 +24,7 @@ from app.repositories.availability_rule_repository import (
 )
 from app.repositories.payment_repository import PaymentRepository
 from app.repositories.promotion_repository import PromotionRepository
+from app.repositories.reservation_event_repository import ReservationEventRepository
 from app.repositories.reservation_repository import (
     PromotionRedemptionUnavailable,
     ReservationRepository,
@@ -42,6 +44,7 @@ from app.services.waitlist_service import WaitlistService
 class ReservationService:
     def __init__(self, db: AsyncSession):
         self.reservation_repository = ReservationRepository(db)
+        self.reservation_event_repository = ReservationEventRepository(db)
         self.resource_repository = ResourceRepository(db)
         self.venue_repository = VenueRepository(db)
         self.notification_service = NotificationService(db)
@@ -51,6 +54,26 @@ class ReservationService:
         self.promotion_repository = PromotionRepository(db)
         self.waitlist_service = WaitlistService(db)
         self.db = db
+
+    async def _record_event(
+        self,
+        reservation: Reservation,
+        event_type: ReservationEventType,
+        actor: User | None,
+        previous_status: str | None = None,
+        details: dict | None = None,
+    ) -> ReservationEvent:
+        return await self.reservation_event_repository.create(
+            ReservationEvent(
+                reservation_id=reservation.id,
+                event_type=event_type.value,
+                actor_id=actor.id if actor is not None else None,
+                actor_role=actor.role if actor is not None else "system",
+                previous_status=previous_status,
+                new_status=reservation.status,
+                details=details or {},
+            )
+        )
 
     async def _resolve_promotion(
         self,
@@ -236,6 +259,17 @@ class ReservationService:
                 detail="Resource is already booked for this time slot",
             )
 
+        await self._record_event(
+            created_reservation,
+            ReservationEventType.CREATED,
+            current_user,
+            details={
+                "start_time": created_reservation.start_time.isoformat(),
+                "end_time": created_reservation.end_time.isoformat(),
+                "resource_id": created_reservation.resource_id,
+            },
+        )
+
         await delete_available_slots_cache_for_resource(data.resource_id)
 
         await self.notification_service.create_notification(
@@ -352,6 +386,19 @@ class ReservationService:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="One or more occurrences became unavailable",
+            )
+
+        for created_reservation in created_reservations:
+            await self._record_event(
+                created_reservation,
+                ReservationEventType.CREATED,
+                current_user,
+                details={
+                    "start_time": created_reservation.start_time.isoformat(),
+                    "end_time": created_reservation.end_time.isoformat(),
+                    "resource_id": created_reservation.resource_id,
+                    "recurrence_series_id": series_id,
+                },
             )
 
         await delete_available_slots_cache_for_resource(data.resource_id)
@@ -692,6 +739,19 @@ class ReservationService:
                 detail="Resource is already booked for this time slot",
             )
 
+        await self._record_event(
+            updated_reservation,
+            ReservationEventType.RESCHEDULED,
+            current_user,
+            previous_status=updated_reservation.status,
+            details={
+                "previous_start_time": previous_start_time.isoformat(),
+                "previous_end_time": previous_end_time.isoformat(),
+                "new_start_time": updated_reservation.start_time.isoformat(),
+                "new_end_time": updated_reservation.end_time.isoformat(),
+            },
+        )
+
         await delete_available_slots_cache_for_resource(reservation.resource_id)
 
         await self.waitlist_service.notify_next_for_slot(
@@ -797,6 +857,7 @@ class ReservationService:
             else:
                 payment.status = PaymentStatus.PARTIALLY_REFUNDED.value
 
+        previous_status = reservation.status
         reservation.status = ReservationStatus.CANCELLED.value
 
         try:
@@ -808,6 +869,18 @@ class ReservationService:
         except Exception:
             await self.db.rollback()
             raise
+
+        await self._record_event(
+            reservation,
+            ReservationEventType.CANCELLED,
+            current_user,
+            previous_status=previous_status,
+            details={
+                "refund_percentage": refund_percentage,
+                "refund_amount_cents": refund_amount_cents,
+                "cancellation_fee_cents": cancellation_fee_cents,
+            },
+        )
 
         await delete_available_slots_cache_for_resource(reservation.resource_id)
 
@@ -1009,9 +1082,17 @@ class ReservationService:
                 detail="Only pending reservations can be confirmed",
             )
 
+        previous_status = reservation.status
         reservation.status = ReservationStatus.CONFIRMED.value
 
         updated_reservation = await self.reservation_repository.update(reservation)
+
+        await self._record_event(
+            updated_reservation,
+            ReservationEventType.CONFIRMED,
+            current_user,
+            previous_status=previous_status,
+        )
 
         await self.notification_service.create_notification(
             user_id=reservation.user_id,
@@ -1053,9 +1134,17 @@ class ReservationService:
                 detail="Only checked-in reservations can be completed",
             )
 
+        previous_status = reservation.status
         reservation.status = ReservationStatus.COMPLETED.value
 
         updated_reservation = await self.reservation_repository.update(reservation)
+
+        await self._record_event(
+            updated_reservation,
+            ReservationEventType.COMPLETED,
+            current_user,
+            previous_status=previous_status,
+        )
 
         await self.notification_service.create_notification(
             user_id=reservation.user_id,
@@ -1176,8 +1265,26 @@ class ReservationService:
 
             await self.reservation_repository.update(reservation)
 
+            await self._record_event(
+                reservation,
+                ReservationEventType.EXPIRED,
+                actor=None,
+                previous_status=ReservationStatus.PENDING.value,
+            )
+
             await delete_available_slots_cache_for_resource(reservation.resource_id)
 
             expired_count += 1
 
         return {"expired_count": expired_count}
+
+    async def get_reservation_timeline(
+        self,
+        reservation_id: int,
+        current_user: User,
+    ) -> dict:
+        reservation = await self.get_reservation(reservation_id, current_user)
+        events = await self.reservation_event_repository.get_for_reservation(
+            reservation.id
+        )
+        return {"reservation_id": reservation.id, "events": events}
