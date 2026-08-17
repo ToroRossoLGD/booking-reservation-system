@@ -5,6 +5,8 @@ from app.core.dependencies import require_roles
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.venue import (
+    VenueBookingRulesRead,
+    VenueBookingRulesUpdate,
     VenueCancellationPolicyRead,
     VenueCancellationPolicyUpdate,
     VenueCreate,
@@ -63,6 +65,30 @@ async def get_venue(
 ):
     service = VenueService(db)
     return await service.get_venue_by_id(venue_id)
+
+
+@router.patch(
+    "/{venue_id}/booking-rules",
+    response_model=VenueBookingRulesRead,
+)
+async def update_booking_rules(
+    venue_id: int,
+    data: VenueBookingRulesUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("owner", "admin")),
+):
+    service = VenueService(db)
+    venue = await service.update_booking_rules(venue_id, data, current_user)
+    return {
+        "venue_id": venue.id,
+        "minimum_booking_notice_minutes": venue.minimum_booking_notice_minutes,
+        "maximum_advance_booking_days": venue.maximum_advance_booking_days,
+        "minimum_booking_duration_minutes": venue.minimum_booking_duration_minutes,
+        "maximum_booking_duration_minutes": venue.maximum_booking_duration_minutes,
+        "max_active_reservations_per_customer": (
+            venue.max_active_reservations_per_customer
+        ),
+    }
 
 
 @router.patch(
