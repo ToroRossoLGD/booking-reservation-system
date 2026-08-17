@@ -78,6 +78,7 @@ async def test_reusing_key_for_different_payload_is_rejected():
 )
 async def test_idempotency_lookup_is_scoped_to_authenticated_user(_delete_cache):
     service = ReservationService(AsyncMock())
+    service._get_cancellation_policy = AsyncMock(return_value=(24, 50))
     data = reservation_data()
     current_user = MagicMock(id=42, email="user@example.com")
     service.reservation_repository.get_by_idempotency_key = AsyncMock(return_value=None)
@@ -125,6 +126,7 @@ async def test_idempotency_lookup_is_scoped_to_authenticated_user(_delete_cache)
 @pytest.mark.asyncio
 async def test_concurrent_key_payload_conflict_becomes_http_conflict():
     service = ReservationService(AsyncMock())
+    service._get_cancellation_policy = AsyncMock(return_value=(24, 50))
     data = reservation_data()
     service.reservation_repository.get_by_idempotency_key = AsyncMock(return_value=None)
     service.resource_repository.get_by_id = AsyncMock(

@@ -40,6 +40,8 @@ class ReservationRead(BaseModel):
     attendance_status: str
     checked_in_at: datetime | None = None
     no_show_marked_at: datetime | None = None
+    cancellation_free_hours: int
+    cancellation_late_refund_percent: int
 
     model_config = {"from_attributes": True}
 
@@ -77,6 +79,8 @@ class ReservationCancellationRead(BaseModel):
     refund_percentage: int
     refund_amount_cents: int
     cancellation_fee_cents: int
+    applied_free_cancellation_hours: int
+    applied_late_refund_percent: int
 
 
 class ReservationQuoteRead(BaseModel):

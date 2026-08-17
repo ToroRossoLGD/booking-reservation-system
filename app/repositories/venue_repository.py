@@ -14,6 +14,11 @@ class VenueRepository:
         await self.db.refresh(venue)
         return venue
 
+    async def update(self, venue: Venue) -> Venue:
+        await self.db.commit()
+        await self.db.refresh(venue)
+        return venue
+
     async def get_all(self) -> list[Venue]:
         result = await self.db.execute(select(Venue).order_by(Venue.id))
         return list(result.scalars().all())
