@@ -4,7 +4,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import require_roles
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.venue import VenueCreate, VenueListRead, VenueRead
+from app.schemas.venue import (
+    VenueCancellationPolicyRead,
+    VenueCancellationPolicyUpdate,
+    VenueCreate,
+    VenueListRead,
+    VenueRead,
+)
 from app.services.venue_service import VenueService
 
 router = APIRouter(
@@ -57,3 +63,22 @@ async def get_venue(
 ):
     service = VenueService(db)
     return await service.get_venue_by_id(venue_id)
+
+
+@router.patch(
+    "/{venue_id}/cancellation-policy",
+    response_model=VenueCancellationPolicyRead,
+)
+async def update_cancellation_policy(
+    venue_id: int,
+    data: VenueCancellationPolicyUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("owner", "admin")),
+):
+    service = VenueService(db)
+    venue = await service.update_cancellation_policy(venue_id, data, current_user)
+    return {
+        "venue_id": venue.id,
+        "free_cancellation_hours": venue.free_cancellation_hours,
+        "late_cancellation_refund_percent": (venue.late_cancellation_refund_percent),
+    }

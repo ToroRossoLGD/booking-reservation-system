@@ -1,7 +1,14 @@
 import enum
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -28,6 +35,14 @@ class Reservation(Base):
             "user_id",
             "idempotency_key",
             name="uq_reservations_user_idempotency_key",
+        ),
+        CheckConstraint(
+            "cancellation_free_hours BETWEEN 0 AND 720",
+            name="ck_reservations_cancellation_free_hours",
+        ),
+        CheckConstraint(
+            "cancellation_late_refund_percent BETWEEN 0 AND 100",
+            name="ck_reservations_cancellation_late_refund_percent",
         ),
     )
 
@@ -79,6 +94,13 @@ class Reservation(Base):
     idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     idempotency_request_hash: Mapped[str | None] = mapped_column(
         String(64), nullable=True
+    )
+
+    cancellation_free_hours: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=24
+    )
+    cancellation_late_refund_percent: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=50
     )
 
     quoted_amount_cents: Mapped[int] = mapped_column(

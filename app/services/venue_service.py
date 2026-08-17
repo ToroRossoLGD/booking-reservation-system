@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.models.venue import Venue
 from app.repositories.venue_repository import VenueRepository
-from app.schemas.venue import VenueCreate
+from app.schemas.venue import VenueCancellationPolicyUpdate, VenueCreate
 
 
 class VenueService:
@@ -21,9 +21,33 @@ class VenueService:
             description=data.description,
             address=data.address,
             owner_id=current_user.id,
+            free_cancellation_hours=data.free_cancellation_hours,
+            late_cancellation_refund_percent=(data.late_cancellation_refund_percent),
         )
 
         return await self.venue_repository.create(venue)
+
+    async def update_cancellation_policy(
+        self,
+        venue_id: int,
+        data: VenueCancellationPolicyUpdate,
+        current_user: User,
+    ) -> Venue:
+        venue = await self.venue_repository.get_by_id(venue_id)
+        if venue is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Venue not found",
+            )
+        if current_user.role != "admin" and venue.owner_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can update policies only for your own venues",
+            )
+
+        venue.free_cancellation_hours = data.free_cancellation_hours
+        venue.late_cancellation_refund_percent = data.late_cancellation_refund_percent
+        return await self.venue_repository.update(venue)
 
     async def get_all_venues(self) -> list[Venue]:
         return await self.venue_repository.get_all()

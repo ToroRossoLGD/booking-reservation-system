@@ -111,6 +111,18 @@ class ReservationService:
             )
         return promotion
 
+    async def _get_cancellation_policy(self, venue_id: int) -> tuple[int, int]:
+        venue = await self.venue_repository.get_by_id(venue_id)
+        if venue is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Venue not found",
+            )
+        return (
+            venue.free_cancellation_hours,
+            venue.late_cancellation_refund_percent,
+        )
+
     @staticmethod
     def _idempotency_request_hash(data: ReservationCreate) -> str:
         payload = {
@@ -230,6 +242,10 @@ class ReservationService:
         promotion = await self._resolve_promotion(
             data.promotion_code, resource.venue_id
         )
+        (
+            free_cancellation_hours,
+            late_refund_percent,
+        ) = await self._get_cancellation_policy(resource.venue_id)
 
         is_within_rules = await self._is_within_availability_rules(
             resource_id=data.resource_id,
@@ -278,6 +294,8 @@ class ReservationService:
             idempotency_request_hash=(
                 request_hash if idempotency_key is not None else None
             ),
+            cancellation_free_hours=free_cancellation_hours,
+            cancellation_late_refund_percent=late_refund_percent,
             **price_details,
         )
 
@@ -299,14 +317,14 @@ class ReservationService:
                 detail="Idempotency key was already used with a different request",
             ) from error
 
-        if created_reservation is not reservation:
-            return created_reservation
-
         if created_reservation is None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Resource is already booked for this time slot",
             )
+
+        if created_reservation is not reservation:
+            return created_reservation
 
         await self._record_event(
             created_reservation,
@@ -367,6 +385,10 @@ class ReservationService:
             resource.venue_id,
             redemption_count=data.occurrence_count,
         )
+        (
+            free_cancellation_hours,
+            late_refund_percent,
+        ) = await self._get_cancellation_policy(resource.venue_id)
 
         interval = timedelta(days=1 if data.frequency == "daily" else 7)
         occurrences = [
@@ -415,6 +437,8 @@ class ReservationService:
                 user_id=current_user.id,
                 resource_id=data.resource_id,
                 recurrence_series_id=series_id,
+                cancellation_free_hours=free_cancellation_hours,
+                cancellation_late_refund_percent=late_refund_percent,
                 **self._price_details(resource, start_time, end_time, promotion),
             )
             for start_time, end_time in occurrences
@@ -834,10 +858,21 @@ class ReservationService:
         time_until_start = reservation.start_time - current_time
         hours_until_start = time_until_start.total_seconds() / 3600
 
-        if hours_until_start >= settings.FREE_CANCELLATION_HOURS:
+        free_cancellation_hours = (
+            reservation.cancellation_free_hours
+            if reservation.cancellation_free_hours is not None
+            else settings.FREE_CANCELLATION_HOURS
+        )
+        late_refund_percent = (
+            reservation.cancellation_late_refund_percent
+            if reservation.cancellation_late_refund_percent is not None
+            else settings.LATE_CANCELLATION_REFUND_PERCENT
+        )
+
+        if hours_until_start >= free_cancellation_hours:
             return 100
 
-        return settings.LATE_CANCELLATION_REFUND_PERCENT
+        return late_refund_percent
 
     async def cancel_reservation(
         self,
@@ -928,6 +963,12 @@ class ReservationService:
                 "refund_percentage": refund_percentage,
                 "refund_amount_cents": refund_amount_cents,
                 "cancellation_fee_cents": cancellation_fee_cents,
+                "applied_free_cancellation_hours": (
+                    reservation.cancellation_free_hours
+                ),
+                "applied_late_refund_percent": (
+                    reservation.cancellation_late_refund_percent
+                ),
             },
         )
 
@@ -971,6 +1012,10 @@ class ReservationService:
             ),
             "refund_amount_cents": refund_amount_cents,
             "cancellation_fee_cents": cancellation_fee_cents,
+            "applied_free_cancellation_hours": (reservation.cancellation_free_hours),
+            "applied_late_refund_percent": (
+                reservation.cancellation_late_refund_percent
+            ),
         }
 
     async def check_availability(

@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -6,6 +6,16 @@ from app.db.base import Base
 
 class Venue(Base):
     __tablename__ = "venues"
+    __table_args__ = (
+        CheckConstraint(
+            "free_cancellation_hours BETWEEN 0 AND 720",
+            name="ck_venues_free_cancellation_hours",
+        ),
+        CheckConstraint(
+            "late_cancellation_refund_percent BETWEEN 0 AND 100",
+            name="ck_venues_late_refund_percent",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -28,6 +38,13 @@ class Venue(Base):
         ForeignKey("users.id"),
         nullable=False,
         index=True,
+    )
+
+    free_cancellation_hours: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=24
+    )
+    late_cancellation_refund_percent: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=50
     )
 
     owner = relationship("User", back_populates="venues")
