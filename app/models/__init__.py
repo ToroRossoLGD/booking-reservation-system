@@ -5,6 +5,7 @@ from app.models.notification import Notification
 from app.models.payment import Payment
 from app.models.promotion import Promotion
 from app.models.reservation import Reservation
+from app.models.reservation_event import ReservationEvent
 from app.models.resource import Resource
 from app.models.resource_review import ResourceReview
 from app.models.user import User
@@ -18,6 +19,7 @@ __all__ = [
     "FavoriteResource",
     "ResourceReview",
     "Reservation",
+    "ReservationEvent",
     "Notification",
     "Payment",
     "Promotion",

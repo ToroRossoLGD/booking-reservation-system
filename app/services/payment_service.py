@@ -3,8 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.payment import Payment, PaymentStatus
 from app.models.reservation import ReservationStatus
+from app.models.reservation_event import ReservationEvent, ReservationEventType
 from app.models.user import User
 from app.repositories.payment_repository import PaymentRepository
+from app.repositories.reservation_event_repository import ReservationEventRepository
 from app.repositories.reservation_repository import ReservationRepository
 from app.services.notification_service import NotificationService
 
@@ -13,6 +15,7 @@ class PaymentService:
     def __init__(self, db: AsyncSession):
         self.payment_repository = PaymentRepository(db)
         self.reservation_repository = ReservationRepository(db)
+        self.reservation_event_repository = ReservationEventRepository(db)
         self.notification_service = NotificationService(db)
 
     async def get_reservation_payment(
@@ -107,8 +110,25 @@ class PaymentService:
 
         paid_payment = await self.payment_repository.update(payment)
 
+        previous_status = reservation.status
         reservation.status = ReservationStatus.CONFIRMED.value
         await self.reservation_repository.update(reservation)
+
+        await self.reservation_event_repository.create(
+            ReservationEvent(
+                reservation_id=reservation.id,
+                event_type=ReservationEventType.PAID.value,
+                actor_id=current_user.id,
+                actor_role=current_user.role,
+                previous_status=previous_status,
+                new_status=reservation.status,
+                details={
+                    "payment_id": paid_payment.id,
+                    "amount_cents": paid_payment.amount_cents,
+                    "currency": paid_payment.currency,
+                },
+            )
+        )
 
         await self.notification_service.create_notification(
             user_id=current_user.id,

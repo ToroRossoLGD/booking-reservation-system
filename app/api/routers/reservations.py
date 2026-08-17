@@ -20,6 +20,7 @@ from app.schemas.reservation import (
     ReservationRead,
     ReservationReschedule,
 )
+from app.schemas.reservation_event import ReservationTimelineRead
 from app.services.reservation_service import ReservationService
 from app.tasks.reservation_tasks import expire_pending_reservations_task
 
@@ -197,6 +198,19 @@ async def get_available_slots(
         selected_date=selected_date,
         slot_minutes=slot_minutes,
     )
+
+
+@router.get(
+    "/{reservation_id}/timeline",
+    response_model=ReservationTimelineRead,
+)
+async def get_reservation_timeline(
+    reservation_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = ReservationService(db)
+    return await service.get_reservation_timeline(reservation_id, current_user)
 
 
 @router.get(
