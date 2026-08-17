@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, require_roles
@@ -71,6 +71,12 @@ async def get_price_quote(
 async def create_reservation(
     data: ReservationCreate,
     background_tasks: BackgroundTasks,
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="Idempotency-Key",
+        min_length=8,
+        max_length=255,
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -80,6 +86,7 @@ async def create_reservation(
         data=data,
         current_user=current_user,
         background_tasks=background_tasks,
+        idempotency_key=idempotency_key,
     )
 
 

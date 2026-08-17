@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.promotion import Promotion
 from app.models.reservation import AttendanceStatus, Reservation, ReservationStatus
 from app.models.resource import Resource
+from app.models.user import User
 from app.models.venue import Venue
 
 
@@ -27,6 +28,28 @@ class ReservationRepository:
         reservation: Reservation,
         promotion_redemptions: int = 0,
     ) -> Reservation | None:
+        if reservation.idempotency_key is not None:
+            await self.db.execute(
+                select(User.id).where(User.id == reservation.user_id).with_for_update()
+            )
+
+            existing_result = await self.db.execute(
+                select(Reservation).where(
+                    Reservation.user_id == reservation.user_id,
+                    Reservation.idempotency_key == reservation.idempotency_key,
+                )
+            )
+            existing = existing_result.scalar_one_or_none()
+            if existing is not None:
+                if (
+                    existing.idempotency_request_hash
+                    != reservation.idempotency_request_hash
+                ):
+                    await self.db.rollback()
+                    raise IdempotencyKeyConflict
+                await self.db.rollback()
+                return existing
+
         resource_result = await self.db.execute(
             select(Resource)
             .where(Resource.id == reservation.resource_id)
@@ -255,6 +278,19 @@ class ReservationRepository:
 
         return result.scalar_one_or_none()
 
+    async def get_by_idempotency_key(
+        self,
+        user_id: int,
+        idempotency_key: str,
+    ) -> Reservation | None:
+        result = await self.db.execute(
+            select(Reservation).where(
+                Reservation.user_id == user_id,
+                Reservation.idempotency_key == idempotency_key,
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_id_for_update(
         self,
         reservation_id: int,
@@ -343,4 +379,8 @@ class ReservationRepository:
 
 
 class PromotionRedemptionUnavailable(Exception):
+    pass
+
+
+class IdempotencyKeyConflict(Exception):
     pass
