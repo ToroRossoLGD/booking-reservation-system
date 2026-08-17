@@ -86,3 +86,9 @@ class Reservation(Base):
 
     user = relationship("User")
     resource = relationship("Resource")
+    events = relationship(
+        "ReservationEvent",
+        back_populates="reservation",
+        cascade="all, delete-orphan",
+        order_by="ReservationEvent.occurred_at",
+    )

@@ -110,7 +110,7 @@ async def test_cancelling_paid_reservation_updates_both_states():
     assert payment.status == PaymentStatus.REFUNDED.value
     assert payment.refunded_amount_cents == payment.amount_cents
     assert result["refund_percentage"] == 100
-    db.commit.assert_awaited_once()
+    assert db.commit.await_count == 2
 
 
 @pytest.mark.asyncio
