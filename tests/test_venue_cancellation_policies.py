@@ -104,6 +104,7 @@ async def test_new_reservation_snapshots_current_venue_policy(_delete_cache):
     )
     service._resolve_promotion = AsyncMock(return_value=None)
     service._get_cancellation_policy = AsyncMock(return_value=(48, 25))
+    service._validate_booking_rules = AsyncMock()
     service._is_within_availability_rules = AsyncMock(return_value=True)
     service._has_availability_exception = AsyncMock(return_value=False)
     service.reservation_repository.has_conflicting_reservation = AsyncMock(

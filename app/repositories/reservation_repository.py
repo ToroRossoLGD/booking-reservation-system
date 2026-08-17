@@ -377,6 +377,29 @@ class ReservationRepository:
 
         return result.scalar_one()
 
+    async def count_active_for_user_at_venue(
+        self,
+        user_id: int,
+        venue_id: int,
+        current_time: datetime,
+    ) -> int:
+        result = await self.db.execute(
+            select(func.count(Reservation.id))
+            .join(Resource, Reservation.resource_id == Resource.id)
+            .where(
+                Reservation.user_id == user_id,
+                Resource.venue_id == venue_id,
+                Reservation.status.in_(["pending", "confirmed"]),
+                Reservation.end_time > current_time,
+            )
+        )
+        return result.scalar_one()
+
+    async def lock_user_for_booking_rules(self, user_id: int) -> None:
+        await self.db.execute(
+            select(User.id).where(User.id == user_id).with_for_update()
+        )
+
 
 class PromotionRedemptionUnavailable(Exception):
     pass

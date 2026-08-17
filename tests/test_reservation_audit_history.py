@@ -33,6 +33,7 @@ async def test_reschedule_records_before_and_after_times(_delete_cache):
     )
     service._is_within_availability_rules = AsyncMock(return_value=True)
     service._has_availability_exception = AsyncMock(return_value=False)
+    service._validate_booking_rules = AsyncMock()
 
     async def reschedule(reservation, start_time, end_time):
         reservation.start_time = start_time

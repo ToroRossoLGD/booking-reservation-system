@@ -123,6 +123,94 @@ class ReservationService:
             venue.late_cancellation_refund_percent,
         )
 
+    async def _validate_booking_rules(
+        self,
+        venue_id: int,
+        occurrences: list[tuple[datetime, datetime]],
+        current_user: User,
+        additional_reservations: int | None = None,
+    ) -> None:
+        venue = await self.venue_repository.get_by_id(venue_id)
+        if venue is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Venue not found",
+            )
+
+        current_time = datetime.now(UTC)
+        earliest_allowed = current_time + timedelta(
+            minutes=venue.minimum_booking_notice_minutes
+        )
+        latest_allowed = current_time + timedelta(
+            days=venue.maximum_advance_booking_days
+        )
+
+        for index, (start_time, end_time) in enumerate(occurrences, start=1):
+            prefix = f"Occurrence {index}: " if len(occurrences) > 1 else ""
+            if start_time.tzinfo is None or end_time.tzinfo is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"{prefix}reservation times must include a timezone",
+                )
+            if start_time < earliest_allowed:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"{prefix}reservation requires at least "
+                        f"{venue.minimum_booking_notice_minutes} minutes notice"
+                    ),
+                )
+            if start_time > latest_allowed:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"{prefix}reservation cannot be made more than "
+                        f"{venue.maximum_advance_booking_days} days in advance"
+                    ),
+                )
+
+            duration_minutes = int((end_time - start_time).total_seconds() / 60)
+            if duration_minutes < venue.minimum_booking_duration_minutes:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"{prefix}reservation must be at least "
+                        f"{venue.minimum_booking_duration_minutes} minutes"
+                    ),
+                )
+            if duration_minutes > venue.maximum_booking_duration_minutes:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"{prefix}reservation cannot exceed "
+                        f"{venue.maximum_booking_duration_minutes} minutes"
+                    ),
+                )
+
+        await self.reservation_repository.lock_user_for_booking_rules(current_user.id)
+        active_count = await self.reservation_repository.count_active_for_user_at_venue(
+            user_id=current_user.id,
+            venue_id=venue_id,
+            current_time=current_time,
+        )
+        reservation_delta = (
+            len(occurrences)
+            if additional_reservations is None
+            else additional_reservations
+        )
+        if (
+            active_count + reservation_delta
+            > venue.max_active_reservations_per_customer
+        ):
+            await self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "Venue active reservation limit would be exceeded "
+                    f"({venue.max_active_reservations_per_customer} per customer)"
+                ),
+            )
+
     @staticmethod
     def _idempotency_request_hash(data: ReservationCreate) -> str:
         payload = {
@@ -246,6 +334,11 @@ class ReservationService:
             free_cancellation_hours,
             late_refund_percent,
         ) = await self._get_cancellation_policy(resource.venue_id)
+        await self._validate_booking_rules(
+            resource.venue_id,
+            [(data.start_time, data.end_time)],
+            current_user,
+        )
 
         is_within_rules = await self._is_within_availability_rules(
             resource_id=data.resource_id,
@@ -395,6 +488,11 @@ class ReservationService:
             (data.start_time + interval * index, data.end_time + interval * index)
             for index in range(data.occurrence_count)
         ]
+        await self._validate_booking_rules(
+            resource.venue_id,
+            occurrences,
+            current_user,
+        )
 
         for index, (start_time, end_time) in enumerate(occurrences, start=1):
             if not await self._is_within_availability_rules(
@@ -778,6 +876,13 @@ class ReservationService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Resource not found",
             )
+
+        await self._validate_booking_rules(
+            resource.venue_id,
+            [(data.start_time, data.end_time)],
+            current_user,
+            additional_reservations=0,
+        )
 
         reservation.base_amount_cents = PricingService.calculate_amount_cents(
             resource.hourly_rate_cents,

@@ -15,6 +15,30 @@ class Venue(Base):
             "late_cancellation_refund_percent BETWEEN 0 AND 100",
             name="ck_venues_late_refund_percent",
         ),
+        CheckConstraint(
+            "minimum_booking_notice_minutes BETWEEN 0 AND 10080",
+            name="ck_venues_minimum_booking_notice_minutes",
+        ),
+        CheckConstraint(
+            "maximum_advance_booking_days BETWEEN 1 AND 730",
+            name="ck_venues_maximum_advance_booking_days",
+        ),
+        CheckConstraint(
+            "minimum_booking_duration_minutes BETWEEN 15 AND 1440",
+            name="ck_venues_minimum_booking_duration_minutes",
+        ),
+        CheckConstraint(
+            "maximum_booking_duration_minutes BETWEEN 15 AND 10080",
+            name="ck_venues_maximum_booking_duration_minutes",
+        ),
+        CheckConstraint(
+            "maximum_booking_duration_minutes >= minimum_booking_duration_minutes",
+            name="ck_venues_booking_duration_range",
+        ),
+        CheckConstraint(
+            "max_active_reservations_per_customer BETWEEN 1 AND 100",
+            name="ck_venues_max_active_reservations_per_customer",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -45,6 +69,21 @@ class Venue(Base):
     )
     late_cancellation_refund_percent: Mapped[int] = mapped_column(
         Integer, nullable=False, default=50
+    )
+    minimum_booking_notice_minutes: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=60
+    )
+    maximum_advance_booking_days: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=365
+    )
+    minimum_booking_duration_minutes: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=30
+    )
+    maximum_booking_duration_minutes: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=480
+    )
+    max_active_reservations_per_customer: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=10
     )
 
     owner = relationship("User", back_populates="venues")

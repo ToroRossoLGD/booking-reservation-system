@@ -116,6 +116,7 @@ async def test_cancelling_paid_reservation_updates_both_states():
 @pytest.mark.asyncio
 async def test_user_can_reschedule_own_pending_reservation():
     service = ReservationService(AsyncMock())
+    service._validate_booking_rules = AsyncMock()
     start_time = datetime.now(UTC) + timedelta(days=2)
     new_start_time = start_time + timedelta(hours=2)
     reservation = Reservation(
@@ -158,6 +159,10 @@ async def test_user_can_reschedule_own_pending_reservation():
     assert reservation.quoted_amount_cents == 2000
     assert reservation.quoted_currency == "EUR"
     service.reservation_repository.reschedule_with_conflict_lock.assert_awaited_once()
+    assert (
+        service._validate_booking_rules.await_args.kwargs["additional_reservations"]
+        == 0
+    )
     service.notification_service.create_notification.assert_awaited_once()
     delete_cache.assert_awaited_once_with(reservation.resource_id)
 
@@ -203,6 +208,7 @@ async def test_cancelled_reservation_cannot_be_rescheduled():
 @pytest.mark.asyncio
 async def test_reschedule_rejects_conflicting_time_slot():
     service = ReservationService(AsyncMock())
+    service._validate_booking_rules = AsyncMock()
     start_time = datetime.now(UTC) + timedelta(days=2)
     reservation = Reservation(
         id=1,
@@ -253,6 +259,7 @@ def recurring_data() -> RecurringReservationCreate:
 async def test_recurring_reservations_are_created_as_one_series():
     service = ReservationService(AsyncMock())
     service._get_cancellation_policy = AsyncMock(return_value=(24, 50))
+    service._validate_booking_rules = AsyncMock()
     data = recurring_data()
     current_user = MagicMock(id=10, email="user@example.com")
 
@@ -296,6 +303,7 @@ async def test_recurring_reservations_are_created_as_one_series():
 async def test_recurring_reservations_reject_entire_series_on_preflight_conflict():
     service = ReservationService(AsyncMock())
     service._get_cancellation_policy = AsyncMock(return_value=(24, 50))
+    service._validate_booking_rules = AsyncMock()
     data = recurring_data()
     current_user = MagicMock(id=10)
 
@@ -321,6 +329,7 @@ async def test_recurring_reservations_reject_entire_series_on_preflight_conflict
 async def test_recurring_reservations_handle_conflict_found_under_lock():
     service = ReservationService(AsyncMock())
     service._get_cancellation_policy = AsyncMock(return_value=(24, 50))
+    service._validate_booking_rules = AsyncMock()
     data = recurring_data()
     current_user = MagicMock(id=10)
 
@@ -382,6 +391,7 @@ async def test_price_quote_uses_resource_hourly_rate():
 async def test_promotion_is_snapshotted_when_reservation_is_created():
     service = ReservationService(AsyncMock())
     service._get_cancellation_policy = AsyncMock(return_value=(24, 50))
+    service._validate_booking_rules = AsyncMock()
     start_time = datetime.now(UTC) + timedelta(days=2)
     data = ReservationCreate(
         resource_id=20,
