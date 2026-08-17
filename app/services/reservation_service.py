@@ -1,3 +1,5 @@
+import hashlib
+import json
 from datetime import UTC, date, datetime, timedelta
 from uuid import uuid4
 
@@ -24,6 +26,7 @@ from app.repositories.availability_rule_repository import (
 from app.repositories.payment_repository import PaymentRepository
 from app.repositories.promotion_repository import PromotionRepository
 from app.repositories.reservation_repository import (
+    IdempotencyKeyConflict,
     PromotionRedemptionUnavailable,
     ReservationRepository,
 )
@@ -84,6 +87,30 @@ class ReservationService:
                 status_code=409, detail="Promotion redemption limit reached"
             )
         return promotion
+
+    @staticmethod
+    def _idempotency_request_hash(data: ReservationCreate) -> str:
+        payload = {
+            "resource_id": data.resource_id,
+            "start_time": data.start_time.isoformat(),
+            "end_time": data.end_time.isoformat(),
+            "promotion_code": data.promotion_code,
+        }
+        encoded_payload = json.dumps(
+            payload, sort_keys=True, separators=(",", ":")
+        ).encode()
+        return hashlib.sha256(encoded_payload).hexdigest()
+
+    @staticmethod
+    def _ensure_idempotency_payload_matches(
+        reservation: Reservation,
+        request_hash: str,
+    ) -> None:
+        if reservation.idempotency_request_hash != request_hash:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Idempotency key was already used with a different request",
+            )
 
     @staticmethod
     def _price_details(resource, start_time, end_time, promotion=None) -> dict:
@@ -151,7 +178,17 @@ class ReservationService:
         data: ReservationCreate,
         current_user: User,
         background_tasks: BackgroundTasks | None = None,
+        idempotency_key: str | None = None,
     ) -> Reservation:
+
+        request_hash = self._idempotency_request_hash(data)
+        if idempotency_key is not None:
+            existing = await self.reservation_repository.get_by_idempotency_key(
+                current_user.id, idempotency_key
+            )
+            if existing is not None:
+                self._ensure_idempotency_payload_matches(existing, request_hash)
+                return existing
 
         if data.start_time >= data.end_time:
             raise HTTPException(
@@ -214,6 +251,10 @@ class ReservationService:
             end_time=data.end_time,
             user_id=current_user.id,
             resource_id=data.resource_id,
+            idempotency_key=idempotency_key,
+            idempotency_request_hash=(
+                request_hash if idempotency_key is not None else None
+            ),
             **price_details,
         )
 
@@ -229,6 +270,14 @@ class ReservationService:
                 status_code=409,
                 detail="Promotion became unavailable",
             ) from error
+        except IdempotencyKeyConflict as error:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Idempotency key was already used with a different request",
+            ) from error
+
+        if created_reservation is not reservation:
+            return created_reservation
 
         if created_reservation is None:
             raise HTTPException(
