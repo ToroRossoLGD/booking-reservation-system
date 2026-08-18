@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.promotion import Promotion
@@ -13,6 +13,49 @@ from app.models.venue import Venue
 class ReservationRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
+
+    @staticmethod
+    def _peak_occupancy(
+        reservations: list[Reservation],
+        start_time: datetime,
+        end_time: datetime,
+    ) -> int:
+        """Return the highest concurrent party size in a half-open interval."""
+        events: list[tuple[datetime, int]] = []
+        for reservation in reservations:
+            events.append(
+                (max(start_time, reservation.start_time), reservation.party_size)
+            )
+            events.append(
+                (min(end_time, reservation.end_time), -reservation.party_size)
+            )
+
+        occupancy = 0
+        peak = 0
+        # Departures sort before arrivals so adjacent reservations do not overlap.
+        for _timestamp, delta in sorted(events, key=lambda event: (event[0], event[1])):
+            occupancy += delta
+            peak = max(peak, occupancy)
+        return peak
+
+    async def get_capacity_availability(
+        self,
+        resource_id: int,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> tuple[int, int]:
+        resource_result = await self.db.execute(
+            select(Resource).where(Resource.id == resource_id)
+        )
+        resource = resource_result.scalar_one_or_none()
+        if resource is None:
+            return 0, 0
+
+        reservations = await self.get_overlapping_reservations(
+            resource_id, start_time, end_time
+        )
+        peak = self._peak_occupancy(reservations, start_time, end_time)
+        return resource.capacity, max(0, resource.capacity - peak)
 
     async def create(
         self,
@@ -86,17 +129,20 @@ class ReservationRepository:
             promotion.redemption_count += promotion_redemptions
 
         conflict_result = await self.db.execute(
-            select(Reservation.id)
-            .where(
+            select(Reservation).where(
                 Reservation.resource_id == reservation.resource_id,
                 Reservation.status.in_(["pending", "confirmed"]),
                 Reservation.start_time < reservation.end_time,
                 Reservation.end_time > reservation.start_time,
             )
-            .limit(1)
         )
 
-        has_conflict = conflict_result.scalar_one_or_none() is not None
+        overlaps = list(conflict_result.scalars().all())
+        has_conflict = (
+            self._peak_occupancy(overlaps, reservation.start_time, reservation.end_time)
+            + reservation.party_size
+            > resource.capacity
+        )
 
         if has_conflict:
             await self.db.rollback()
@@ -150,26 +196,25 @@ class ReservationRepository:
                 raise PromotionRedemptionUnavailable
             promotion.redemption_count += len(reservations)
 
-        overlap_checks = [
-            and_(
-                Reservation.start_time < reservation.end_time,
-                Reservation.end_time > reservation.start_time,
+        for index, reservation in enumerate(reservations):
+            overlaps = await self.get_overlapping_reservations(
+                resource_id, reservation.start_time, reservation.end_time
             )
-            for reservation in reservations
-        ]
-        conflict_result = await self.db.execute(
-            select(Reservation.id)
-            .where(
-                Reservation.resource_id == resource_id,
-                Reservation.status.in_(["pending", "confirmed"]),
-                or_(*overlap_checks),
+            overlaps.extend(
+                candidate
+                for candidate in reservations[:index]
+                if candidate.start_time < reservation.end_time
+                and candidate.end_time > reservation.start_time
             )
-            .limit(1)
-        )
-
-        if conflict_result.scalar_one_or_none() is not None:
-            await self.db.rollback()
-            return None
+            if (
+                self._peak_occupancy(
+                    overlaps, reservation.start_time, reservation.end_time
+                )
+                + reservation.party_size
+                > resource.capacity
+            ):
+                await self.db.rollback()
+                return None
 
         self.db.add_all(reservations)
         await self.db.commit()
@@ -191,23 +236,27 @@ class ReservationRepository:
             .with_for_update()
         )
 
-        if resource_result.scalar_one_or_none() is None:
+        resource = resource_result.scalar_one_or_none()
+        if resource is None:
             await self.db.rollback()
             return None
 
         conflict_result = await self.db.execute(
-            select(Reservation.id)
-            .where(
+            select(Reservation).where(
                 Reservation.resource_id == reservation.resource_id,
                 Reservation.id != reservation.id,
                 Reservation.status.in_(["pending", "confirmed"]),
                 Reservation.start_time < end_time,
                 Reservation.end_time > start_time,
             )
-            .limit(1)
         )
 
-        if conflict_result.scalar_one_or_none() is not None:
+        overlaps = list(conflict_result.scalars().all())
+        if (
+            self._peak_occupancy(overlaps, start_time, end_time)
+            + reservation.party_size
+            > resource.capacity
+        ):
             await self.db.rollback()
             return None
 
@@ -244,10 +293,28 @@ class ReservationRepository:
         resource_id: int,
         start_time: datetime,
         end_time: datetime,
+        party_size: int = 1,
     ) -> bool:
-        return (
-            await self.get_conflicting_reservation(resource_id, start_time, end_time)
-        ) is not None
+        capacity, remaining = await self.get_capacity_availability(
+            resource_id, start_time, end_time
+        )
+        return capacity == 0 or party_size > remaining
+
+    async def get_overlapping_reservations(
+        self,
+        resource_id: int,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> list[Reservation]:
+        result = await self.db.execute(
+            select(Reservation).where(
+                Reservation.resource_id == resource_id,
+                Reservation.status.in_(["pending", "confirmed"]),
+                Reservation.start_time < end_time,
+                Reservation.end_time > start_time,
+            )
+        )
+        return list(result.scalars().all())
 
     async def get_conflicting_reservation(
         self,
