@@ -170,6 +170,7 @@ async def check_resource_availability(
     resource_id: int,
     start_time: datetime,
     end_time: datetime,
+    party_size: int = Query(default=1, ge=1),
     db: AsyncSession = Depends(get_db),
 ):
     service = ReservationService(db)
@@ -178,6 +179,7 @@ async def check_resource_availability(
         resource_id=resource_id,
         start_time=start_time,
         end_time=end_time,
+        party_size=party_size,
     )
 
 

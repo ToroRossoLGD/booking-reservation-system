@@ -19,7 +19,9 @@ def build_available_slots_cache_key(
     selected_date,
     slot_minutes: int,
 ) -> str:
-    return f"available_slots:{resource_id}:{selected_date}:{slot_minutes}"
+    # Keep the version suffix inside the existing invalidation pattern. Version 2
+    # stores remaining_capacity in addition to the old boolean availability flag.
+    return f"available_slots:{resource_id}:{selected_date}:{slot_minutes}:v2"
 
 
 async def get_cache(

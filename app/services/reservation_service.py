@@ -219,6 +219,9 @@ class ReservationService:
             "end_time": data.end_time.isoformat(),
             "promotion_code": data.promotion_code,
         }
+        # Preserve hashes created before group bookings for the default party size.
+        if data.party_size != 1:
+            payload["party_size"] = data.party_size
         encoded_payload = json.dumps(
             payload, sort_keys=True, separators=(",", ":")
         ).encode()
@@ -326,6 +329,11 @@ class ReservationService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Resource not found",
             )
+        if data.party_size > resource.capacity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Party size exceeds resource capacity ({resource.capacity})",
+            )
 
         promotion = await self._resolve_promotion(
             data.promotion_code, resource.venue_id
@@ -356,12 +364,13 @@ class ReservationService:
             resource_id=data.resource_id,
             start_time=data.start_time,
             end_time=data.end_time,
+            party_size=data.party_size,
         )
 
         if has_conflict:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Resource is already booked for this time slot",
+                detail="Resource does not have enough capacity for this time slot",
             )
         has_exception = await self._has_availability_exception(
             resource_id=data.resource_id,
@@ -383,6 +392,7 @@ class ReservationService:
             end_time=data.end_time,
             user_id=current_user.id,
             resource_id=data.resource_id,
+            party_size=data.party_size,
             idempotency_key=idempotency_key,
             idempotency_request_hash=(
                 request_hash if idempotency_key is not None else None
@@ -413,7 +423,7 @@ class ReservationService:
         if created_reservation is None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Resource is already booked for this time slot",
+                detail="Resource no longer has enough capacity for this time slot",
             )
 
         if created_reservation is not reservation:
@@ -427,6 +437,7 @@ class ReservationService:
                 "start_time": created_reservation.start_time.isoformat(),
                 "end_time": created_reservation.end_time.isoformat(),
                 "resource_id": created_reservation.resource_id,
+                "party_size": created_reservation.party_size,
             },
         )
 
@@ -471,6 +482,11 @@ class ReservationService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Resource not found",
+            )
+        if data.party_size > resource.capacity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Party size exceeds resource capacity ({resource.capacity})",
             )
 
         promotion = await self._resolve_promotion(
@@ -521,6 +537,7 @@ class ReservationService:
                 resource_id=data.resource_id,
                 start_time=start_time,
                 end_time=end_time,
+                party_size=data.party_size,
             ):
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
@@ -534,6 +551,7 @@ class ReservationService:
                 end_time=end_time,
                 user_id=current_user.id,
                 resource_id=data.resource_id,
+                party_size=data.party_size,
                 recurrence_series_id=series_id,
                 cancellation_free_hours=free_cancellation_hours,
                 cancellation_late_refund_percent=late_refund_percent,
@@ -568,6 +586,7 @@ class ReservationService:
                     "start_time": created_reservation.start_time.isoformat(),
                     "end_time": created_reservation.end_time.isoformat(),
                     "resource_id": created_reservation.resource_id,
+                    "party_size": created_reservation.party_size,
                     "recurrence_series_id": series_id,
                 },
             )
@@ -1128,6 +1147,7 @@ class ReservationService:
         resource_id: int,
         start_time: datetime,
         end_time: datetime,
+        party_size: int = 1,
     ) -> dict:
         if start_time >= end_time:
             raise HTTPException(
@@ -1142,6 +1162,11 @@ class ReservationService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Resource not found",
             )
+        if party_size < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="party_size must be greater than 0",
+            )
 
         is_within_rules = await self._is_within_availability_rules(
             resource_id=resource_id,
@@ -1155,6 +1180,8 @@ class ReservationService:
                 "start_time": start_time,
                 "end_time": end_time,
                 "available": False,
+                "requested_capacity": party_size,
+                "remaining_capacity": 0,
             }
         has_exception = await self._has_availability_exception(
             resource_id=resource_id,
@@ -1168,9 +1195,14 @@ class ReservationService:
                 "start_time": start_time,
                 "end_time": end_time,
                 "available": False,
+                "requested_capacity": party_size,
+                "remaining_capacity": 0,
             }
 
-        has_conflict = await self.reservation_repository.has_conflicting_reservation(
+        (
+            _capacity,
+            remaining_capacity,
+        ) = await self.reservation_repository.get_capacity_availability(
             resource_id=resource_id,
             start_time=start_time,
             end_time=end_time,
@@ -1180,7 +1212,9 @@ class ReservationService:
             "resource_id": resource_id,
             "start_time": start_time,
             "end_time": end_time,
-            "available": not has_conflict,
+            "available": party_size <= remaining_capacity,
+            "requested_capacity": party_size,
+            "remaining_capacity": remaining_capacity,
         }
 
     async def get_price_quote(
@@ -1421,19 +1455,23 @@ class ReservationService:
                     end_time=current_end,
                 )
 
-                has_conflict = (
-                    await self.reservation_repository.has_conflicting_reservation(
-                        resource_id=resource_id,
-                        start_time=current_start,
-                        end_time=current_end,
-                    )
+                (
+                    _capacity,
+                    remaining_capacity,
+                ) = await self.reservation_repository.get_capacity_availability(
+                    resource_id=resource_id,
+                    start_time=current_start,
+                    end_time=current_end,
                 )
 
                 slots.append(
                     {
                         "start_time": current_start,
                         "end_time": current_end,
-                        "available": not has_conflict and not has_exception,
+                        "available": remaining_capacity > 0 and not has_exception,
+                        "remaining_capacity": (
+                            0 if has_exception else remaining_capacity
+                        ),
                     }
                 )
 

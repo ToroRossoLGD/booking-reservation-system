@@ -100,6 +100,7 @@ async def test_new_reservation_snapshots_current_venue_policy(_delete_cache):
             venue_id=5,
             hourly_rate_cents=2000,
             currency="EUR",
+            capacity=10,
         )
     )
     service._resolve_promotion = AsyncMock(return_value=None)

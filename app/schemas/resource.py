@@ -48,6 +48,7 @@ class AvailableResourceRead(BaseModel):
     name: str
     resource_type: str
     capacity: int
+    remaining_capacity: int
     hourly_rate_cents: int
     currency: str
     venue_id: int

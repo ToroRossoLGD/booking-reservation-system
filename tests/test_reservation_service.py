@@ -135,7 +135,7 @@ async def test_user_can_reschedule_own_pending_reservation():
 
     service.reservation_repository.get_by_id = AsyncMock(return_value=reservation)
     service.resource_repository.get_by_id = AsyncMock(
-        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR")
+        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR", capacity=10)
     )
     service._is_within_availability_rules = AsyncMock(return_value=True)
     service._has_availability_exception = AsyncMock(return_value=False)
@@ -226,7 +226,7 @@ async def test_reschedule_rejects_conflicting_time_slot():
 
     service.reservation_repository.get_by_id = AsyncMock(return_value=reservation)
     service.resource_repository.get_by_id = AsyncMock(
-        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR")
+        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR", capacity=10)
     )
     service._is_within_availability_rules = AsyncMock(return_value=True)
     service._has_availability_exception = AsyncMock(return_value=False)
@@ -264,7 +264,7 @@ async def test_recurring_reservations_are_created_as_one_series():
     current_user = MagicMock(id=10, email="user@example.com")
 
     service.resource_repository.get_by_id = AsyncMock(
-        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR")
+        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR", capacity=10)
     )
     service._is_within_availability_rules = AsyncMock(return_value=True)
     service._has_availability_exception = AsyncMock(return_value=False)
@@ -308,7 +308,7 @@ async def test_recurring_reservations_reject_entire_series_on_preflight_conflict
     current_user = MagicMock(id=10)
 
     service.resource_repository.get_by_id = AsyncMock(
-        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR")
+        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR", capacity=10)
     )
     service._is_within_availability_rules = AsyncMock(return_value=True)
     service._has_availability_exception = AsyncMock(return_value=False)
@@ -334,7 +334,7 @@ async def test_recurring_reservations_handle_conflict_found_under_lock():
     current_user = MagicMock(id=10)
 
     service.resource_repository.get_by_id = AsyncMock(
-        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR")
+        return_value=MagicMock(hourly_rate_cents=2000, currency="EUR", capacity=10)
     )
     service._is_within_availability_rules = AsyncMock(return_value=True)
     service._has_availability_exception = AsyncMock(return_value=False)
@@ -404,6 +404,7 @@ async def test_promotion_is_snapshotted_when_reservation_is_created():
         venue_id=5,
         hourly_rate_cents=2000,
         currency="EUR",
+        capacity=10,
     )
     promotion = MagicMock(id=7, code="SAVE25", discount_percent=25)
     service.resource_repository.get_by_id = AsyncMock(return_value=resource)

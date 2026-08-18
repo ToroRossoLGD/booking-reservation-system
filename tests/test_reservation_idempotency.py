@@ -89,6 +89,7 @@ async def test_idempotency_lookup_is_scoped_to_authenticated_user(_delete_cache)
             venue_id=5,
             hourly_rate_cents=2000,
             currency="EUR",
+            capacity=10,
         )
     )
     service._resolve_promotion = AsyncMock(return_value=None)
@@ -136,6 +137,7 @@ async def test_concurrent_key_payload_conflict_becomes_http_conflict():
             venue_id=5,
             hourly_rate_cents=2000,
             currency="EUR",
+            capacity=10,
         )
     )
     service._resolve_promotion = AsyncMock(return_value=None)

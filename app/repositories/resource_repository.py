@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.availability_exception import AvailabilityException
 from app.models.availability_rule import AvailabilityRule
-from app.models.reservation import Reservation
 from app.models.resource import Resource
 from app.models.venue import Venue
 
@@ -43,20 +42,10 @@ class ResourceRepository:
             )
         )
 
-        blocking_reservation_exists = exists(
-            select(Reservation.id).where(
-                Reservation.resource_id == Resource.id,
-                Reservation.status.in_(["pending", "confirmed"]),
-                Reservation.start_time < end_time,
-                Reservation.end_time > start_time,
-            )
-        )
-
         conditions = [
             Resource.capacity >= minimum_capacity,
             availability_rule_exists,
             ~blocking_exception_exists,
-            ~blocking_reservation_exists,
         ]
 
         if resource_type is not None:
@@ -198,6 +187,29 @@ class ResourceRepository:
 
         result = await self.db.execute(query)
 
+        return result.all()
+
+    async def get_available_candidates(
+        self,
+        start_time: datetime,
+        end_time: datetime,
+        minimum_capacity: int,
+        query_text: str | None = None,
+        resource_type: str | None = None,
+    ):
+        conditions = self._available_resource_conditions(
+            start_time=start_time,
+            end_time=end_time,
+            minimum_capacity=minimum_capacity,
+            query_text=query_text,
+            resource_type=resource_type,
+        )
+        result = await self.db.execute(
+            select(Resource, Venue)
+            .join(Venue, Resource.venue_id == Venue.id)
+            .where(*conditions)
+            .order_by(Resource.id)
+        )
         return result.all()
 
     async def count_available(

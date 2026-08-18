@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.resource import Resource
 from app.models.user import User
+from app.repositories.reservation_repository import ReservationRepository
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
 from app.schemas.resource import (
@@ -19,6 +20,7 @@ from app.schemas.resource import (
 class ResourceService:
     def __init__(self, db: AsyncSession):
         self.resource_repository = ResourceRepository(db)
+        self.reservation_repository = ReservationRepository(db)
         self.venue_repository = VenueRepository(db)
 
     async def create_resource(
@@ -242,23 +244,27 @@ class ResourceService:
             else None
         )
 
-        rows = await self.resource_repository.search_available(
+        candidate_rows = await self.resource_repository.get_available_candidates(
             start_time=start_time,
             end_time=end_time,
             minimum_capacity=minimum_capacity,
             query_text=clean_query,
             resource_type=clean_resource_type,
-            limit=limit,
-            offset=offset,
         )
 
-        total = await self.resource_repository.count_available(
-            start_time=start_time,
-            end_time=end_time,
-            minimum_capacity=minimum_capacity,
-            query_text=clean_query,
-            resource_type=clean_resource_type,
-        )
+        available_rows = []
+        for resource, venue in candidate_rows:
+            (
+                _capacity,
+                remaining,
+            ) = await self.reservation_repository.get_capacity_availability(
+                resource.id, start_time, end_time
+            )
+            if remaining >= minimum_capacity:
+                available_rows.append((resource, venue, remaining))
+
+        total = len(available_rows)
+        rows = available_rows[offset : offset + limit]
 
         items = [
             AvailableResourceRead(
@@ -271,8 +277,9 @@ class ResourceService:
                 venue_id=venue.id,
                 venue_name=venue.name,
                 venue_address=venue.address,
+                remaining_capacity=remaining,
             )
-            for resource, venue in rows
+            for resource, venue, remaining in rows
         ]
 
         return AvailableResourceListRead(

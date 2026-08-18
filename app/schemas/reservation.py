@@ -11,6 +11,7 @@ class ReservationCreate(BaseModel):
     start_time: datetime
     end_time: datetime
     promotion_code: str | None = Field(default=None, min_length=3, max_length=50)
+    party_size: int = Field(default=1, ge=1, le=10_000)
 
 
 class ReservationReschedule(BaseModel):
@@ -30,6 +31,7 @@ class ReservationRead(BaseModel):
     status: str
     user_id: int
     resource_id: int
+    party_size: int
     recurrence_series_id: str | None = None
     quoted_amount_cents: int
     quoted_currency: str
@@ -57,12 +59,15 @@ class AvailabilityRead(BaseModel):
     start_time: datetime
     end_time: datetime
     available: bool
+    requested_capacity: int
+    remaining_capacity: int
 
 
 class AvailableSlotRead(BaseModel):
     start_time: datetime
     end_time: datetime
     available: bool
+    remaining_capacity: int
 
 
 class ReservationListRead(BaseModel):

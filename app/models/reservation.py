@@ -44,6 +44,10 @@ class Reservation(Base):
             "cancellation_late_refund_percent BETWEEN 0 AND 100",
             name="ck_reservations_cancellation_late_refund_percent",
         ),
+        CheckConstraint(
+            "party_size >= 1",
+            name="ck_reservations_party_size_positive",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -90,6 +94,8 @@ class Reservation(Base):
         nullable=True,
         index=True,
     )
+
+    party_size: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
     idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     idempotency_request_hash: Mapped[str | None] = mapped_column(
