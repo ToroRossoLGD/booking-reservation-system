@@ -13,14 +13,14 @@ class AvailabilityExceptionCreate(BaseModel):
 
     @model_validator(mode="after")
     def validate_time_interval(self):
-        if self.start_time >= self.end_time:
-            raise ValueError("start_time must be earlier than end_time")
-
         if self.start_time.tzinfo is None:
             raise ValueError("start_time must include timezone information")
 
         if self.end_time.tzinfo is None:
             raise ValueError("end_time must include timezone information")
+
+        if self.start_time >= self.end_time:
+            raise ValueError("start_time must be earlier than end_time")
 
         return self
 
