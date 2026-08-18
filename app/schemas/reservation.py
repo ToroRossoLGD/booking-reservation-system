@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.schemas.payment import PaymentRead
 
@@ -52,6 +52,26 @@ class RecurringReservationRead(BaseModel):
     recurrence_series_id: str
     occurrence_count: int
     reservations: list[ReservationRead]
+
+
+class RecurringSeriesCancellationRequest(BaseModel):
+    cancel_from: datetime | None = None
+
+    @model_validator(mode="after")
+    def validate_cancel_from_timezone(self):
+        if self.cancel_from is not None and self.cancel_from.tzinfo is None:
+            raise ValueError("cancel_from must include timezone information")
+        return self
+
+
+class RecurringSeriesCancellationRead(BaseModel):
+    recurrence_series_id: str
+    occurrence_count: int
+    cancelled_count: int
+    skipped_count: int
+    total_refund_amount_cents: int
+    total_cancellation_fee_cents: int
+    cancelled_reservations: list[ReservationRead]
 
 
 class AvailabilityRead(BaseModel):
