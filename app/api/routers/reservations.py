@@ -13,6 +13,8 @@ from app.schemas.reservation import (
     CheckInRequest,
     RecurringReservationCreate,
     RecurringReservationRead,
+    RecurringSeriesCancellationRead,
+    RecurringSeriesCancellationRequest,
     ReservationCancellationRead,
     ReservationCreate,
     ReservationListRead,
@@ -122,6 +124,25 @@ async def get_recurring_reservations(
     return await service.get_recurring_reservations(
         recurrence_series_id=recurrence_series_id,
         current_user=current_user,
+    )
+
+
+@router.patch(
+    "/series/{recurrence_series_id}/cancel",
+    response_model=RecurringSeriesCancellationRead,
+)
+async def cancel_recurring_reservations(
+    recurrence_series_id: str,
+    data: RecurringSeriesCancellationRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await ReservationService(db).cancel_recurring_reservations(
+        recurrence_series_id=recurrence_series_id,
+        data=data,
+        current_user=current_user,
+        background_tasks=background_tasks,
     )
 
 

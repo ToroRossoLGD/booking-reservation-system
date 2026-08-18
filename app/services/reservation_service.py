@@ -36,6 +36,7 @@ from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
 from app.schemas.reservation import (
     RecurringReservationCreate,
+    RecurringSeriesCancellationRequest,
     ReservationCreate,
     ReservationReschedule,
 )
@@ -637,6 +638,71 @@ class ReservationService:
             "reservations": reservations,
         }
 
+    async def cancel_recurring_reservations(
+        self,
+        recurrence_series_id: str,
+        data: RecurringSeriesCancellationRequest,
+        current_user: User,
+        background_tasks: BackgroundTasks | None = None,
+    ) -> dict:
+        series = await self.get_recurring_reservations(
+            recurrence_series_id=recurrence_series_id,
+            current_user=current_user,
+        )
+        reservations = series["reservations"]
+        current_time = datetime.now(UTC)
+        cancellation_cutoff = data.cancel_from or current_time
+        if cancellation_cutoff < current_time:
+            cancellation_cutoff = current_time
+
+        eligible_statuses = {
+            ReservationStatus.PENDING.value,
+            ReservationStatus.CONFIRMED.value,
+        }
+        eligible = [
+            reservation
+            for reservation in reservations
+            if reservation.status in eligible_statuses
+            and reservation.start_time > current_time
+            and reservation.start_time >= cancellation_cutoff
+        ]
+
+        cancelled_reservations = []
+        total_refund_amount_cents = 0
+        total_cancellation_fee_cents = 0
+
+        for reservation in eligible:
+            try:
+                result = await self.cancel_reservation(
+                    reservation_id=reservation.id,
+                    current_user=current_user,
+                    background_tasks=background_tasks,
+                    recurring_series_id=recurrence_series_id,
+                )
+            except HTTPException as error:
+                # A concurrent cancellation or state transition is safe to skip.
+                if error.status_code in {
+                    status.HTTP_400_BAD_REQUEST,
+                    status.HTTP_404_NOT_FOUND,
+                }:
+                    continue
+                raise
+
+            cancelled_reservations.append(result["reservation"])
+            total_refund_amount_cents += result["refund_amount_cents"]
+            total_cancellation_fee_cents += result["cancellation_fee_cents"]
+
+        cancelled_count = len(cancelled_reservations)
+        return {
+            "recurrence_series_id": recurrence_series_id,
+            "occurrence_count": len(reservations),
+            "cancelled_count": cancelled_count,
+            "skipped_count": len(reservations) - cancelled_count,
+            "total_refund_amount_cents": total_refund_amount_cents,
+            "total_cancellation_fee_cents": total_cancellation_fee_cents,
+            "cancelled_reservations": cancelled_reservations,
+        }
+
     async def get_my_reservations(
         self,
         current_user: User,
@@ -1003,6 +1069,7 @@ class ReservationService:
         reservation_id: int,
         current_user: User,
         background_tasks: BackgroundTasks | None = None,
+        recurring_series_id: str | None = None,
     ) -> dict:
         reservation = await self.reservation_repository.get_by_id(reservation_id)
 
@@ -1093,6 +1160,7 @@ class ReservationService:
                 "applied_late_refund_percent": (
                     reservation.cancellation_late_refund_percent
                 ),
+                "recurring_series_id": recurring_series_id,
             },
         )
 
