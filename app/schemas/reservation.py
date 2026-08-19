@@ -132,3 +132,9 @@ class CheckInPassRead(BaseModel):
 
 class CheckInRequest(BaseModel):
     token: str = Field(min_length=20)
+
+
+class ReminderDispatchRead(BaseModel):
+    candidate_count: int
+    sent_count: int
+    duplicate_count: int

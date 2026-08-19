@@ -1,8 +1,9 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import String, and_, cast, exists, func, literal, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.notification import Notification
 from app.models.promotion import Promotion
 from app.models.reservation import AttendanceStatus, Reservation, ReservationStatus
 from app.models.resource import Resource
@@ -448,6 +449,53 @@ class ReservationRepository:
             .with_for_update(skip_locked=True)
         )
         return list(result.scalars().all())
+
+    async def get_reminder_candidates(
+        self,
+        starts_after: datetime,
+        final_window_ends: datetime,
+        starts_before: datetime,
+        first_reminder_hours: int,
+        final_reminder_hours: int,
+    ):
+        reservation_key_prefix = literal("reservation:") + cast(Reservation.id, String)
+        first_key = reservation_key_prefix + literal(
+            f":reminder:{first_reminder_hours}h"
+        )
+        final_key = reservation_key_prefix + literal(
+            f":reminder:{final_reminder_hours}h"
+        )
+        first_not_sent = ~exists(
+            select(Notification.id).where(Notification.deduplication_key == first_key)
+        )
+        final_not_sent = ~exists(
+            select(Notification.id).where(Notification.deduplication_key == final_key)
+        )
+
+        result = await self.db.execute(
+            select(Reservation, User, Resource, Venue)
+            .join(User, Reservation.user_id == User.id)
+            .join(Resource, Reservation.resource_id == Resource.id)
+            .join(Venue, Resource.venue_id == Venue.id)
+            .where(
+                Reservation.status == ReservationStatus.CONFIRMED.value,
+                Reservation.attendance_status == AttendanceStatus.SCHEDULED.value,
+                Reservation.start_time > starts_after,
+                Reservation.start_time <= starts_before,
+                or_(
+                    and_(
+                        Reservation.start_time <= final_window_ends,
+                        final_not_sent,
+                    ),
+                    and_(
+                        Reservation.start_time > final_window_ends,
+                        first_not_sent,
+                    ),
+                ),
+            )
+            .order_by(Reservation.start_time)
+        )
+        return list(result.all())
 
     async def count_user_reservations(
         self,

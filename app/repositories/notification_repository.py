@@ -1,4 +1,5 @@
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.notification import Notification
@@ -16,6 +17,26 @@ class NotificationRepository:
         await self.db.commit()
         await self.db.refresh(notification)
         return notification
+
+    async def create_once(
+        self,
+        notification: Notification,
+    ) -> Notification | None:
+        statement = (
+            insert(Notification)
+            .values(
+                user_id=notification.user_id,
+                title=notification.title,
+                message=notification.message,
+                deduplication_key=notification.deduplication_key,
+            )
+            .on_conflict_do_nothing(index_elements=["deduplication_key"])
+            .returning(Notification)
+        )
+        result = await self.db.execute(statement)
+        created_notification = result.scalar_one_or_none()
+        await self.db.commit()
+        return created_notification
 
     async def get_by_user_id(
         self,

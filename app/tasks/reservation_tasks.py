@@ -1,6 +1,7 @@
 import asyncio
 
 from app.db.session import AsyncSessionLocal
+from app.services.reservation_reminder_service import ReservationReminderService
 from app.services.reservation_service import ReservationService
 from app.tasks.celery_app import celery_app
 
@@ -23,3 +24,13 @@ def mark_reservation_no_shows_task() -> dict:
 async def _mark_reservation_no_shows() -> dict:
     async with AsyncSessionLocal() as db:
         return await ReservationService(db).mark_no_shows()
+
+
+@celery_app.task(name="send_reservation_reminders_task")
+def send_reservation_reminders_task() -> dict:
+    return asyncio.run(_send_reservation_reminders())
+
+
+async def _send_reservation_reminders() -> dict:
+    async with AsyncSessionLocal() as db:
+        return await ReservationReminderService(db).send_due_reminders()
