@@ -17,6 +17,7 @@ from app.api.routers.reservations import router as reservations_router
 from app.api.routers.resource_reviews import router as resource_reviews_router
 from app.api.routers.resources import router as resources_router
 from app.api.routers.review_moderation import router as review_moderation_router
+from app.api.routers.support import router as support_router
 from app.api.routers.venues import router as venues_router
 from app.api.routers.waitlist import router as waitlist_router
 from app.core.config import settings
@@ -32,6 +33,7 @@ async def health_check():
 app.include_router(auth_router)
 app.include_router(venues_router)
 app.include_router(resources_router)
+app.include_router(support_router)
 app.include_router(reservations_router)
 app.include_router(owner_router)
 app.include_router(notifications_router)

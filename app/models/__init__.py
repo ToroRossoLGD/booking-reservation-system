@@ -9,6 +9,7 @@ from app.models.reservation_event import ReservationEvent
 from app.models.resource import Resource
 from app.models.resource_review import ResourceReview
 from app.models.review_report import ReviewReport
+from app.models.support_ticket import SupportMessage, SupportTicket
 from app.models.user import User
 from app.models.venue import Venue
 from app.models.waitlist_entry import WaitlistEntry
@@ -20,6 +21,8 @@ __all__ = [
     "FavoriteResource",
     "ResourceReview",
     "ReviewReport",
+    "SupportTicket",
+    "SupportMessage",
     "Reservation",
     "ReservationEvent",
     "Notification",
