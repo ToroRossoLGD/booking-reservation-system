@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import HTTPException
 
 from app.models.reservation import Reservation, ReservationStatus
 from app.models.reservation_event import ReservationEventType
@@ -117,3 +118,38 @@ async def test_expiry_event_is_attributed_to_system(_delete_cache):
     assert event.actor_role == "system"
     assert event.previous_status == ReservationStatus.PENDING.value
     assert event.new_status == ReservationStatus.EXPIRED.value
+
+
+@pytest.mark.asyncio
+@patch(
+    "app.services.reservation_service.delete_available_slots_cache_for_resource",
+    new_callable=AsyncMock,
+)
+async def test_owner_cannot_confirm_an_expired_hold(_delete_cache):
+    service = ReservationService(AsyncMock())
+    reservation = Reservation(
+        id=3,
+        user_id=10,
+        resource_id=20,
+        start_time=datetime.now(UTC) + timedelta(days=1),
+        end_time=datetime.now(UTC) + timedelta(days=1, hours=1),
+        status=ReservationStatus.PENDING.value,
+        hold_expires_at=datetime.now(UTC) - timedelta(seconds=1),
+    )
+    service.reservation_repository.get_by_id = AsyncMock(return_value=reservation)
+    service._ensure_owner_can_manage_reservation = AsyncMock()
+    service.reservation_repository.update = AsyncMock(side_effect=lambda item: item)
+    service.reservation_event_repository.create = AsyncMock(
+        side_effect=lambda event: event
+    )
+
+    with pytest.raises(HTTPException) as error:
+        await service.confirm_reservation(
+            reservation_id=reservation.id,
+            current_user=MagicMock(id=50, role="owner"),
+        )
+
+    assert error.value.status_code == 409
+    assert reservation.status == ReservationStatus.EXPIRED.value
+    event = service.reservation_event_repository.create.await_args.args[0]
+    assert event.details == {"reason": "booking_hold_elapsed"}

@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.promotion import Promotion
@@ -13,6 +13,19 @@ from app.models.venue import Venue
 class ReservationRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
+
+    @staticmethod
+    def _active_status_filter(current_time: datetime):
+        return or_(
+            Reservation.status == ReservationStatus.CONFIRMED.value,
+            and_(
+                Reservation.status == ReservationStatus.PENDING.value,
+                or_(
+                    Reservation.hold_expires_at.is_(None),
+                    Reservation.hold_expires_at > current_time,
+                ),
+            ),
+        )
 
     @staticmethod
     def _peak_occupancy(
@@ -131,7 +144,7 @@ class ReservationRepository:
         conflict_result = await self.db.execute(
             select(Reservation).where(
                 Reservation.resource_id == reservation.resource_id,
-                Reservation.status.in_(["pending", "confirmed"]),
+                self._active_status_filter(datetime.now(UTC)),
                 Reservation.start_time < reservation.end_time,
                 Reservation.end_time > reservation.start_time,
             )
@@ -245,7 +258,7 @@ class ReservationRepository:
             select(Reservation).where(
                 Reservation.resource_id == reservation.resource_id,
                 Reservation.id != reservation.id,
-                Reservation.status.in_(["pending", "confirmed"]),
+                self._active_status_filter(datetime.now(UTC)),
                 Reservation.start_time < end_time,
                 Reservation.end_time > start_time,
             )
@@ -309,7 +322,7 @@ class ReservationRepository:
         result = await self.db.execute(
             select(Reservation).where(
                 Reservation.resource_id == resource_id,
-                Reservation.status.in_(["pending", "confirmed"]),
+                self._active_status_filter(datetime.now(UTC)),
                 Reservation.start_time < end_time,
                 Reservation.end_time > start_time,
             )
@@ -326,7 +339,7 @@ class ReservationRepository:
             select(Reservation).where(
                 and_(
                     Reservation.resource_id == resource_id,
-                    Reservation.status.in_(["pending", "confirmed"]),
+                    self._active_status_filter(datetime.now(UTC)),
                     Reservation.start_time < end_time,
                     Reservation.end_time > start_time,
                 )
@@ -409,7 +422,13 @@ class ReservationRepository:
         result = await self.db.execute(
             select(Reservation).where(
                 Reservation.status == "pending",
-                Reservation.created_at < older_than,
+                or_(
+                    Reservation.hold_expires_at <= datetime.now(UTC),
+                    and_(
+                        Reservation.hold_expires_at.is_(None),
+                        Reservation.created_at < older_than,
+                    ),
+                ),
             )
         )
 
@@ -456,7 +475,7 @@ class ReservationRepository:
             .where(
                 Reservation.user_id == user_id,
                 Resource.venue_id == venue_id,
-                Reservation.status.in_(["pending", "confirmed"]),
+                self._active_status_filter(current_time),
                 Reservation.end_time > current_time,
             )
         )

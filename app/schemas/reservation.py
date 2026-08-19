@@ -29,6 +29,7 @@ class ReservationRead(BaseModel):
     start_time: datetime
     end_time: datetime
     status: str
+    hold_expires_at: datetime | None = None
     user_id: int
     resource_id: int
     party_size: int

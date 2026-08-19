@@ -1,4 +1,5 @@
-from unittest.mock import AsyncMock, MagicMock
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -19,6 +20,7 @@ def reservation(**overrides):
         "status": ReservationStatus.PENDING.value,
         "quoted_amount_cents": 2500,
         "quoted_currency": "EUR",
+        "hold_expires_at": None,
     }
     values.update(overrides)
     return MagicMock(**values)
@@ -113,6 +115,37 @@ async def test_only_pending_reservations_can_be_paid(reservation_status):
 
 
 @pytest.mark.asyncio
+@patch(
+    "app.services.payment_service.delete_available_slots_cache_for_resource",
+    new_callable=AsyncMock,
+)
+async def test_expired_hold_cannot_be_paid_and_is_audited(delete_cache):
+    service = PaymentService(AsyncMock())
+    booking = reservation(
+        hold_expires_at=datetime.now(UTC) - timedelta(seconds=1),
+        resource_id=20,
+    )
+    service.reservation_repository.get_by_id = AsyncMock(return_value=booking)
+    service.reservation_repository.update = AsyncMock(side_effect=lambda item: item)
+    service.payment_repository.create = AsyncMock()
+    service.reservation_event_repository.create = AsyncMock(
+        side_effect=lambda event: event
+    )
+
+    with pytest.raises(HTTPException) as error:
+        await service.pay_for_reservation(1, current_user())
+
+    assert error.value.status_code == 409
+    assert error.value.detail == "Reservation hold has expired"
+    assert booking.status == ReservationStatus.EXPIRED.value
+    event = service.reservation_event_repository.create.await_args.args[0]
+    assert event.event_type == "expired"
+    assert event.actor_role == "system"
+    delete_cache.assert_awaited_once_with(booking.resource_id)
+    service.payment_repository.create.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("amount", "currency"),
     [(None, "EUR"), (2500, None), (None, None)],
@@ -199,6 +232,7 @@ async def test_successful_payment_confirms_reservation_and_records_audit_event()
     assert paid.status == PaymentStatus.PAID.value
     assert paid.amount_cents == 2500
     assert booking.status == ReservationStatus.CONFIRMED.value
+    assert booking.hold_expires_at is None
     event = service.reservation_event_repository.create.await_args.args[0]
     assert event.previous_status == ReservationStatus.PENDING.value
     assert event.new_status == ReservationStatus.CONFIRMED.value
