@@ -16,6 +16,7 @@ from app.api.routers.promotions import router as promotions_router
 from app.api.routers.reservations import router as reservations_router
 from app.api.routers.resource_reviews import router as resource_reviews_router
 from app.api.routers.resources import router as resources_router
+from app.api.routers.review_moderation import router as review_moderation_router
 from app.api.routers.venues import router as venues_router
 from app.api.routers.waitlist import router as waitlist_router
 from app.core.config import settings
@@ -39,6 +40,7 @@ app.include_router(promotions_router)
 app.include_router(admin_router)
 app.include_router(favorites_router)
 app.include_router(resource_reviews_router)
+app.include_router(review_moderation_router)
 app.include_router(availability_rules_router)
 app.include_router(availability_exceptions_router)
 app.include_router(waitlist_router)

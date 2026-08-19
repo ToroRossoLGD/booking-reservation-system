@@ -1,7 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.resource_review import ResourceReview
+from app.models.resource_review import ResourceReview, ReviewStatus
 
 
 class ResourceReviewRepository:
@@ -31,13 +31,27 @@ class ResourceReviewRepository:
         await self.db.refresh(review)
         return review
 
+    async def get_by_id(self, review_id: int) -> ResourceReview | None:
+        result = await self.db.execute(
+            select(ResourceReview).where(ResourceReview.id == review_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def update(self, review: ResourceReview) -> ResourceReview:
+        await self.db.commit()
+        await self.db.refresh(review)
+        return review
+
     async def get_by_resource_id(
         self,
         resource_id: int,
     ) -> list[ResourceReview]:
         result = await self.db.execute(
             select(ResourceReview)
-            .where(ResourceReview.resource_id == resource_id)
+            .where(
+                ResourceReview.resource_id == resource_id,
+                ResourceReview.status == ReviewStatus.VISIBLE.value,
+            )
             .order_by(ResourceReview.created_at.desc())
         )
 
@@ -58,7 +72,10 @@ class ResourceReviewRepository:
             select(
                 func.coalesce(func.avg(ResourceReview.rating), 0),
                 func.count(ResourceReview.id),
-            ).where(ResourceReview.resource_id == resource_id)
+            ).where(
+                ResourceReview.resource_id == resource_id,
+                ResourceReview.status == ReviewStatus.VISIBLE.value,
+            )
         )
 
         average_rating, review_count = result.one()
