@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 from app.models.support_ticket import SupportTicketStatus
+from app.repositories.support_ticket_repository import SupportTicketRepository
 from app.schemas.support_ticket import (
     AdminSupportMessageCreate,
     SupportMessageCreate,
@@ -268,3 +269,199 @@ async def test_admin_queue_propagates_filters_and_pagination():
 def test_empty_admin_update_is_rejected():
     with pytest.raises(ValidationError):
         SupportTicketAdminUpdate()
+
+
+@pytest.mark.asyncio
+async def test_missing_ticket_returns_not_found_before_message_lookup():
+    service = SupportTicketService(AsyncMock())
+    service.ticket_repository.get_by_id = AsyncMock(return_value=None)
+    service.ticket_repository.get_messages = AsyncMock()
+
+    with pytest.raises(HTTPException) as error:
+        await service.get_ticket(404, user())
+
+    assert error.value.status_code == 404
+    assert error.value.detail == "Support ticket not found"
+    service.ticket_repository.get_messages.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_customer_ticket_list_is_scoped_and_paginated():
+    service = SupportTicketService(AsyncMock())
+    service.ticket_repository.list_tickets = AsyncMock(return_value=[ticket()])
+    service.ticket_repository.count_tickets = AsyncMock(return_value=1)
+
+    result = await service.list_my_tickets(
+        current_user=user(user_id=42),
+        status_filter="in_progress",
+        limit=10,
+        offset=5,
+    )
+
+    assert result["items"]
+    assert result["has_next"] is False
+    expected_filters = {
+        "creator_id": 42,
+        "status": "in_progress",
+        "priority": None,
+        "assigned_admin_id": None,
+        "unassigned_only": False,
+    }
+    service.ticket_repository.list_tickets.assert_awaited_once_with(
+        **expected_filters, limit=10, offset=5
+    )
+    service.ticket_repository.count_tickets.assert_awaited_once_with(**expected_filters)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("invalid_status", ["new", "deleted", "OPEN"])
+async def test_ticket_lists_reject_invalid_status(invalid_status):
+    service = SupportTicketService(AsyncMock())
+
+    with pytest.raises(HTTPException) as error:
+        await service.list_my_tickets(user(), invalid_status, 20, 0)
+
+    assert error.value.status_code == 400
+    assert error.value.detail == "Invalid ticket status"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("limit,offset", [(0, 0), (101, 0), (20, -1)])
+async def test_ticket_lists_reject_invalid_pagination(limit, offset):
+    service = SupportTicketService(AsyncMock())
+
+    with pytest.raises(HTTPException) as error:
+        await service.list_my_tickets(user(), None, limit, offset)
+
+    assert error.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_admin_queue_rejects_invalid_priority_before_querying():
+    service = SupportTicketService(AsyncMock())
+    service.ticket_repository.list_tickets = AsyncMock()
+
+    with pytest.raises(HTTPException) as error:
+        await service.list_admin_tickets(None, "critical", None, False, 20, 0)
+
+    assert error.value.detail == "Invalid ticket priority"
+    service.ticket_repository.list_tickets.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_closing_already_closed_ticket_is_idempotent():
+    service = SupportTicketService(AsyncMock())
+    closed = ticket(
+        status=SupportTicketStatus.CLOSED.value,
+        closed_at=datetime.now(UTC),
+    )
+    service.ticket_repository.get_by_id = AsyncMock(return_value=closed)
+    service.ticket_repository.update = AsyncMock()
+
+    result = await service.close_my_ticket(7, user())
+
+    assert result is closed
+    service.ticket_repository.update.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_admin_can_explicitly_unassign_ticket_without_user_lookup():
+    service = SupportTicketService(AsyncMock())
+    support_ticket = ticket(assigned_admin_id=100)
+    service.ticket_repository.get_by_id = AsyncMock(return_value=support_ticket)
+    service.ticket_repository.update = AsyncMock(side_effect=lambda item: item)
+    service.user_repository.get_by_id = AsyncMock()
+    service.notification_service.create_notification = AsyncMock()
+
+    result = await service.update_ticket(
+        7,
+        SupportTicketAdminUpdate(assigned_admin_id=None),
+        user(101, "admin"),
+    )
+
+    assert result.assigned_admin_id is None
+    service.user_repository.get_by_id.assert_not_awaited()
+    service.notification_service.create_notification.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_closing_via_admin_clears_resolution_and_sets_closed_timestamp():
+    service = SupportTicketService(AsyncMock())
+    support_ticket = ticket(
+        status=SupportTicketStatus.RESOLVED.value,
+        resolved_at=datetime.now(UTC),
+    )
+    service.ticket_repository.get_by_id = AsyncMock(return_value=support_ticket)
+    service.ticket_repository.update = AsyncMock(side_effect=lambda item: item)
+    service.notification_service.create_notification = AsyncMock()
+
+    result = await service.update_ticket(
+        7,
+        SupportTicketAdminUpdate(status="closed"),
+        user(100, "admin"),
+    )
+
+    assert result.status == SupportTicketStatus.CLOSED.value
+    assert result.resolved_at is None
+    assert result.closed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_admin_message_rejects_closed_ticket_before_persistence():
+    service = SupportTicketService(AsyncMock())
+    service.ticket_repository.get_by_id = AsyncMock(
+        return_value=ticket(status=SupportTicketStatus.CLOSED.value)
+    )
+    service.ticket_repository.create_message = AsyncMock()
+
+    with pytest.raises(HTTPException) as error:
+        await service.add_admin_message(
+            7,
+            AdminSupportMessageCreate(message="Internal follow-up", is_internal=True),
+            user(100, "admin"),
+        )
+
+    assert error.value.status_code == 409
+    service.ticket_repository.create_message.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_customer_message_query_contains_internal_note_filter():
+    db = MagicMock()
+    query_result = MagicMock()
+    query_result.scalars.return_value.all.return_value = []
+    db.execute = AsyncMock(return_value=query_result)
+    repository = SupportTicketRepository(db)
+
+    await repository.get_messages(ticket_id=7, include_internal=False)
+
+    statement = db.execute.await_args.args[0]
+    sql = str(statement)
+    assert "support_messages.ticket_id" in sql
+    assert "support_messages.is_internal IS false" in sql
+
+
+@pytest.mark.asyncio
+async def test_admin_message_query_does_not_filter_internal_notes():
+    db = MagicMock()
+    query_result = MagicMock()
+    query_result.scalars.return_value.all.return_value = []
+    db.execute = AsyncMock(return_value=query_result)
+    repository = SupportTicketRepository(db)
+
+    await repository.get_messages(ticket_id=7, include_internal=True)
+
+    statement = db.execute.await_args.args[0]
+    assert "support_messages.is_internal IS false" not in str(statement)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"status": "invalid"},
+        {"priority": "critical"},
+    ],
+)
+def test_admin_update_rejects_unknown_enum_values(payload):
+    with pytest.raises(ValidationError):
+        SupportTicketAdminUpdate(**payload)
