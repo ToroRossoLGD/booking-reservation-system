@@ -168,6 +168,58 @@ async def test_user_can_reschedule_own_pending_reservation():
 
 
 @pytest.mark.asyncio
+async def test_new_reservation_has_a_checkout_hold_deadline():
+    service = ReservationService(AsyncMock())
+    service._get_cancellation_policy = AsyncMock(return_value=(24, 50))
+    service._validate_booking_rules = AsyncMock()
+    start_time = datetime.now(UTC) + timedelta(days=2)
+    data = ReservationCreate(
+        resource_id=20,
+        start_time=start_time,
+        end_time=start_time + timedelta(hours=1),
+    )
+    service.resource_repository.get_by_id = AsyncMock(
+        return_value=MagicMock(
+            id=20,
+            venue_id=5,
+            hourly_rate_cents=2000,
+            currency="EUR",
+            capacity=10,
+        )
+    )
+    service._resolve_promotion = AsyncMock(return_value=None)
+    service._is_within_availability_rules = AsyncMock(return_value=True)
+    service._has_availability_exception = AsyncMock(return_value=False)
+    service.reservation_repository.has_conflicting_reservation = AsyncMock(
+        return_value=False
+    )
+
+    async def create(booking, promotion_redemptions):
+        booking.id = 1
+        return booking
+
+    service.reservation_repository.create_with_conflict_lock = AsyncMock(
+        side_effect=create
+    )
+    service.reservation_event_repository.create = AsyncMock(
+        side_effect=lambda event: event
+    )
+    service.notification_service.create_notification = AsyncMock()
+    before = datetime.now(UTC) + timedelta(minutes=settings.RESERVATION_EXPIRE_MINUTES)
+
+    with patch(
+        "app.services.reservation_service.delete_available_slots_cache_for_resource",
+        new_callable=AsyncMock,
+    ):
+        booking = await service.create_reservation(
+            data, MagicMock(id=10, email="customer@example.com", role="customer")
+        )
+
+    after = datetime.now(UTC) + timedelta(minutes=settings.RESERVATION_EXPIRE_MINUTES)
+    assert before <= booking.hold_expires_at <= after
+
+
+@pytest.mark.asyncio
 async def test_user_cannot_reschedule_another_users_reservation():
     service = ReservationService(AsyncMock())
     reservation = MagicMock(id=1, user_id=10)

@@ -1,6 +1,9 @@
+from datetime import UTC, datetime
+
 from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import delete_available_slots_cache_for_resource
 from app.models.payment import Payment, PaymentStatus
 from app.models.reservation import ReservationStatus
 from app.models.reservation_event import ReservationEvent, ReservationEventType
@@ -74,6 +77,29 @@ class PaymentService:
             )
 
         if (
+            reservation.hold_expires_at is not None
+            and reservation.hold_expires_at <= datetime.now(UTC)
+        ):
+            reservation.status = ReservationStatus.EXPIRED.value
+            await self.reservation_repository.update(reservation)
+            await self.reservation_event_repository.create(
+                ReservationEvent(
+                    reservation_id=reservation.id,
+                    event_type=ReservationEventType.EXPIRED.value,
+                    actor_id=None,
+                    actor_role="system",
+                    previous_status=ReservationStatus.PENDING.value,
+                    new_status=ReservationStatus.EXPIRED.value,
+                    details={"reason": "payment_attempt_after_hold_expiry"},
+                )
+            )
+            await delete_available_slots_cache_for_resource(reservation.resource_id)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Reservation hold has expired",
+            )
+
+        if (
             reservation.quoted_amount_cents is None
             or reservation.quoted_currency is None
         ):
@@ -112,6 +138,7 @@ class PaymentService:
 
         previous_status = reservation.status
         reservation.status = ReservationStatus.CONFIRMED.value
+        reservation.hold_expires_at = None
         await self.reservation_repository.update(reservation)
 
         await self.reservation_event_repository.create(

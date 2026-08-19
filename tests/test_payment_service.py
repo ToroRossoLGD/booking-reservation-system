@@ -50,6 +50,7 @@ async def test_payment_uses_reservation_quote_instead_of_client_amount():
         status=ReservationStatus.PENDING.value,
         quoted_amount_cents=3750,
         quoted_currency="EUR",
+        hold_expires_at=None,
     )
     current_user = MagicMock(id=10, email="user@example.com")
     service.reservation_repository.get_by_id = AsyncMock(return_value=reservation)
@@ -79,6 +80,7 @@ async def test_payment_rejects_legacy_reservation_without_quote():
         status=ReservationStatus.PENDING.value,
         quoted_amount_cents=None,
         quoted_currency=None,
+        hold_expires_at=None,
     )
     service.reservation_repository.get_by_id = AsyncMock(return_value=reservation)
 

@@ -394,6 +394,8 @@ class ReservationService:
             user_id=current_user.id,
             resource_id=data.resource_id,
             party_size=data.party_size,
+            hold_expires_at=datetime.now(UTC)
+            + timedelta(minutes=settings.RESERVATION_EXPIRE_MINUTES),
             idempotency_key=idempotency_key,
             idempotency_request_hash=(
                 request_hash if idempotency_key is not None else None
@@ -553,6 +555,8 @@ class ReservationService:
                 user_id=current_user.id,
                 resource_id=data.resource_id,
                 party_size=data.party_size,
+                hold_expires_at=datetime.now(UTC)
+                + timedelta(minutes=settings.RESERVATION_EXPIRE_MINUTES),
                 recurrence_series_id=series_id,
                 cancellation_free_hours=free_cancellation_hours,
                 cancellation_late_refund_percent=late_refund_percent,
@@ -1383,8 +1387,28 @@ class ReservationService:
                 detail="Only pending reservations can be confirmed",
             )
 
+        if (
+            reservation.hold_expires_at is not None
+            and reservation.hold_expires_at <= datetime.now(UTC)
+        ):
+            reservation.status = ReservationStatus.EXPIRED.value
+            await self.reservation_repository.update(reservation)
+            await self._record_event(
+                reservation,
+                ReservationEventType.EXPIRED,
+                actor=None,
+                previous_status=ReservationStatus.PENDING.value,
+                details={"reason": "booking_hold_elapsed"},
+            )
+            await delete_available_slots_cache_for_resource(reservation.resource_id)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Reservation hold has expired",
+            )
+
         previous_status = reservation.status
         reservation.status = ReservationStatus.CONFIRMED.value
+        reservation.hold_expires_at = None
 
         updated_reservation = await self.reservation_repository.update(reservation)
 

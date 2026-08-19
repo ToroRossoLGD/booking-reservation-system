@@ -76,6 +76,12 @@ class Reservation(Base):
         default=lambda: datetime.now(UTC),
     )
 
+    hold_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+
     attendance_status: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
