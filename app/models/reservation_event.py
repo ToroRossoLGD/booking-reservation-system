@@ -15,6 +15,7 @@ class ReservationEventType(str, enum.Enum):
     CANCELLED = "cancelled"
     COMPLETED = "completed"
     EXPIRED = "expired"
+    REMINDER_SENT = "reminder_sent"
 
 
 class ReservationEvent(Base):

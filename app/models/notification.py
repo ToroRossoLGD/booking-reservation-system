@@ -27,6 +27,13 @@ class Notification(Base):
         nullable=False,
     )
 
+    deduplication_key: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+
     is_read: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,

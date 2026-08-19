@@ -15,6 +15,7 @@ from app.schemas.reservation import (
     RecurringReservationRead,
     RecurringSeriesCancellationRead,
     RecurringSeriesCancellationRequest,
+    ReminderDispatchRead,
     ReservationCancellationRead,
     ReservationCreate,
     ReservationListRead,
@@ -23,8 +24,12 @@ from app.schemas.reservation import (
     ReservationReschedule,
 )
 from app.schemas.reservation_event import ReservationTimelineRead
+from app.services.reservation_reminder_service import ReservationReminderService
 from app.services.reservation_service import ReservationService
-from app.tasks.reservation_tasks import expire_pending_reservations_task
+from app.tasks.reservation_tasks import (
+    expire_pending_reservations_task,
+    send_reservation_reminders_task,
+)
 
 router = APIRouter(
     prefix="/reservations",
@@ -338,3 +343,19 @@ async def expire_pending_reservations_background(
         "task_id": task.id,
         "status": "queued",
     }
+
+
+@router.post("/send-reminders", response_model=ReminderDispatchRead)
+async def send_reservation_reminders(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("admin")),
+):
+    return await ReservationReminderService(db).send_due_reminders()
+
+
+@router.post("/send-reminders/background")
+async def send_reservation_reminders_background(
+    current_user: User = Depends(require_roles("admin")),
+):
+    task = send_reservation_reminders_task.delay()
+    return {"task_id": task.id, "status": "queued"}

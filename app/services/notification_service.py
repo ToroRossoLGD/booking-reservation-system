@@ -18,14 +18,26 @@ class NotificationService:
         message: str,
         user_email: str | None = None,
         background_tasks: BackgroundTasks | None = None,
-    ) -> Notification:
+        deduplication_key: str | None = None,
+    ) -> Notification | None:
         notification = Notification(
             user_id=user_id,
             title=title,
             message=message,
+            deduplication_key=deduplication_key,
         )
 
-        created_notification = await self.notification_repository.create(notification)
+        if deduplication_key is None:
+            created_notification = await self.notification_repository.create(
+                notification
+            )
+        else:
+            created_notification = await self.notification_repository.create_once(
+                notification
+            )
+
+        if created_notification is None:
+            return None
 
         if user_email:
             if background_tasks:

@@ -26,5 +26,9 @@ celery_app.conf.update(
             "task": "mark_reservation_no_shows_task",
             "schedule": settings.CELERY_NO_SHOW_INTERVAL_MINUTES * 60,
         },
+        "send-reservation-reminders-periodically": {
+            "task": "send_reservation_reminders_task",
+            "schedule": settings.CELERY_REMINDER_INTERVAL_MINUTES * 60,
+        },
     },
 )
