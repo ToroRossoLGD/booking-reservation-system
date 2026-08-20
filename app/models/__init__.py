@@ -6,6 +6,7 @@ from app.models.payment import Payment
 from app.models.promotion import Promotion
 from app.models.reservation import Reservation
 from app.models.reservation_event import ReservationEvent
+from app.models.reservation_guest import ReservationGuestInvitation
 from app.models.resource import Resource
 from app.models.resource_review import ResourceReview
 from app.models.review_report import ReviewReport
@@ -25,6 +26,7 @@ __all__ = [
     "SupportMessage",
     "Reservation",
     "ReservationEvent",
+    "ReservationGuestInvitation",
     "Notification",
     "Payment",
     "Promotion",
