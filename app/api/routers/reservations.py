@@ -41,7 +41,7 @@ router = APIRouter(
 async def check_in_reservation(
     data: CheckInRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("owner", "admin")),
+    current_user: User = Depends(get_current_user),
 ):
     return await ReservationService(db).check_in_reservation(
         token=data.token,
@@ -296,7 +296,7 @@ async def reschedule_reservation(
 async def confirm_reservation(
     reservation_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("owner", "admin")),
+    current_user: User = Depends(get_current_user),
 ):
     service = ReservationService(db)
 
@@ -313,7 +313,7 @@ async def confirm_reservation(
 async def complete_reservation(
     reservation_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("owner", "admin")),
+    current_user: User = Depends(get_current_user),
 ):
     service = ReservationService(db)
 

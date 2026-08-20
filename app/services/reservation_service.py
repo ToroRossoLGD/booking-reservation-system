@@ -34,6 +34,7 @@ from app.repositories.reservation_repository import (
 )
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
+from app.repositories.venue_staff_repository import VenueStaffRepository
 from app.schemas.reservation import (
     RecurringReservationCreate,
     RecurringSeriesCancellationRequest,
@@ -51,6 +52,7 @@ class ReservationService:
         self.reservation_event_repository = ReservationEventRepository(db)
         self.resource_repository = ResourceRepository(db)
         self.venue_repository = VenueRepository(db)
+        self.venue_staff_repository = VenueStaffRepository(db)
         self.notification_service = NotificationService(db)
         self.availability_rule_repository = AvailabilityRuleRepository(db)
         self.availability_exception_repository = AvailabilityExceptionRepository(db)
@@ -779,6 +781,7 @@ class ReservationService:
         await self._ensure_owner_can_manage_reservation(
             reservation=reservation,
             current_user=current_user,
+            allowed_staff_roles={"manager"},
         )
 
         return reservation
@@ -844,7 +847,11 @@ class ReservationService:
                 status_code=400, detail="Invalid or expired check-in pass"
             )
 
-        await self._ensure_owner_can_manage_reservation(reservation, current_user)
+        await self._ensure_owner_can_manage_reservation(
+            reservation,
+            current_user,
+            allowed_staff_roles={"manager", "check_in_agent"},
+        )
 
         if reservation.status != ReservationStatus.CONFIRMED.value:
             raise HTTPException(
@@ -1337,6 +1344,7 @@ class ReservationService:
         self,
         reservation: Reservation,
         current_user: User,
+        allowed_staff_roles: set[str],
     ) -> None:
         if current_user.role == "admin":
             return
@@ -1357,11 +1365,16 @@ class ReservationService:
                 detail="Venue not found",
             )
 
-        if venue.owner_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can manage only reservations for your own venues",
-            )
+        if venue.owner_id == current_user.id:
+            return
+        if await self.venue_staff_repository.has_role(
+            venue.id, current_user.id, allowed_staff_roles
+        ):
+            return
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to manage this reservation",
+        )
 
     async def confirm_reservation(
         self,
@@ -1379,6 +1392,7 @@ class ReservationService:
         await self._ensure_owner_can_manage_reservation(
             reservation,
             current_user,
+            allowed_staff_roles={"manager"},
         )
 
         if reservation.status != ReservationStatus.PENDING.value:
@@ -1445,6 +1459,7 @@ class ReservationService:
         await self._ensure_owner_can_manage_reservation(
             reservation,
             current_user,
+            allowed_staff_roles={"manager"},
         )
 
         if reservation.status != ReservationStatus.CONFIRMED.value:
