@@ -15,12 +15,14 @@ from app.models.review_report import ReviewReport
 from app.models.support_ticket import SupportMessage, SupportTicket
 from app.models.user import User
 from app.models.venue import Venue
+from app.models.venue_staff import VenueStaff
 from app.models.waitlist_entry import WaitlistEntry
 
 __all__ = [
     "User",
     "APIKey",
     "Venue",
+    "VenueStaff",
     "Resource",
     "FavoriteResource",
     "ResourceReview",
