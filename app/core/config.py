@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     JWT_SECRET: str
     JWT_ALGORITHM: str
     JWT_EXPIRE_MINUTES: int
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 30
 
     REDIS_HOST: str
     REDIS_PORT: int

@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import String
+from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -34,6 +34,7 @@ class User(Base):
         nullable=False,
         default=UserRole.CUSTOMER.value,
     )
+    token_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     venues = relationship(
         "Venue",
         back_populates="owner",

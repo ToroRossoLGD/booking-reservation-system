@@ -22,7 +22,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(
-    subject: str | int, expires_delta: timedelta | None = None
+    subject: str | int,
+    expires_delta: timedelta | None = None,
+    token_version: int = 0,
 ) -> str:
     if expires_delta is None:
         expires_delta = timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
@@ -32,6 +34,7 @@ def create_access_token(
     payload: dict[str, Any] = {
         "sub": str(subject),
         "exp": expire,
+        "ver": token_version,
     }
 
     return jwt.encode(

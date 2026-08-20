@@ -1,12 +1,20 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, require_roles
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.auth import Token, UserCreate, UserRead
+from app.schemas.auth import (
+    AuthMessage,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    Token,
+    UserCreate,
+    UserRead,
+)
 from app.services.auth_service import AuthService
+from app.services.password_reset_service import PasswordResetService
 
 router = APIRouter(
     prefix="/auth",
@@ -35,6 +43,23 @@ async def login(
     )
 
     return Token(access_token=access_token)
+
+
+@router.post("/password-reset/request", response_model=AuthMessage)
+async def request_password_reset(
+    data: PasswordResetRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    return await PasswordResetService(db).request_reset(data.email, background_tasks)
+
+
+@router.post("/password-reset/confirm", response_model=AuthMessage)
+async def confirm_password_reset(
+    data: PasswordResetConfirm,
+    db: AsyncSession = Depends(get_db),
+):
+    return await PasswordResetService(db).confirm_reset(data.token, data.new_password)
 
 
 @router.get("/me", response_model=UserRead)

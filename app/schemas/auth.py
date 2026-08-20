@@ -20,3 +20,16 @@ class UserRead(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str = Field(min_length=32, max_length=255)
+    new_password: str = Field(min_length=8, max_length=72)
+
+
+class AuthMessage(BaseModel):
+    message: str
