@@ -37,4 +37,4 @@ class AuthService:
                 detail="Invalid email or password",
             )
 
-        return create_access_token(subject=user.id)
+        return create_access_token(subject=user.id, token_version=user.token_version)

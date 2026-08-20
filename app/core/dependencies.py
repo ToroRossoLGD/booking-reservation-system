@@ -29,6 +29,7 @@ async def get_current_user(
         )
 
         user_id = payload.get("sub")
+        token_version = payload.get("ver", 0)
 
         if user_id is None:
             raise credentials_exception
@@ -40,6 +41,8 @@ async def get_current_user(
     user = await repository.get_by_id(int(user_id))
 
     if user is None:
+        raise credentials_exception
+    if user.token_version != token_version:
         raise credentials_exception
 
     return user

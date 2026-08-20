@@ -2,6 +2,7 @@ from app.models.availability_exception import AvailabilityException
 from app.models.availability_rule import AvailabilityRule
 from app.models.favorite_resource import FavoriteResource
 from app.models.notification import Notification
+from app.models.password_reset_token import PasswordResetToken
 from app.models.payment import Payment
 from app.models.promotion import Promotion
 from app.models.reservation import Reservation
@@ -29,6 +30,7 @@ __all__ = [
     "ReservationGuestInvitation",
     "Notification",
     "Payment",
+    "PasswordResetToken",
     "Promotion",
     "AvailabilityRule",
     "AvailabilityException",
