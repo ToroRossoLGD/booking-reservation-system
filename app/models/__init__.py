@@ -1,3 +1,4 @@
+from app.models.api_key import APIKey
 from app.models.availability_exception import AvailabilityException
 from app.models.availability_rule import AvailabilityRule
 from app.models.favorite_resource import FavoriteResource
@@ -18,6 +19,7 @@ from app.models.waitlist_entry import WaitlistEntry
 
 __all__ = [
     "User",
+    "APIKey",
     "Venue",
     "Resource",
     "FavoriteResource",
