@@ -9,6 +9,7 @@ from app.api.routers.availability_exceptions import (
 from app.api.routers.availability_rules import (
     router as availability_rules_router,
 )
+from app.api.routers.calendar_feeds import router as calendar_feeds_router
 from app.api.routers.favorites import router as favorites_router
 from app.api.routers.maintenance import router as maintenance_router
 from app.api.routers.notifications import router as notifications_router
@@ -36,6 +37,7 @@ async def health_check():
 
 
 app.include_router(auth_router)
+app.include_router(calendar_feeds_router)
 app.include_router(api_keys_router)
 app.include_router(venues_router)
 app.include_router(venue_staff_router)

@@ -1,6 +1,7 @@
 from app.models.api_key import APIKey
 from app.models.availability_exception import AvailabilityException
 from app.models.availability_rule import AvailabilityRule
+from app.models.calendar_feed import CalendarFeed
 from app.models.favorite_resource import FavoriteResource
 from app.models.maintenance import MaintenanceActivity, MaintenanceWorkOrder
 from app.models.notification import Notification
@@ -41,6 +42,7 @@ __all__ = [
     "PasswordResetToken",
     "Promotion",
     "AvailabilityRule",
+    "CalendarFeed",
     "AvailabilityException",
     "WaitlistEntry",
     "WebhookSubscription",
