@@ -28,6 +28,11 @@ class CalendarFeedService:
     def _hash_token(token: str) -> str:
         return hashlib.sha256(token.encode()).hexdigest()
 
+    @staticmethod
+    def _new_token() -> tuple[str, str]:
+        prefix = secrets.token_hex(4)
+        return f"cal_{prefix}_{secrets.token_urlsafe(32)}", f"cal_{prefix}"
+
     async def _authorize(self, venue_id: int, user: User):
         venue = await self.venue_repository.get_by_id(venue_id)
         if venue is None:
@@ -59,14 +64,13 @@ class CalendarFeedService:
                     f"{settings.MAX_ACTIVE_CALENDAR_FEEDS} active calendar feeds"
                 ),
             )
-        prefix = secrets.token_hex(4)
-        token = f"cal_{prefix}_{secrets.token_urlsafe(32)}"
+        token, token_prefix = self._new_token()
         feed = await self.repository.create(
             CalendarFeed(
                 venue_id=venue_id,
                 resource_id=data.resource_id,
                 name=data.name,
-                token_prefix=f"cal_{prefix}",
+                token_prefix=token_prefix,
                 token_hash=self._hash_token(token),
                 include_pending=data.include_pending,
                 created_by_id=user.id,
@@ -74,6 +78,27 @@ class CalendarFeedService:
         )
         return {
             **feed.__dict__,
+            "feed_token": token,
+            "feed_path": f"/calendar-feeds/{token}.ics",
+        }
+
+    async def rotate_token(self, venue_id: int, feed_id: int, user: User) -> dict:
+        await self._authorize(venue_id, user)
+        feed = await self.repository.get_for_venue(feed_id, venue_id)
+        if feed is None:
+            raise HTTPException(status_code=404, detail="Calendar feed not found")
+        if feed.revoked_at is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="A revoked calendar feed cannot rotate its token",
+            )
+        token, token_prefix = self._new_token()
+        feed.token_prefix = token_prefix
+        feed.token_hash = self._hash_token(token)
+        feed = await self.repository.save(feed)
+        return {
+            "id": feed.id,
+            "token_prefix": feed.token_prefix,
             "feed_token": token,
             "feed_path": f"/calendar-feeds/{token}.ics",
         }

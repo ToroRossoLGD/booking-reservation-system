@@ -9,6 +9,7 @@ from app.schemas.webhook import (
     WebhookCreated,
     WebhookDeliveryRead,
     WebhookRead,
+    WebhookSecretRotated,
     WebhookUpdate,
 )
 from app.services.webhook_service import WebhookService
@@ -56,6 +57,18 @@ async def deactivate_webhook(
     current_user: User = Depends(get_current_user),
 ):
     return await WebhookService(db).deactivate(venue_id, subscription_id, current_user)
+
+
+@router.post("/{subscription_id}/rotate-secret", response_model=WebhookSecretRotated)
+async def rotate_webhook_secret(
+    venue_id: int,
+    subscription_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await WebhookService(db).rotate_secret(
+        venue_id, subscription_id, current_user
+    )
 
 
 @router.get("/deliveries/history", response_model=list[WebhookDeliveryRead])

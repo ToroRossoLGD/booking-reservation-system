@@ -8,6 +8,7 @@ from app.schemas.calendar_feed import (
     CalendarFeedCreate,
     CalendarFeedCreated,
     CalendarFeedRead,
+    CalendarFeedTokenRotated,
 )
 from app.services.calendar_feed_service import CalendarFeedService
 
@@ -47,6 +48,19 @@ async def revoke_calendar_feed(
     current_user: User = Depends(get_current_user),
 ):
     return await CalendarFeedService(db).revoke(venue_id, feed_id, current_user)
+
+
+@router.post(
+    "/venues/{venue_id}/calendar-feeds/{feed_id}/rotate-token",
+    response_model=CalendarFeedTokenRotated,
+)
+async def rotate_calendar_feed_token(
+    venue_id: int,
+    feed_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await CalendarFeedService(db).rotate_token(venue_id, feed_id, current_user)
 
 
 @router.get("/calendar-feeds/{token}.ics", response_class=Response)

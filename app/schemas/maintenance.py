@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 Priority = Literal["low", "medium", "high", "urgent"]
 Status = Literal["open", "in_progress", "on_hold", "resolved", "cancelled"]
@@ -13,6 +13,14 @@ class WorkOrderCreate(BaseModel):
     description: str = Field(min_length=1, max_length=5000)
     priority: Priority = "medium"
     due_at: datetime | None = None
+
+    @field_validator("due_at")
+    @classmethod
+    def require_timezone(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            raise ValueError("due_at must include a timezone")
+        return value
+
     model_config = {"str_strip_whitespace": True}
 
 
@@ -21,6 +29,13 @@ class WorkOrderUpdate(BaseModel):
     description: str | None = Field(default=None, min_length=1, max_length=5000)
     priority: Priority | None = None
     due_at: datetime | None = None
+
+    @field_validator("due_at")
+    @classmethod
+    def require_timezone(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            raise ValueError("due_at must include a timezone")
+        return value
 
     @model_validator(mode="after")
     def require_change(self):
