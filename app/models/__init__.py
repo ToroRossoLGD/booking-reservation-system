@@ -2,6 +2,7 @@ from app.models.api_key import APIKey
 from app.models.availability_exception import AvailabilityException
 from app.models.availability_rule import AvailabilityRule
 from app.models.favorite_resource import FavoriteResource
+from app.models.maintenance import MaintenanceActivity, MaintenanceWorkOrder
 from app.models.notification import Notification
 from app.models.password_reset_token import PasswordResetToken
 from app.models.payment import Payment
@@ -34,6 +35,8 @@ __all__ = [
     "ReservationEvent",
     "ReservationGuestInvitation",
     "Notification",
+    "MaintenanceWorkOrder",
+    "MaintenanceActivity",
     "Payment",
     "PasswordResetToken",
     "Promotion",
