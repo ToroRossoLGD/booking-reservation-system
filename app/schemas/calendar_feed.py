@@ -27,3 +27,10 @@ class CalendarFeedRead(BaseModel):
 class CalendarFeedCreated(CalendarFeedRead):
     feed_token: str
     feed_path: str
+
+
+class CalendarFeedTokenRotated(BaseModel):
+    id: int
+    token_prefix: str
+    feed_token: str
+    feed_path: str

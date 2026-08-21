@@ -191,6 +191,7 @@ async def test_inactive_subscription_fails_queued_delivery_without_http_call():
 @pytest.mark.asyncio
 async def test_non_success_http_response_is_retried_and_status_is_recorded():
     service = WebhookService(AsyncMock())
+    service._ensure_public_target = AsyncMock()
     item = webhook_delivery()
     service.repository.get_due_deliveries = AsyncMock(return_value=[item])
     service.repository.get_subscription = AsyncMock(return_value=webhook())

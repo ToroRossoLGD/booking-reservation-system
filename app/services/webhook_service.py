@@ -1,9 +1,13 @@
+import asyncio
 import base64
 import hashlib
 import hmac
+import ipaddress
 import json
 import secrets
+import socket
 from datetime import UTC, datetime, timedelta
+from urllib.parse import urlsplit
 
 import httpx
 from fastapi import HTTPException
@@ -15,6 +19,10 @@ from app.models.webhook import WebhookDeliveryStatus, WebhookSubscription
 from app.repositories.venue_repository import VenueRepository
 from app.repositories.webhook_repository import WebhookRepository
 from app.schemas.webhook import WebhookCreate, WebhookUpdate
+
+
+class UnsafeWebhookTargetError(Exception):
+    pass
 
 
 class WebhookService:
@@ -100,6 +108,22 @@ class WebhookService:
         item.updated_at = datetime.now(UTC)
         return await self.repository.update(item)
 
+    async def rotate_secret(
+        self, venue_id: int, subscription_id: int, user: User
+    ) -> dict:
+        await self._authorize(venue_id, user)
+        item = await self.repository.get_for_venue(subscription_id, venue_id)
+        if item is None:
+            raise HTTPException(status_code=404, detail="Webhook not found")
+        if not item.is_active:
+            raise HTTPException(
+                status_code=409, detail="An inactive webhook cannot rotate its secret"
+            )
+        item.signing_key = secrets.token_hex(18)
+        item.updated_at = datetime.now(UTC)
+        item = await self.repository.update(item)
+        return {"id": item.id, "signing_secret": self._secret(item.signing_key)}
+
     async def list_deliveries(self, venue_id: int, user: User):
         await self._authorize(venue_id, user)
         return await self.repository.list_deliveries(venue_id)
@@ -121,6 +145,32 @@ class WebhookService:
         item.delivered_at = None
         await self.repository.save_delivery(item)
         return item
+
+    async def _ensure_public_target(self, target_url: str) -> None:
+        parsed = urlsplit(target_url)
+        if parsed.hostname is None:
+            raise UnsafeWebhookTargetError("Webhook target has no hostname")
+        try:
+            addresses = await asyncio.to_thread(
+                socket.getaddrinfo,
+                parsed.hostname,
+                parsed.port or 443,
+                type=socket.SOCK_STREAM,
+            )
+        except socket.gaierror as exc:
+            raise UnsafeWebhookTargetError(
+                "Webhook target hostname could not be resolved"
+            ) from exc
+        if not addresses:
+            raise UnsafeWebhookTargetError(
+                "Webhook target hostname could not be resolved"
+            )
+        for address in addresses:
+            raw_ip = address[4][0].split("%", 1)[0]
+            if not ipaddress.ip_address(raw_ip).is_global:
+                raise UnsafeWebhookTargetError(
+                    "Webhook target resolves to a non-public address"
+                )
 
     async def deliver_due(
         self, current_time: datetime | None = None, limit: int = 100
@@ -153,6 +203,7 @@ class WebhookService:
                 item.attempts += 1
                 item.updated_at = now
                 try:
+                    await self._ensure_public_target(subscription.target_url)
                     response = await client.post(
                         subscription.target_url,
                         content=body,
@@ -175,7 +226,7 @@ class WebhookService:
                             request=response.request,
                             response=response,
                         )
-                except httpx.HTTPError as exc:
+                except (httpx.HTTPError, UnsafeWebhookTargetError) as exc:
                     item.last_error = str(exc)[:1000]
                     if item.attempts >= settings.WEBHOOK_MAX_ATTEMPTS:
                         item.status = WebhookDeliveryStatus.FAILED.value

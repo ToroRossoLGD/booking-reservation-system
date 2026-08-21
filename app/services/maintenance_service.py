@@ -179,7 +179,13 @@ class MaintenanceService:
             raise HTTPException(
                 status_code=409, detail="Work order already has this status"
             )
-        if data.status not in self.TRANSITIONS[item.status]:
+        allowed_transitions = self.TRANSITIONS.get(item.status)
+        if allowed_transitions is None:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Work order has unsupported status: {item.status}",
+            )
+        if data.status not in allowed_transitions:
             raise HTTPException(
                 status_code=409,
                 detail=(

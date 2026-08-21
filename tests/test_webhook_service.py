@@ -152,6 +152,7 @@ class FakeClient:
 @pytest.mark.asyncio
 async def test_successful_delivery_is_signed_and_recorded():
     service = WebhookService(AsyncMock())
+    service._ensure_public_target = AsyncMock()
     item = delivery()
     hook = subscription()
     service.repository.get_due_deliveries = AsyncMock(return_value=[item])
@@ -179,6 +180,7 @@ async def test_successful_delivery_is_signed_and_recorded():
 @pytest.mark.asyncio
 async def test_failed_delivery_is_scheduled_with_exponential_backoff():
     service = WebhookService(AsyncMock())
+    service._ensure_public_target = AsyncMock()
     item = delivery(attempts=1)
     service.repository.get_due_deliveries = AsyncMock(return_value=[item])
     service.repository.get_subscription = AsyncMock(return_value=subscription())
@@ -197,6 +199,7 @@ async def test_failed_delivery_is_scheduled_with_exponential_backoff():
 @pytest.mark.asyncio
 async def test_delivery_stops_retrying_at_attempt_limit():
     service = WebhookService(AsyncMock())
+    service._ensure_public_target = AsyncMock()
     item = delivery(attempts=settings.WEBHOOK_MAX_ATTEMPTS - 1)
     service.repository.get_due_deliveries = AsyncMock(return_value=[item])
     service.repository.get_subscription = AsyncMock(return_value=subscription())

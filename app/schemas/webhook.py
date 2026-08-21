@@ -26,6 +26,10 @@ class WebhookCreate(BaseModel):
     def require_public_https(cls, value: HttpUrl) -> HttpUrl:
         if value.scheme != "https":
             raise ValueError("Webhook URLs must use HTTPS")
+        if value.username is not None or value.password is not None:
+            raise ValueError("Webhook URLs must not contain credentials")
+        if value.fragment is not None:
+            raise ValueError("Webhook URLs must not contain fragments")
         host = (value.host or "").lower()
         if (
             host == "localhost"
@@ -69,6 +73,11 @@ class WebhookRead(BaseModel):
 
 
 class WebhookCreated(WebhookRead):
+    signing_secret: str
+
+
+class WebhookSecretRotated(BaseModel):
+    id: int
     signing_secret: str
 
 
