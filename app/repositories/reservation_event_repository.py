@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.reservation_event import ReservationEvent
+from app.repositories.webhook_repository import WebhookRepository
 
 
 class ReservationEventRepository:
@@ -14,8 +15,9 @@ class ReservationEventRepository:
         add_result = self.db.add(event)
         if isawaitable(add_result):
             await add_result
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(event)
+        await WebhookRepository(self.db).enqueue_for_event(event)
         return event
 
     async def get_for_reservation(self, reservation_id: int) -> list[ReservationEvent]:
