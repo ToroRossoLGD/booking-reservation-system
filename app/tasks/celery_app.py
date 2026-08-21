@@ -8,6 +8,7 @@ celery_app = Celery(
     backend=settings.CELERY_RESULT_BACKEND,
     include=[
         "app.tasks.reservation_tasks",
+        "app.tasks.webhook_tasks",
     ],
 )
 
@@ -29,6 +30,10 @@ celery_app.conf.update(
         "send-reservation-reminders-periodically": {
             "task": "send_reservation_reminders_task",
             "schedule": settings.CELERY_REMINDER_INTERVAL_MINUTES * 60,
+        },
+        "deliver-due-webhooks-periodically": {
+            "task": "deliver_due_webhooks_task",
+            "schedule": settings.CELERY_WEBHOOK_INTERVAL_SECONDS,
         },
     },
 )
