@@ -10,6 +10,7 @@ from app.api.routers.availability_rules import (
     router as availability_rules_router,
 )
 from app.api.routers.favorites import router as favorites_router
+from app.api.routers.maintenance import router as maintenance_router
 from app.api.routers.notifications import router as notifications_router
 from app.api.routers.owner import router as owner_router
 from app.api.routers.payments import router as payments_router
@@ -44,6 +45,7 @@ app.include_router(reservations_router)
 app.include_router(reservation_guests_router)
 app.include_router(owner_router)
 app.include_router(notifications_router)
+app.include_router(maintenance_router)
 app.include_router(payments_router)
 app.include_router(promotions_router)
 app.include_router(admin_router)
