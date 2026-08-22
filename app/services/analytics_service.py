@@ -41,6 +41,21 @@ class AnalyticsService:
         end_date: date,
         current_user: User,
     ) -> VenueAnalyticsRead:
+        venue, rows = await self.load_venue_report_data(
+            venue_id=venue_id,
+            start_date=start_date,
+            end_date=end_date,
+            current_user=current_user,
+        )
+        return self._aggregate(venue, start_date, end_date, rows)
+
+    async def load_venue_report_data(
+        self,
+        venue_id: int,
+        start_date: date,
+        end_date: date,
+        current_user: User,
+    ):
         self._validate_date_range(start_date, end_date)
         venue = await self.venue_repository.get_by_id(venue_id)
         if venue is None:
@@ -59,7 +74,7 @@ class AnalyticsService:
         rows = await self.repository.get_venue_reservation_rows(
             venue_id, start_time, end_time
         )
-        return self._aggregate(venue, start_date, end_date, rows)
+        return venue, rows
 
     @classmethod
     def _validate_date_range(cls, start_date: date, end_date: date) -> None:
