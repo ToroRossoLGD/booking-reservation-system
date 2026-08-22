@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.api.routers.admin import router as admin_router
+from app.api.routers.analytics import router as analytics_router
 from app.api.routers.api_keys import router as api_keys_router
 from app.api.routers.auth import router as auth_router
 from app.api.routers.availability_exceptions import (
@@ -37,6 +38,7 @@ async def health_check():
 
 
 app.include_router(auth_router)
+app.include_router(analytics_router)
 app.include_router(calendar_feeds_router)
 app.include_router(api_keys_router)
 app.include_router(venues_router)
