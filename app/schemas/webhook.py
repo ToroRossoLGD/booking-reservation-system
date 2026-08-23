@@ -13,6 +13,7 @@ WebhookEventType = Literal[
     "completed",
     "expired",
     "reminder_sent",
+    "transferred",
 ]
 
 
