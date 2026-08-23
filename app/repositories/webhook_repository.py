@@ -52,7 +52,7 @@ class WebhookRepository:
         )
         return len(result.scalars().all())
 
-    async def enqueue_for_event(self, event) -> int:
+    async def enqueue_for_event(self, event, commit: bool = True) -> int:
         result = await self.db.execute(
             select(WebhookSubscription)
             .join(Resource, Resource.venue_id == WebhookSubscription.venue_id)
@@ -70,7 +70,8 @@ class WebhookRepository:
             items = await items
         subscriptions = [item for item in items if event.event_type in item.event_types]
         if not subscriptions:
-            await self.db.commit()
+            if commit:
+                await self.db.commit()
             return 0
         now = event.occurred_at
         payload = {
@@ -95,7 +96,8 @@ class WebhookRepository:
                     next_attempt_at=now,
                 )
             )
-        await self.db.commit()
+        if commit:
+            await self.db.commit()
         return len(subscriptions)
 
     async def list_deliveries(
