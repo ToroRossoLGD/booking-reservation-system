@@ -26,6 +26,7 @@ from app.api.routers.support import router as support_router
 from app.api.routers.venue_staff import router as venue_staff_router
 from app.api.routers.venues import router as venues_router
 from app.api.routers.waitlist import router as waitlist_router
+from app.api.routers.waivers import router as waivers_router
 from app.api.routers.webhooks import router as webhooks_router
 from app.core.config import settings
 
@@ -60,3 +61,4 @@ app.include_router(availability_rules_router)
 app.include_router(availability_exceptions_router)
 app.include_router(waitlist_router)
 app.include_router(webhooks_router)
+app.include_router(waivers_router)

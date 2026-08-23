@@ -19,6 +19,7 @@ from app.models.user import User
 from app.models.venue import Venue
 from app.models.venue_staff import VenueStaff
 from app.models.waitlist_entry import WaitlistEntry
+from app.models.waiver import WaiverAcceptance, WaiverTemplate, WaiverVersion
 from app.models.webhook import WebhookDelivery, WebhookSubscription
 
 __all__ = [
@@ -47,4 +48,7 @@ __all__ = [
     "WaitlistEntry",
     "WebhookSubscription",
     "WebhookDelivery",
+    "WaiverTemplate",
+    "WaiverVersion",
+    "WaiverAcceptance",
 ]
