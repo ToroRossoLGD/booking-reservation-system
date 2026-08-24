@@ -9,6 +9,7 @@ from app.models.password_reset_token import PasswordResetToken
 from app.models.payment import Payment
 from app.models.promotion import Promotion
 from app.models.reservation import Reservation
+from app.models.reservation_add_on import AddOn, ReservationAddOn
 from app.models.reservation_event import ReservationEvent
 from app.models.reservation_guest import ReservationGuestInvitation
 from app.models.reservation_transfer import ReservationTransfer
@@ -35,6 +36,8 @@ __all__ = [
     "SupportTicket",
     "SupportMessage",
     "Reservation",
+    "AddOn",
+    "ReservationAddOn",
     "ReservationEvent",
     "ReservationGuestInvitation",
     "ReservationTransfer",

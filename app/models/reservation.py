@@ -137,6 +137,8 @@ class Reservation(Base):
         Integer, nullable=True
     )
 
+    add_on_total_cents: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         nullable=False,
@@ -156,4 +158,10 @@ class Reservation(Base):
         back_populates="reservation",
         cascade="all, delete-orphan",
         order_by="ReservationEvent.occurred_at",
+    )
+    add_ons = relationship(
+        "ReservationAddOn",
+        back_populates="reservation",
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )
