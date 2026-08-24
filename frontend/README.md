@@ -1,4 +1,4 @@
-# Booklane frontend
+# Bookica frontend
 
 React, TypeScript, and Vite client for the booking reservation API.
 

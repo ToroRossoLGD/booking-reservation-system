@@ -8,7 +8,7 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem("booklane_token");
+  const token = localStorage.getItem("bookica_token");
   const headers = new Headers(options.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (options.body && !(options.body instanceof URLSearchParams)) headers.set("Content-Type", "application/json");
@@ -27,7 +27,7 @@ export const api = {
   login: async (email: string, password: string) => {
     const body = new URLSearchParams({ username: email, password });
     const result = await request<{ access_token: string }>("/auth/login", { method: "POST", body });
-    localStorage.setItem("booklane_token", result.access_token);
+    localStorage.setItem("bookica_token", result.access_token);
     return result;
   },
   register: (email: string, password: string) => request<User>("/auth/register", {
