@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routers.add_ons import router as add_ons_router
 from app.api.routers.admin import router as admin_router
@@ -34,6 +35,17 @@ from app.api.routers.webhooks import router as webhooks_router
 from app.core.config import settings
 
 app = FastAPI(title=settings.APP_NAME)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        origin.strip()
+        for origin in settings.FRONTEND_ORIGINS.split(",")
+        if origin.strip()
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")

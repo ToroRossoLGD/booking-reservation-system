@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     APP_NAME: str
+    FRONTEND_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
