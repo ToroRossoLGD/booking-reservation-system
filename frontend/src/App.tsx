@@ -39,6 +39,19 @@ function AuthModal({ onClose, onAuthenticated }: { onClose: () => void; onAuthen
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const socialProviders = [
+    { name: "Google", mark: "G", url: import.meta.env.VITE_GOOGLE_AUTH_URL },
+    { name: "LinkedIn", mark: "in", url: import.meta.env.VITE_LINKEDIN_AUTH_URL },
+    { name: "X", mark: "X", url: import.meta.env.VITE_X_AUTH_URL },
+    { name: "Facebook", mark: "f", url: import.meta.env.VITE_FACEBOOK_AUTH_URL },
+  ];
+  function socialLogin(provider: (typeof socialProviders)[number]) {
+    if (!provider.url) {
+      setError(`${provider.name} login is not configured yet.`);
+      return;
+    }
+    window.location.assign(provider.url);
+  }
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError("");
     try {
@@ -55,6 +68,10 @@ function AuthModal({ onClose, onAuthenticated }: { onClose: () => void; onAuthen
       <p className="eyebrow">Welcome to Bookica</p>
       <h2>{mode === "login" ? "Good to see you again." : "Your next space is waiting."}</h2>
       <p className="modal-copy">{mode === "login" ? "Sign in to manage reservations and saved places." : "Create an account to book in a few simple steps."}</p>
+      <div className="social-grid">
+        {socialProviders.map((provider) => <button type="button" className="social-button" key={provider.name} onClick={() => socialLogin(provider)} aria-label={`Continue with ${provider.name}`}><span className={`social-mark ${provider.name.toLowerCase()}`}>{provider.mark}</span><strong>{provider.name}</strong></button>)}
+      </div>
+      <div className="auth-divider"><span>or continue with email</span></div>
       <form onSubmit={submit} className="auth-form">
         <label>Email address<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required /></label>
         <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" minLength={8} required /></label>
@@ -116,7 +133,7 @@ export default function App() {
   const filtered = venues.filter((v) => `${v.name} ${v.address} ${v.description ?? ""}`.toLowerCase().includes(query.toLowerCase()));
   function scrollToExplore() { document.getElementById("explore")?.scrollIntoView({ behavior: "smooth" }); }
   return <div className="app-shell">
-    <header className="site-header"><a className="brand" href="#top" aria-label="Bookica home"><span className="brand-mark">B</span><span>Bookica</span></a><nav><a href="#explore">Explore</a><a href="#how">How it works</a><a href="#host">List your space</a></nav><div className="nav-actions">{user ? <button className="profile-pill"><span>{user.email[0].toUpperCase()}</span>{user.email.split("@")[0]}</button> : <><button className="button ghost" onClick={() => setAuthOpen(true)}>Sign in</button><button className="button dark" onClick={() => setAuthOpen(true)}>Get started</button></>}</div></header>
+    <header className="site-header"><a className="brand" href="#top" aria-label="Bookica home"><span className="brand-mark">B</span><span>Bookica</span></a><nav><a href="#explore">Explore</a><a href="#how">How it works</a><a href="#host">List your space</a></nav><div className="nav-actions">{user ? <button className="profile-pill"><span>{user.email[0].toUpperCase()}</span>{user.email.split("@")[0]}</button> : <button className="button dark" onClick={() => setAuthOpen(true)}>Log in</button>}</div></header>
     <main id="top">
       <section className="hero"><div className="hero-glow one"/><div className="hero-glow two"/><div className="hero-copy"><div className="availability-pill"><span/> Spaces available near you</div><h1>The right space.<br/><em>Right when you need it.</em></h1><p>Discover and reserve remarkable places for work, play, and everything in between—all in a few effortless clicks.</p><div className="hero-search"><Icon name="search" size={23}/><input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && scrollToExplore()} placeholder="Search spaces or locations" aria-label="Search venues"/><button onClick={scrollToExplore}>Find a space <Icon name="arrow"/></button></div><div className="trust-row"><span><Icon name="shield" size={17}/> Secure booking</span><span><Icon name="clock" size={17}/> Instant confirmation</span><span><Icon name="spark" size={17}/> Handpicked spaces</span></div></div>
         <div className="hero-art" aria-hidden="true"><div className="art-card main-art"><div className="art-window"><span/><span/><span/></div><div className="art-table"><i/><i/><i/></div><div className="sun-patch"/></div><div className="floating-card"><div className="float-icon"><Icon name="event"/></div><div><small>Next available</small><strong>Today, 2:30 PM</strong></div><span className="live-dot"/></div><div className="rating-chip"><strong>4.9</strong><span>★★★★★</span><small>top-rated spaces</small></div></div>
