@@ -19,6 +19,7 @@ from app.models.review_report import ReviewReport
 from app.models.support_ticket import SupportMessage, SupportTicket
 from app.models.user import User
 from app.models.venue import Venue
+from app.models.venue_customer_block import VenueCustomerBlock
 from app.models.venue_staff import VenueStaff
 from app.models.waitlist_entry import WaitlistEntry
 from app.models.waiver import WaiverAcceptance, WaiverTemplate, WaiverVersion
@@ -29,6 +30,7 @@ __all__ = [
     "APIKey",
     "Venue",
     "VenueStaff",
+    "VenueCustomerBlock",
     "Resource",
     "FavoriteResource",
     "ResourceReview",
