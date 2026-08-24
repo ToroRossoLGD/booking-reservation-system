@@ -9,11 +9,60 @@ from app.models.reservation import AttendanceStatus, Reservation, ReservationSta
 from app.models.resource import Resource
 from app.models.user import User
 from app.models.venue import Venue
+from app.repositories.add_on_repository import AddOnRepository
 
 
 class ReservationRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
+        self.add_on_repository = AddOnRepository(db)
+
+    async def _validate_and_price_add_ons(
+        self,
+        reservation: Reservation,
+        venue_id: int,
+        pending_reservations: list[Reservation] | None = None,
+        refresh_snapshot: bool = True,
+        allow_inactive: bool = False,
+    ) -> None:
+        total = 0
+        for item in sorted(reservation.add_ons, key=lambda value: value.add_on_id):
+            add_on = await self.add_on_repository.get_by_id(item.add_on_id, lock=True)
+            if (
+                add_on is None
+                or (not add_on.is_active and not allow_inactive)
+                or add_on.venue_id != venue_id
+            ):
+                await self.db.rollback()
+                raise AddOnUnavailable(item.add_on_id, "is unavailable for this venue")
+            reserved = await self.add_on_repository.reserved_quantity(
+                add_on.id,
+                reservation.start_time,
+                reservation.end_time,
+                exclude_reservation_id=reservation.id,
+            )
+            for pending in pending_reservations or []:
+                if (
+                    pending.start_time < reservation.end_time
+                    and pending.end_time > reservation.start_time
+                ):
+                    reserved += sum(
+                        pending_item.quantity
+                        for pending_item in pending.add_ons
+                        if pending_item.add_on_id == add_on.id
+                    )
+            if reserved + item.quantity > add_on.stock:
+                await self.db.rollback()
+                raise AddOnUnavailable(add_on.id, "does not have enough stock")
+            if refresh_snapshot:
+                item.name = add_on.name
+                item.unit_price_cents = add_on.price_cents
+            total += item.unit_price_cents * item.quantity
+        reservation.add_on_total_cents = total
+        reservation.quoted_amount_cents = (
+            max(0, reservation.base_amount_cents - reservation.discount_amount_cents)
+            + total
+        )
 
     @staticmethod
     def _active_status_filter(current_time: datetime):
@@ -119,6 +168,8 @@ class ReservationRepository:
             await self.db.rollback()
             return None
 
+        await self._validate_and_price_add_ons(reservation, resource.venue_id)
+
         if reservation.promotion_id is not None:
             promotion_result = await self.db.execute(
                 select(Promotion)
@@ -185,6 +236,11 @@ class ReservationRepository:
         if resource is None:
             await self.db.rollback()
             return None
+
+        for index, reservation in enumerate(reservations):
+            await self._validate_and_price_add_ons(
+                reservation, resource.venue_id, reservations[:index]
+            )
 
         promotion_id = reservations[0].promotion_id
         if promotion_id is not None:
@@ -276,6 +332,13 @@ class ReservationRepository:
 
         reservation.start_time = start_time
         reservation.end_time = end_time
+
+        await self._validate_and_price_add_ons(
+            reservation,
+            resource.venue_id,
+            refresh_snapshot=False,
+            allow_inactive=True,
+        )
 
         await self.db.commit()
         await self.db.refresh(reservation)
@@ -537,6 +600,13 @@ class ReservationRepository:
 
 class PromotionRedemptionUnavailable(Exception):
     pass
+
+
+class AddOnUnavailable(Exception):
+    def __init__(self, add_on_id: int, reason: str):
+        self.add_on_id = add_on_id
+        self.reason = reason
+        super().__init__(f"Add-on {add_on_id} {reason}")
 
 
 class IdempotencyKeyConflict(Exception):

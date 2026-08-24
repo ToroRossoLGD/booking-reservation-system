@@ -16,8 +16,10 @@ from app.core.config import settings
 from app.core.security import create_check_in_token, decode_check_in_token
 from app.models.payment import PaymentStatus
 from app.models.reservation import AttendanceStatus, Reservation, ReservationStatus
+from app.models.reservation_add_on import ReservationAddOn
 from app.models.reservation_event import ReservationEvent, ReservationEventType
 from app.models.user import User
+from app.repositories.add_on_repository import AddOnRepository
 from app.repositories.availability_exception_repository import (
     AvailabilityExceptionRepository,
 )
@@ -28,6 +30,7 @@ from app.repositories.payment_repository import PaymentRepository
 from app.repositories.promotion_repository import PromotionRepository
 from app.repositories.reservation_event_repository import ReservationEventRepository
 from app.repositories.reservation_repository import (
+    AddOnUnavailable,
     IdempotencyKeyConflict,
     PromotionRedemptionUnavailable,
     ReservationRepository,
@@ -59,6 +62,7 @@ class ReservationService:
         self.payment_repository = PaymentRepository(db)
         self.promotion_repository = PromotionRepository(db)
         self.waitlist_service = WaitlistService(db)
+        self.add_on_repository = AddOnRepository(db)
         self.db = db
 
     async def _record_event(
@@ -222,6 +226,9 @@ class ReservationService:
             "end_time": data.end_time.isoformat(),
             "promotion_code": data.promotion_code,
         }
+        # Preserve hashes generated before add-ons for bookings without extras.
+        if data.add_ons:
+            payload["add_ons"] = [item.model_dump() for item in data.add_ons]
         # Preserve hashes created before group bookings for the default party size.
         if data.party_size != 1:
             payload["party_size"] = data.party_size
@@ -264,6 +271,38 @@ class ReservationService:
                 promotion.discount_percent if promotion is not None else None
             ),
         }
+
+    async def _resolve_add_ons(
+        self, selections, venue_id: int, start_time: datetime, end_time: datetime
+    ) -> tuple[list[ReservationAddOn], int]:
+        items: list[ReservationAddOn] = []
+        total = 0
+        for selection in selections:
+            add_on = await self.add_on_repository.get_by_id(selection.add_on_id)
+            if add_on is None or not add_on.is_active or add_on.venue_id != venue_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Add-on {selection.add_on_id} is unavailable for this venue"
+                    ),
+                )
+            reserved = await self.add_on_repository.reserved_quantity(
+                add_on.id, start_time, end_time
+            )
+            if reserved + selection.quantity > add_on.stock:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Add-on {add_on.id} does not have enough stock",
+                )
+            item = ReservationAddOn(
+                add_on_id=add_on.id,
+                name=add_on.name,
+                unit_price_cents=add_on.price_cents,
+                quantity=selection.quantity,
+            )
+            items.append(item)
+            total += add_on.price_cents * selection.quantity
+        return items, total
 
     async def _has_availability_exception(
         self,
@@ -390,6 +429,11 @@ class ReservationService:
         price_details = self._price_details(
             resource, data.start_time, data.end_time, promotion
         )
+        add_on_items, add_on_total = await self._resolve_add_ons(
+            data.add_ons, resource.venue_id, data.start_time, data.end_time
+        )
+        price_details["add_on_total_cents"] = add_on_total
+        price_details["quoted_amount_cents"] += add_on_total
         reservation = Reservation(
             start_time=data.start_time,
             end_time=data.end_time,
@@ -406,6 +450,7 @@ class ReservationService:
             cancellation_late_refund_percent=late_refund_percent,
             **price_details,
         )
+        reservation.add_ons = add_on_items
 
         try:
             created_reservation = (
@@ -419,6 +464,8 @@ class ReservationService:
                 status_code=409,
                 detail="Promotion became unavailable",
             ) from error
+        except AddOnUnavailable as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
         except IdempotencyKeyConflict as error:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -443,6 +490,15 @@ class ReservationService:
                 "end_time": created_reservation.end_time.isoformat(),
                 "resource_id": created_reservation.resource_id,
                 "party_size": created_reservation.party_size,
+                "add_on_total_cents": created_reservation.add_on_total_cents,
+                "add_ons": [
+                    {
+                        "add_on_id": item.add_on_id,
+                        "quantity": item.quantity,
+                        "unit_price_cents": item.unit_price_cents,
+                    }
+                    for item in created_reservation.add_ons
+                ],
             },
         )
 
@@ -550,8 +606,17 @@ class ReservationService:
                 )
 
         series_id = str(uuid4())
-        reservations = [
-            Reservation(
+        reservations = []
+        for start_time, end_time in occurrences:
+            add_on_items, add_on_total = await self._resolve_add_ons(
+                data.add_ons, resource.venue_id, start_time, end_time
+            )
+            price_details = self._price_details(
+                resource, start_time, end_time, promotion
+            )
+            price_details["add_on_total_cents"] = add_on_total
+            price_details["quoted_amount_cents"] += add_on_total
+            reservation = Reservation(
                 start_time=start_time,
                 end_time=end_time,
                 user_id=current_user.id,
@@ -562,10 +627,10 @@ class ReservationService:
                 recurrence_series_id=series_id,
                 cancellation_free_hours=free_cancellation_hours,
                 cancellation_late_refund_percent=late_refund_percent,
-                **self._price_details(resource, start_time, end_time, promotion),
+                **price_details,
             )
-            for start_time, end_time in occurrences
-        ]
+            reservation.add_ons = add_on_items
+            reservations.append(reservation)
         try:
             created_reservations = (
                 await self.reservation_repository.create_series_with_conflict_lock(
@@ -577,6 +642,8 @@ class ReservationService:
                 status_code=409,
                 detail="Promotion became unavailable",
             ) from error
+        except AddOnUnavailable as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
 
         if created_reservations is None:
             raise HTTPException(
@@ -996,7 +1063,7 @@ class ReservationService:
         reservation.quoted_amount_cents = max(
             0,
             reservation.base_amount_cents - reservation.discount_amount_cents,
-        )
+        ) + (reservation.add_on_total_cents or 0)
         reservation.quoted_currency = resource.currency
 
         updated_reservation = (
@@ -1302,6 +1369,7 @@ class ReservationService:
         start_time: datetime,
         end_time: datetime,
         promotion_code: str | None = None,
+        add_ons=None,
     ) -> dict:
         if start_time.tzinfo is None or end_time.tzinfo is None:
             raise HTTPException(
@@ -1324,6 +1392,10 @@ class ReservationService:
 
         promotion = await self._resolve_promotion(promotion_code, resource.venue_id)
         details = self._price_details(resource, start_time, end_time, promotion)
+        add_on_items, add_on_total = await self._resolve_add_ons(
+            add_ons or [], resource.venue_id, start_time, end_time
+        )
+        details["quoted_amount_cents"] += add_on_total
 
         duration_minutes = int((end_time - start_time).total_seconds() / 60)
         return {
@@ -1336,6 +1408,8 @@ class ReservationService:
             "currency": resource.currency,
             "base_amount_cents": details["base_amount_cents"],
             "discount_amount_cents": details["discount_amount_cents"],
+            "add_on_total_cents": add_on_total,
+            "add_ons": add_on_items,
             "promotion_code": details["promotion_code"],
             "promotion_discount_percent": details["promotion_discount_percent"],
         }

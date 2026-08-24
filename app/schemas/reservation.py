@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.schemas.add_on import AddOnSelection, ReservationAddOnRead
 from app.schemas.payment import PaymentRead
 
 
@@ -12,6 +13,14 @@ class ReservationCreate(BaseModel):
     end_time: datetime
     promotion_code: str | None = Field(default=None, min_length=3, max_length=50)
     party_size: int = Field(default=1, ge=1, le=10_000)
+    add_ons: list[AddOnSelection] = Field(default_factory=list, max_length=50)
+
+    @model_validator(mode="after")
+    def validate_unique_add_ons(self):
+        ids = [item.add_on_id for item in self.add_ons]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Each add-on may be selected only once")
+        return self
 
 
 class ReservationReschedule(BaseModel):
@@ -38,6 +47,8 @@ class ReservationRead(BaseModel):
     quoted_currency: str
     base_amount_cents: int
     discount_amount_cents: int
+    add_on_total_cents: int = 0
+    add_ons: list[ReservationAddOnRead] = Field(default_factory=list)
     promotion_code: str | None = None
     promotion_discount_percent: int | None = None
     attendance_status: str
@@ -119,6 +130,8 @@ class ReservationQuoteRead(BaseModel):
     currency: str
     base_amount_cents: int
     discount_amount_cents: int
+    add_on_total_cents: int = 0
+    add_ons: list[ReservationAddOnRead] = Field(default_factory=list)
     promotion_code: str | None = None
     promotion_discount_percent: int | None = None
 

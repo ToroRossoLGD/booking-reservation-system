@@ -74,6 +74,20 @@ async def get_price_quote(
     )
 
 
+@router.post("/quote", response_model=ReservationQuoteRead)
+async def get_price_quote_with_add_ons(
+    data: ReservationCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    return await ReservationService(db).get_price_quote(
+        resource_id=data.resource_id,
+        start_time=data.start_time,
+        end_time=data.end_time,
+        promotion_code=data.promotion_code,
+        add_ons=data.add_ons,
+    )
+
+
 @router.post("", response_model=ReservationRead, status_code=201)
 async def create_reservation(
     data: ReservationCreate,
