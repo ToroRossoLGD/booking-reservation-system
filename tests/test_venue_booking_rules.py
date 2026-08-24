@@ -115,6 +115,7 @@ async def test_booking_rule_time_boundaries_are_enforced(
 async def test_recurring_series_counts_every_occurrence_against_active_limit():
     service = ReservationService(AsyncMock())
     service.reservation_repository.lock_user_for_booking_rules = AsyncMock()
+    service.venue_customer_block_repository.get_effective = AsyncMock(return_value=None)
     service.venue_repository.get_by_id = AsyncMock(
         return_value=configured_venue(max_active_reservations_per_customer=5)
     )
@@ -146,6 +147,7 @@ async def test_recurring_series_counts_every_occurrence_against_active_limit():
 async def test_valid_booking_rules_check_active_count_for_user_and_venue():
     service = ReservationService(AsyncMock())
     service.reservation_repository.lock_user_for_booking_rules = AsyncMock()
+    service.venue_customer_block_repository.get_effective = AsyncMock(return_value=None)
     service.venue_repository.get_by_id = AsyncMock(return_value=configured_venue())
     service.reservation_repository.count_active_for_user_at_venue = AsyncMock(
         return_value=1

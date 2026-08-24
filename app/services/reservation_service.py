@@ -36,6 +36,9 @@ from app.repositories.reservation_repository import (
     ReservationRepository,
 )
 from app.repositories.resource_repository import ResourceRepository
+from app.repositories.venue_customer_block_repository import (
+    VenueCustomerBlockRepository,
+)
 from app.repositories.venue_repository import VenueRepository
 from app.repositories.venue_staff_repository import VenueStaffRepository
 from app.schemas.reservation import (
@@ -55,6 +58,7 @@ class ReservationService:
         self.reservation_event_repository = ReservationEventRepository(db)
         self.resource_repository = ResourceRepository(db)
         self.venue_repository = VenueRepository(db)
+        self.venue_customer_block_repository = VenueCustomerBlockRepository(db)
         self.venue_staff_repository = VenueStaffRepository(db)
         self.notification_service = NotificationService(db)
         self.availability_rule_repository = AvailabilityRuleRepository(db)
@@ -195,6 +199,18 @@ class ReservationService:
                 )
 
         await self.reservation_repository.lock_user_for_booking_rules(current_user.id)
+        active_block = await self.venue_customer_block_repository.get_effective(
+            venue_id, current_user.id
+        )
+        if active_block is not None:
+            await self.db.rollback()
+            detail = "Booking is not allowed at this venue"
+            if active_block.blocked_until is not None:
+                detail += f" until {active_block.blocked_until.isoformat()}"
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=detail,
+            )
         active_count = await self.reservation_repository.count_active_for_user_at_venue(
             user_id=current_user.id,
             venue_id=venue_id,
