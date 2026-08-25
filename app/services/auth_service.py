@@ -63,9 +63,11 @@ class AuthService:
         state = secrets.token_urlsafe(32)
         nonce = secrets.token_urlsafe(32)
         verifier = secrets.token_urlsafe(64)
-        challenge = base64.urlsafe_b64encode(
-            hashlib.sha256(verifier.encode()).digest()
-        ).rstrip(b"=").decode()
+        challenge = (
+            base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest())
+            .rstrip(b"=")
+            .decode()
+        )
         state_token = jwt.encode(
             {
                 "type": "google_oauth_state",
@@ -168,9 +170,12 @@ class AuthService:
             "https://accounts.google.com",
         }:
             raise HTTPException(status_code=400, detail="Invalid Google identity")
-        if not hmac.compare_digest(
-            str(claims.get("nonce", "")), str(state_payload["nonce"])
-        ) or claims.get("email_verified") is not True:
+        if (
+            not hmac.compare_digest(
+                str(claims.get("nonce", "")), str(state_payload["nonce"])
+            )
+            or claims.get("email_verified") is not True
+        ):
             raise HTTPException(
                 status_code=400, detail="Google identity is not verified"
             )
