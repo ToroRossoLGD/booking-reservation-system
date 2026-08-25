@@ -1,5 +1,5 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
-import { api } from "./api";
+import { api, googleLoginUrl } from "./api";
 import type { PopularVenue, Promotion, Quote, Resource, User, Venue } from "./types";
 
 const categories = [
@@ -64,14 +64,24 @@ async function getPopularVenues(venues: Venue[]): Promise<PopularVenue[]> {
   return enriched.sort((a, b) => (b.average_rating ?? 0) - (a.average_rating ?? 0) || b.review_count - a.review_count).slice(0, 3);
 }
 
-function AuthModal({ initialMode, onClose, onAuthenticated }: { initialMode: "login" | "register"; onClose: () => void; onAuthenticated: (user: User) => void }) {
+function consumeOAuthRedirect() {
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const token = params.get("auth_token"); const error = params.get("auth_error") ?? "";
+  if (token || error) window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+  if (token) localStorage.setItem("bookica_token", token);
+  return { error };
+}
+
+const oauthRedirect = consumeOAuthRedirect();
+
+function AuthModal({ initialMode, initialError = "", onClose, onAuthenticated }: { initialMode: "login" | "register"; initialError?: string; onClose: () => void; onAuthenticated: (user: User) => void }) {
   const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
   const [busy, setBusy] = useState(false);
   const socialProviders = [
-    { name: "Google", mark: "G", url: import.meta.env.VITE_GOOGLE_AUTH_URL },
+    { name: "Google", mark: "G", url: googleLoginUrl },
     { name: "LinkedIn", mark: "in", url: import.meta.env.VITE_LINKEDIN_AUTH_URL },
     { name: "X", mark: "X", url: import.meta.env.VITE_X_AUTH_URL },
     { name: "Facebook", mark: "f", url: import.meta.env.VITE_FACEBOOK_AUTH_URL },
@@ -161,7 +171,7 @@ function BookingModal({ resource, user, onClose, requestLogin }: { resource: Res
 export default function App() {
   const [venues, setVenues] = useState<Venue[]>([]); const [resources, setResources] = useState<Resource[]>([]);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null); const [booking, setBooking] = useState<Resource | null>(null);
-  const [user, setUser] = useState<User | null>(null); const [authMode, setAuthMode] = useState<"login" | "register" | null>(null);
+  const [user, setUser] = useState<User | null>(null); const [authMode, setAuthMode] = useState<"login" | "register" | null>(oauthRedirect.error ? "login" : null); const [authError, setAuthError] = useState(oauthRedirect.error);
   const [popularVenues, setPopularVenues] = useState<PopularVenue[]>([]); const [popularLoading, setPopularLoading] = useState(true);
   const [promotions, setPromotions] = useState<Promotion[]>([]); const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [query, setQuery] = useState(""); const [loading, setLoading] = useState(true); const [apiOffline, setApiOffline] = useState(false);
@@ -191,7 +201,7 @@ export default function App() {
     </main>
     <footer><a className="brand footer-brand" href="#top"><span className="brand-mark">B</span><span>Bookica</span></a><p>Make room for what matters.</p><div><a href="#explore">Explore</a><a href="#how">How it works</a><a href="#host">For owners</a></div><small>© {new Date().getFullYear()} Bookica</small></footer>
     {selectedVenue && <div className="drawer-backdrop" onMouseDown={(e)=>e.target===e.currentTarget&&setSelectedVenue(null)}><aside className="venue-drawer"><button className="icon-button drawer-close" onClick={()=>setSelectedVenue(null)}><Icon name="close"/></button><div className="drawer-hero"><span>{selectedVenue.name.slice(0,2).toUpperCase()}</span></div><p className="eyebrow">Venue details</p><h2>{selectedVenue.name}</h2><p className="location-line"><Icon name="pin" size={17}/>{selectedVenue.address}</p><p className="drawer-copy">{selectedVenue.description || "A flexible, reservable venue for your next plan."}</p><div className="policy-row"><span><Icon name="clock"/><small>Minimum booking</small><strong>{selectedVenue.minimum_booking_duration_minutes} minutes</strong></span><span><Icon name="shield"/><small>Free cancellation</small><strong>Up to {selectedVenue.free_cancellation_hours}h before</strong></span></div><div className="resource-heading"><h3>Choose a space</h3><span>{resources.length} available</span></div><div className="resource-list">{resources.length ? resources.map((resource)=><button className="resource-row" key={resource.id} onClick={()=>setBooking(resource)}><span className="resource-icon"><Icon name={resource.resource_type.toLowerCase().includes("court")?"sport":"work"}/></span><span><strong>{resource.name}</strong><small>{resource.resource_type} · up to {resource.capacity} guests</small></span><span className="resource-price"><strong>{formatMoney(resource.hourly_rate_cents,resource.currency)}</strong><small>/ hour</small></span><Icon name="chevron" size={17}/></button>) : <p className="drawer-empty">No resources have been added to this venue yet.</p>}</div></aside></div>}
-    {authMode && <AuthModal initialMode={authMode} onClose={()=>setAuthMode(null)} onAuthenticated={setUser}/>}
+    {authMode && <AuthModal initialMode={authMode} initialError={authError} onClose={()=>{setAuthMode(null);setAuthError("");}} onAuthenticated={setUser}/>}
     {booking && <BookingModal resource={booking} user={user} onClose={()=>setBooking(null)} requestLogin={()=>setAuthMode("login")}/>}
   </div>;
 }

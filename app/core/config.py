@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     PASSWORD_RESET_EXPIRE_MINUTES: int = 30
     MAX_ACTIVE_API_KEYS: int = 10
 
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/google/callback"
+    FRONTEND_URL: str = "http://localhost:5173"
+    OAUTH_COOKIE_SECURE: bool = False
+
     REDIS_HOST: str
     REDIS_PORT: int
     REDIS_DB: int = 0

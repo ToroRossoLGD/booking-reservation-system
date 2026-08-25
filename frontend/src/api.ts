@@ -2,6 +2,8 @@ import type { AvailableSlot, Promotion, Quote, RatingSummary, Resource, User, Ve
 
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 
+export const googleLoginUrl = `${API_URL}/auth/google/login`;
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) { super(message); this.status = status; }

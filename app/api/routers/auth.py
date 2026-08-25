@@ -1,7 +1,11 @@
-from fastapi import APIRouter, BackgroundTasks, Depends
+from urllib.parse import quote
+
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, HTTPException, Query
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.dependencies import get_current_user, require_roles
 from app.db.session import get_db
 from app.models.user import User
@@ -20,6 +24,48 @@ router = APIRouter(
     prefix="/auth",
     tags=["Auth"],
 )
+
+
+@router.get("/google/login")
+async def google_login():
+    authorization_url, state_token = AuthService.create_google_authorization()
+    response = RedirectResponse(authorization_url, status_code=302)
+    response.set_cookie(
+        "google_oauth_state",
+        state_token,
+        max_age=600,
+        httponly=True,
+        secure=settings.OAUTH_COOKIE_SECURE,
+        samesite="lax",
+        path="/auth/google",
+    )
+    return response
+
+
+@router.get("/google/callback")
+async def google_callback(
+    code: str | None = Query(default=None),
+    state: str | None = Query(default=None),
+    error: str | None = Query(default=None),
+    google_oauth_state: str | None = Cookie(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    if error or not code or not state or not google_oauth_state:
+        message = "Google login was cancelled" if error else "Google login expired"
+        return RedirectResponse(f"{settings.FRONTEND_URL}/#auth_error={quote(message)}")
+    try:
+        access_token = await AuthService(db).login_with_google(
+            code, state, google_oauth_state
+        )
+        response = RedirectResponse(
+            f"{settings.FRONTEND_URL}/#auth_token={quote(access_token)}"
+        )
+    except HTTPException as auth_error:
+        response = RedirectResponse(
+            f"{settings.FRONTEND_URL}/#auth_error={quote(str(auth_error.detail))}"
+        )
+    response.delete_cookie("google_oauth_state", path="/auth/google")
+    return response
 
 
 @router.post("/register", response_model=UserRead, status_code=201)

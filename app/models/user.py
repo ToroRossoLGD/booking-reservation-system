@@ -29,6 +29,10 @@ class User(Base):
         nullable=False,
     )
 
+    google_sub: Mapped[str | None] = mapped_column(
+        String(255), unique=True, nullable=True, index=True
+    )
+
     role: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
