@@ -1,4 +1,6 @@
-from sqlalchemy import select
+from datetime import UTC, datetime
+
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.promotion import Promotion
@@ -31,6 +33,23 @@ class PromotionRepository:
             select(Promotion)
             .where(Promotion.venue_id == venue_id)
             .order_by(Promotion.created_at.desc())
+        )
+        return list(result.scalars().all())
+
+    async def list_active(self) -> list[Promotion]:
+        now = datetime.now(UTC)
+        result = await self.db.execute(
+            select(Promotion)
+            .where(
+                Promotion.is_active.is_(True),
+                Promotion.valid_from <= now,
+                Promotion.valid_until > now,
+                or_(
+                    Promotion.max_redemptions.is_(None),
+                    Promotion.redemption_count < Promotion.max_redemptions,
+                ),
+            )
+            .order_by(Promotion.discount_percent.desc(), Promotion.valid_until)
         )
         return list(result.scalars().all())
 

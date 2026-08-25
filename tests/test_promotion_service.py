@@ -57,6 +57,18 @@ async def test_owner_cannot_manage_another_owners_promotions():
 
 
 @pytest.mark.asyncio
+async def test_active_promotions_are_publicly_listed():
+    service = PromotionService(AsyncMock())
+    expected = [MagicMock(code="SUMMER_25")]
+    service.promotion_repository.list_active = AsyncMock(return_value=expected)
+
+    result = await service.list_active_promotions()
+
+    assert result == expected
+    service.promotion_repository.list_active.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
 async def test_promotion_rejects_invalid_validity_window():
     service = PromotionService(AsyncMock())
     service.venue_repository.get_by_id = AsyncMock(
