@@ -10,6 +10,13 @@ from app.services.promotion_service import PromotionService
 router = APIRouter(tags=["Promotions"])
 
 
+@router.get("/promotions/active", response_model=list[PromotionRead])
+async def list_active_promotions(
+    db: AsyncSession = Depends(get_db),
+):
+    return await PromotionService(db).list_active_promotions()
+
+
 @router.post(
     "/venues/{venue_id}/promotions",
     response_model=PromotionRead,

@@ -1,6 +1,6 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { api } from "./api";
-import type { PopularVenue, Quote, Resource, User, Venue } from "./types";
+import type { PopularVenue, Promotion, Quote, Resource, User, Venue } from "./types";
 
 const categories = [
   { icon: "work", label: "Workspaces", copy: "Desks, studios & meeting rooms" },
@@ -122,17 +122,18 @@ function BookingModal({ resource, user, onClose, requestLogin }: { resource: Res
   const [tomorrow] = useState(() => new Date(Date.now() + 86400000).toISOString().slice(0, 10));
   const [date, setDate] = useState(tomorrow); const [start, setStart] = useState("10:00");
   const [duration, setDuration] = useState(60); const [party, setParty] = useState(1);
+  const [coupon, setCoupon] = useState("");
   const [quote, setQuote] = useState<Quote | null>(null); const [error, setError] = useState("");
   const [busy, setBusy] = useState(false); const [complete, setComplete] = useState(false);
   const times = useMemo(() => {
     const startTime = new Date(`${date}T${start}:00`); const endTime = new Date(startTime.getTime() + duration * 60000);
     return [startTime.toISOString(), endTime.toISOString()] as const;
   }, [date, start, duration]);
-  useEffect(() => { let active = true; const timer = setTimeout(() => { setQuote(null); setError(""); api.quote(resource.id, times[0], times[1], party).then((q) => active && setQuote(q)).catch((e) => active && setError(e.message)); }, 300); return () => { active = false; clearTimeout(timer); }; }, [resource.id, times, party]);
+  useEffect(() => { let active = true; const timer = setTimeout(() => { setQuote(null); setError(""); api.quote(resource.id, times[0], times[1], party, coupon.trim()).then((q) => active && setQuote(q)).catch((e) => active && setError(e.message)); }, 300); return () => { active = false; clearTimeout(timer); }; }, [resource.id, times, party, coupon]);
   async function reserve() {
     if (!user) { onClose(); requestLogin(); return; }
     setBusy(true); setError("");
-    try { await api.reserve(resource.id, times[0], times[1], party); setComplete(true); }
+    try { await api.reserve(resource.id, times[0], times[1], party, coupon.trim()); setComplete(true); }
     catch (err) { setError(err instanceof Error ? err.message : "Booking failed"); }
     finally { setBusy(false); }
   }
@@ -146,6 +147,7 @@ function BookingModal({ resource, user, onClose, requestLogin }: { resource: Res
           <label>Start time<input type="time" value={start} onChange={(e) => setStart(e.target.value)} /></label>
           <label>Duration<select value={duration} onChange={(e) => setDuration(Number(e.target.value))}><option value="60">1 hour</option><option value="90">1.5 hours</option><option value="120">2 hours</option><option value="180">3 hours</option></select></label>
           <label>Guests<input type="number" min="1" max={resource.capacity} value={party} onChange={(e) => setParty(Number(e.target.value))} /></label>
+          <label className="coupon-field">Coupon code <span>Optional</span><input value={coupon} onChange={(e) => setCoupon(e.target.value.toUpperCase())} placeholder="Enter coupon" /></label>
         </div>
         <div className="quote-box"><span>{quote ? `${quote.duration_minutes} minutes · total` : "Checking price…"}</span><strong>{quote ? formatMoney(quote.amount_cents, quote.currency) : "—"}</strong></div>
         {error && <p className="form-error">{error}</p>}
@@ -161,12 +163,15 @@ export default function App() {
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null); const [booking, setBooking] = useState<Resource | null>(null);
   const [user, setUser] = useState<User | null>(null); const [authMode, setAuthMode] = useState<"login" | "register" | null>(null);
   const [popularVenues, setPopularVenues] = useState<PopularVenue[]>([]); const [popularLoading, setPopularLoading] = useState(true);
+  const [promotions, setPromotions] = useState<Promotion[]>([]); const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [query, setQuery] = useState(""); const [loading, setLoading] = useState(true); const [apiOffline, setApiOffline] = useState(false);
   useEffect(() => { api.venues().then(setVenues).catch(() => setApiOffline(true)).finally(() => setLoading(false)); api.me().then(setUser).catch(() => localStorage.removeItem("bookica_token")); }, []);
+  useEffect(() => { api.activePromotions().then(setPromotions).catch(() => setPromotions([])); }, []);
   useEffect(() => { if (!venues.length) return; let active = true; getPopularVenues(venues).then((items) => active && setPopularVenues(items)).finally(() => active && setPopularLoading(false)); return () => { active = false; }; }, [venues]);
   useEffect(() => { if (selectedVenue) api.resources(selectedVenue.id).then(setResources).catch(() => setResources([])); }, [selectedVenue]);
   const filtered = venues.filter((v) => `${v.name} ${v.address} ${v.description ?? ""}`.toLowerCase().includes(query.toLowerCase()));
   function scrollToExplore() { document.getElementById("explore")?.scrollIntoView({ behavior: "smooth" }); }
+  async function copyCoupon(code: string) { await navigator.clipboard.writeText(code); setCopiedCode(code); window.setTimeout(() => setCopiedCode((current) => current === code ? null : current), 1800); }
   return <div className="app-shell">
     <header className="site-header"><a className="brand" href="#top" aria-label="Bookica home"><span className="brand-mark">B</span><span>Bookica</span></a><nav><a href="#explore">Explore</a><a href="#how">How it works</a><a href="#host">List your space</a></nav><div className="nav-actions">{user ? <button className="profile-pill"><span>{user.email[0].toUpperCase()}</span>{user.email.split("@")[0]}</button> : <><button className="button ghost" onClick={() => setAuthMode("login")}>Log in</button><button className="button dark" onClick={() => setAuthMode("register")}>Sign up</button></>}</div></header>
     <main id="top">
@@ -176,6 +181,7 @@ export default function App() {
       <section className="popular-section" aria-labelledby="popular-title"><div className="section-heading"><div><p className="eyebrow">Popular now</p><h2 id="popular-title">Guest favorites, ready when you are.</h2></div><p>Ranked by verified ratings and review activity.</p></div>
         {popularLoading && venues.length > 0 ? <div className="popular-grid">{[1,2,3].map((item) => <div className="popular-skeleton" key={item}/>)}</div> : popularVenues.length > 0 && <div className="popular-grid">{popularVenues.map((venue, index) => <button className="popular-card" key={venue.id} onClick={() => setSelectedVenue(venue)}><span className={`popular-visual visual-${index%3}`}><span className="popular-rank">#{index + 1} popular</span><strong>{venue.name.slice(0,2).toUpperCase()}</strong></span><span className="popular-content"><span className="popular-title"><span><strong>{venue.name}</strong><small><Icon name="pin" size={14}/>{venue.address}</small></span><span className="popular-rating"><strong>{venue.average_rating?.toFixed(1) ?? "New"}</strong><small>{venue.review_count ? `★ ${venue.review_count} review${venue.review_count === 1 ? "" : "s"}` : "No reviews yet"}</small></span></span><span className="popular-availability"><Icon name="clock" size={17}/><span><small>First availability</small><strong>{formatAvailability(venue.first_available_at)}</strong></span><Icon name="arrow" size={18}/></span></span></button>)}</div>}
       </section>
+      {promotions.length > 0 && <section className="offers-section" aria-labelledby="offers-title"><div className="offers-heading"><div><p className="eyebrow light">Limited-time offers</p><h2 id="offers-title">A little more room in your budget.</h2><p>Copy a coupon and enter it when you reserve the matching venue.</p></div><span className="offer-mark">%</span></div><div className="offers-grid">{promotions.slice(0,3).map((promotion) => { const venue = venues.find((item) => item.id === promotion.venue_id); return <article className="offer-card" key={promotion.id}><div className="offer-value"><strong>{promotion.discount_percent}%</strong><span>off</span></div><div className="offer-copy"><small>{venue?.name ?? "Selected venue"}</small><strong>Save on your next reservation</strong><span>Valid until {new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(promotion.valid_until))}</span></div><button className="coupon-button" onClick={() => copyCoupon(promotion.code)} aria-label={`Copy coupon ${promotion.code}`}><span>{promotion.code}</span><strong>{copiedCode === promotion.code ? "Copied!" : "Copy code"}</strong></button>{venue && <button className="offer-arrow" onClick={() => setSelectedVenue(venue)} aria-label={`View ${venue.name}`}><Icon name="arrow" size={18}/></button>}</article>; })}</div></section>}
       <section className="category-section"><div className="section-heading compact"><p className="eyebrow">Find your fit</p><h2>What are you making space for?</h2></div><div className="category-grid">{categories.map((c) => <button className="category-card" key={c.label} onClick={() => { setQuery(c.label.slice(0, -1)); scrollToExplore(); }}><span className="category-icon"><Icon name={c.icon} size={25}/></span><span><strong>{c.label}</strong><small>{c.copy}</small></span><Icon name="chevron" size={18}/></button>)}</div></section>
       <section className="explore-section" id="explore"><div className="section-heading"><div><p className="eyebrow">Explore nearby</p><h2>Spaces worth showing up for</h2></div><p>Flexible, trusted, and ready when you are.</p></div>
         {loading ? <div className="loading-grid">{[1,2,3].map((i)=><div className="venue-skeleton" key={i}/>)}</div> : apiOffline ? <div className="empty-state"><span><Icon name="spark" size={28}/></span><h3>We’re getting the spaces ready.</h3><p>Start the backend to load live venues. The frontend is connected and waiting.</p></div> : filtered.length === 0 ? <div className="empty-state"><span><Icon name="search" size={28}/></span><h3>{venues.length ? "No spaces match that search." : "The first spaces are coming soon."}</h3><p>{venues.length ? "Try a location, venue name, or a broader category." : "Create a venue in the API and it will appear here automatically."}</p>{query && <button className="text-button" onClick={()=>setQuery("")}>Clear search</button>}</div> : <div className="venue-grid">{filtered.slice(0,6).map((venue,index)=><article className="venue-card" key={venue.id} onClick={()=>setSelectedVenue(venue)}><div className={`venue-visual visual-${index%3}`}><span className="venue-type">Bookable venue</span><span className="visual-monogram">{venue.name.slice(0,2).toUpperCase()}</span></div><div className="venue-body"><div><h3>{venue.name}</h3><p><Icon name="pin" size={15}/>{venue.address}</p></div><span className="card-arrow"><Icon name="arrow"/></span><p className="venue-description">{venue.description || "A flexible space ready for your next plan."}</p><div className="venue-meta"><span><Icon name="clock" size={16}/> From {venue.minimum_booking_duration_minutes} min</span><span>Free cancellation · {venue.free_cancellation_hours}h</span></div></div></article>)}</div>}

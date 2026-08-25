@@ -67,6 +67,9 @@ class PromotionService:
         await self._ensure_venue_access(venue_id, current_user)
         return await self.promotion_repository.list_for_venue(venue_id)
 
+    async def list_active_promotions(self) -> list[Promotion]:
+        return await self.promotion_repository.list_active()
+
     async def deactivate_promotion(
         self, promotion_id: int, current_user: User
     ) -> Promotion:

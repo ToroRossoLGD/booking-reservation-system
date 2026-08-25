@@ -24,3 +24,9 @@ export type AvailableSlot = {
 export type PopularVenue = Venue & {
   average_rating: number | null; review_count: number; first_available_at: string | null;
 };
+
+export type Promotion = {
+  id: number; code: string; venue_id: number; discount_percent: number;
+  valid_from: string; valid_until: string; max_redemptions: number | null;
+  redemption_count: number; is_active: boolean; created_at: string;
+};

@@ -1,4 +1,4 @@
-import type { AvailableSlot, Quote, RatingSummary, Resource, User, Venue } from "./types";
+import type { AvailableSlot, Promotion, Quote, RatingSummary, Resource, User, Venue } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 
@@ -26,6 +26,7 @@ export const api = {
   resources: (venueId: number) => request<Resource[]>(`/venues/${venueId}/resources`),
   ratingSummary: (resourceId: number) => request<RatingSummary>(`/resources/${resourceId}/rating-summary`),
   availableSlots: (resourceId: number, date: string) => request<AvailableSlot[]>(`/resources/${resourceId}/available-slots?date=${encodeURIComponent(date)}&slot_minutes=60`),
+  activePromotions: () => request<Promotion[]>("/promotions/active"),
   login: async (email: string, password: string) => {
     const body = new URLSearchParams({ username: email, password });
     const result = await request<{ access_token: string }>("/auth/login", { method: "POST", body });
@@ -36,11 +37,11 @@ export const api = {
     method: "POST", body: JSON.stringify({ email, password, role: "customer" }),
   }),
   me: () => request<User>("/auth/me"),
-  quote: (resourceId: number, startTime: string, endTime: string, partySize: number) => request<Quote>("/reservations/quote", {
-    method: "POST", body: JSON.stringify({ resource_id: resourceId, start_time: startTime, end_time: endTime, party_size: partySize }),
+  quote: (resourceId: number, startTime: string, endTime: string, partySize: number, promotionCode?: string) => request<Quote>("/reservations/quote", {
+    method: "POST", body: JSON.stringify({ resource_id: resourceId, start_time: startTime, end_time: endTime, party_size: partySize, promotion_code: promotionCode || null }),
   }),
-  reserve: (resourceId: number, startTime: string, endTime: string, partySize: number) => request("/reservations", {
+  reserve: (resourceId: number, startTime: string, endTime: string, partySize: number, promotionCode?: string) => request("/reservations", {
     method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() },
-    body: JSON.stringify({ resource_id: resourceId, start_time: startTime, end_time: endTime, party_size: partySize }),
+    body: JSON.stringify({ resource_id: resourceId, start_time: startTime, end_time: endTime, party_size: partySize, promotion_code: promotionCode || null }),
   }),
 };
