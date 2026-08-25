@@ -1,6 +1,6 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { api } from "./api";
-import type { Quote, Resource, User, Venue } from "./types";
+import type { PopularVenue, Quote, Resource, User, Venue } from "./types";
 
 const categories = [
   { icon: "work", label: "Workspaces", copy: "Desks, studios & meeting rooms" },
@@ -31,6 +31,37 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
 
 function formatMoney(cents: number, currency: string) {
   return new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(cents / 100);
+}
+
+function formatAvailability(value: string | null) {
+  if (!value) return "Check availability";
+  const date = new Date(value);
+  const today = new Date();
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  const day = date.toDateString() === today.toDateString() ? "Today" : date.toDateString() === tomorrow.toDateString() ? "Tomorrow" : new Intl.DateTimeFormat("en", { weekday: "short", month: "short", day: "numeric" }).format(date);
+  return `${day}, ${new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" }).format(date)}`;
+}
+
+async function getPopularVenues(venues: Venue[]): Promise<PopularVenue[]> {
+  const upcomingDates = Array.from({ length: 7 }, (_, offset) => {
+    const date = new Date(); date.setDate(date.getDate() + offset);
+    const year = date.getFullYear(); const month = String(date.getMonth() + 1).padStart(2, "0"); const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  });
+  const enriched = await Promise.all(venues.map(async (venue) => {
+    const resources = await api.resources(venue.id).catch(() => []);
+    const summaries = await Promise.all(resources.map((resource) => api.ratingSummary(resource.id).catch(() => ({ resource_id: resource.id, average_rating: 0, review_count: 0 }))));
+    const reviewCount = summaries.reduce((total, summary) => total + summary.review_count, 0);
+    const ratingTotal = summaries.reduce((total, summary) => total + summary.average_rating * summary.review_count, 0);
+    let firstAvailableAt: string | null = null;
+    for (const date of upcomingDates) {
+      const slots = (await Promise.all(resources.map((resource) => api.availableSlots(resource.id, date).catch(() => [])))).flat();
+      const first = slots.filter((slot) => slot.available && new Date(slot.start_time) > new Date()).sort((a, b) => a.start_time.localeCompare(b.start_time))[0];
+      if (first) { firstAvailableAt = first.start_time; break; }
+    }
+    return { ...venue, average_rating: reviewCount ? ratingTotal / reviewCount : null, review_count: reviewCount, first_available_at: firstAvailableAt };
+  }));
+  return enriched.sort((a, b) => (b.average_rating ?? 0) - (a.average_rating ?? 0) || b.review_count - a.review_count).slice(0, 3);
 }
 
 function AuthModal({ initialMode, onClose, onAuthenticated }: { initialMode: "login" | "register"; onClose: () => void; onAuthenticated: (user: User) => void }) {
@@ -129,8 +160,10 @@ export default function App() {
   const [venues, setVenues] = useState<Venue[]>([]); const [resources, setResources] = useState<Resource[]>([]);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null); const [booking, setBooking] = useState<Resource | null>(null);
   const [user, setUser] = useState<User | null>(null); const [authMode, setAuthMode] = useState<"login" | "register" | null>(null);
+  const [popularVenues, setPopularVenues] = useState<PopularVenue[]>([]); const [popularLoading, setPopularLoading] = useState(true);
   const [query, setQuery] = useState(""); const [loading, setLoading] = useState(true); const [apiOffline, setApiOffline] = useState(false);
   useEffect(() => { api.venues().then(setVenues).catch(() => setApiOffline(true)).finally(() => setLoading(false)); api.me().then(setUser).catch(() => localStorage.removeItem("bookica_token")); }, []);
+  useEffect(() => { if (!venues.length) return; let active = true; getPopularVenues(venues).then((items) => active && setPopularVenues(items)).finally(() => active && setPopularLoading(false)); return () => { active = false; }; }, [venues]);
   useEffect(() => { if (selectedVenue) api.resources(selectedVenue.id).then(setResources).catch(() => setResources([])); }, [selectedVenue]);
   const filtered = venues.filter((v) => `${v.name} ${v.address} ${v.description ?? ""}`.toLowerCase().includes(query.toLowerCase()));
   function scrollToExplore() { document.getElementById("explore")?.scrollIntoView({ behavior: "smooth" }); }
@@ -139,6 +172,9 @@ export default function App() {
     <main id="top">
       <section className="hero"><div className="hero-glow one"/><div className="hero-glow two"/><div className="hero-copy"><div className="availability-pill"><span/> Spaces available near you</div><h1>The right space.<br/><em>Right when you need it.</em></h1><p>Discover and reserve remarkable places for work, play, and everything in between—all in a few effortless clicks.</p><div className="hero-search"><Icon name="search" size={23}/><input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && scrollToExplore()} placeholder="Search spaces or locations" aria-label="Search venues"/><button onClick={scrollToExplore}>Find a space <Icon name="arrow"/></button></div><div className="trust-row"><span><Icon name="shield" size={17}/> Secure booking</span><span><Icon name="clock" size={17}/> Instant confirmation</span><span><Icon name="spark" size={17}/> Handpicked spaces</span></div></div>
         <div className="hero-art" aria-hidden="true"><div className="art-card main-art"><div className="art-window"><span/><span/><span/></div><div className="art-table"><i/><i/><i/></div><div className="sun-patch"/></div><div className="floating-card"><div className="float-icon"><Icon name="event"/></div><div><small>Next available</small><strong>Today, 2:30 PM</strong></div><span className="live-dot"/></div><div className="rating-chip"><strong>4.9</strong><span>★★★★★</span><small>top-rated spaces</small></div></div>
+      </section>
+      <section className="popular-section" aria-labelledby="popular-title"><div className="section-heading"><div><p className="eyebrow">Popular now</p><h2 id="popular-title">Guest favorites, ready when you are.</h2></div><p>Ranked by verified ratings and review activity.</p></div>
+        {popularLoading && venues.length > 0 ? <div className="popular-grid">{[1,2,3].map((item) => <div className="popular-skeleton" key={item}/>)}</div> : popularVenues.length > 0 && <div className="popular-grid">{popularVenues.map((venue, index) => <button className="popular-card" key={venue.id} onClick={() => setSelectedVenue(venue)}><span className={`popular-visual visual-${index%3}`}><span className="popular-rank">#{index + 1} popular</span><strong>{venue.name.slice(0,2).toUpperCase()}</strong></span><span className="popular-content"><span className="popular-title"><span><strong>{venue.name}</strong><small><Icon name="pin" size={14}/>{venue.address}</small></span><span className="popular-rating"><strong>{venue.average_rating?.toFixed(1) ?? "New"}</strong><small>{venue.review_count ? `★ ${venue.review_count} review${venue.review_count === 1 ? "" : "s"}` : "No reviews yet"}</small></span></span><span className="popular-availability"><Icon name="clock" size={17}/><span><small>First availability</small><strong>{formatAvailability(venue.first_available_at)}</strong></span><Icon name="arrow" size={18}/></span></span></button>)}</div>}
       </section>
       <section className="category-section"><div className="section-heading compact"><p className="eyebrow">Find your fit</p><h2>What are you making space for?</h2></div><div className="category-grid">{categories.map((c) => <button className="category-card" key={c.label} onClick={() => { setQuery(c.label.slice(0, -1)); scrollToExplore(); }}><span className="category-icon"><Icon name={c.icon} size={25}/></span><span><strong>{c.label}</strong><small>{c.copy}</small></span><Icon name="chevron" size={18}/></button>)}</div></section>
       <section className="explore-section" id="explore"><div className="section-heading"><div><p className="eyebrow">Explore nearby</p><h2>Spaces worth showing up for</h2></div><p>Flexible, trusted, and ready when you are.</p></div>

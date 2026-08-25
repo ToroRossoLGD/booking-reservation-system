@@ -1,4 +1,4 @@
-import type { Quote, Resource, User, Venue } from "./types";
+import type { AvailableSlot, Quote, RatingSummary, Resource, User, Venue } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 
@@ -24,6 +24,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   venues: () => request<Venue[]>("/venues"),
   resources: (venueId: number) => request<Resource[]>(`/venues/${venueId}/resources`),
+  ratingSummary: (resourceId: number) => request<RatingSummary>(`/resources/${resourceId}/rating-summary`),
+  availableSlots: (resourceId: number, date: string) => request<AvailableSlot[]>(`/resources/${resourceId}/available-slots?date=${encodeURIComponent(date)}&slot_minutes=60`),
   login: async (email: string, password: string) => {
     const body = new URLSearchParams({ username: email, password });
     const result = await request<{ access_token: string }>("/auth/login", { method: "POST", body });

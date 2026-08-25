@@ -14,3 +14,13 @@ export type Resource = {
 };
 
 export type Quote = { amount_cents: number; currency: string; duration_minutes: number };
+
+export type RatingSummary = { resource_id: number; average_rating: number; review_count: number };
+
+export type AvailableSlot = {
+  start_time: string; end_time: string; available: boolean; remaining_capacity: number;
+};
+
+export type PopularVenue = Venue & {
+  average_rating: number | null; review_count: number; first_available_at: string | null;
+};
