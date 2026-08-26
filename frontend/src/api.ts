@@ -1,4 +1,4 @@
-import type { AvailableSlot, Promotion, Quote, RatingSummary, Resource, User, Venue } from "./types";
+import type { AvailableResource, AvailableSlot, Favorite, Notification, OwnerReservation, OwnerResource, OwnerStats, OwnerVenue, PageResult, Promotion, Quote, RatingSummary, Reservation, Resource, User, Venue } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 
@@ -28,6 +28,12 @@ export const api = {
   resources: (venueId: number) => request<Resource[]>(`/venues/${venueId}/resources`),
   ratingSummary: (resourceId: number) => request<RatingSummary>(`/resources/${resourceId}/rating-summary`),
   availableSlots: (resourceId: number, date: string) => request<AvailableSlot[]>(`/resources/${resourceId}/available-slots?date=${encodeURIComponent(date)}&slot_minutes=60`),
+  searchAvailable: (startTime: string, endTime: string, guests: number, resourceType: string, q: string) => {
+    const params = new URLSearchParams({ start_time: startTime, end_time: endTime, minimum_capacity: String(guests), limit: "50" });
+    if (resourceType) params.set("resource_type", resourceType);
+    if (q) params.set("q", q);
+    return request<PageResult<AvailableResource> & { start_time: string; end_time: string }>(`/resources/search/available?${params}`);
+  },
   activePromotions: () => request<Promotion[]>("/promotions/active"),
   login: async (email: string, password: string) => {
     const body = new URLSearchParams({ username: email, password });
@@ -46,4 +52,16 @@ export const api = {
     method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() },
     body: JSON.stringify({ resource_id: resourceId, start_time: startTime, end_time: endTime, party_size: partySize, promotion_code: promotionCode || null }),
   }),
+  myReservations: (status = "") => request<PageResult<Reservation>>(`/reservations/my?limit=50${status ? `&status=${encodeURIComponent(status)}` : ""}`),
+  cancelReservation: (reservationId: number) => request(`/reservations/${reservationId}/cancel`, { method: "PATCH" }),
+  favorites: () => request<Favorite[]>("/favorites/resources"),
+  addFavorite: (resourceId: number) => request(`/favorites/resources/${resourceId}`, { method: "POST" }),
+  removeFavorite: (resourceId: number) => request(`/favorites/resources/${resourceId}`, { method: "DELETE" }),
+  notifications: () => request<PageResult<Notification>>("/notifications/my?limit=50"),
+  ownerVenues: () => request<OwnerVenue[]>("/owner/venues"),
+  ownerResources: () => request<OwnerResource[]>("/owner/resources"),
+  ownerReservations: () => request<OwnerReservation[]>("/owner/reservations"),
+  ownerStats: () => request<OwnerStats>("/owner/stats"),
+  createVenue: (data: { name: string; address: string; description?: string }) => request<Venue>("/venues", { method: "POST", body: JSON.stringify(data) }),
+  createResource: (venueId: number, data: { name: string; resource_type: string; capacity: number; hourly_rate_cents: number; currency: string }) => request<Resource>(`/venues/${venueId}/resources`, { method: "POST", body: JSON.stringify(data) }),
 };
