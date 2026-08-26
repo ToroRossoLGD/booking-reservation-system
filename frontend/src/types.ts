@@ -21,6 +21,10 @@ export type AvailableSlot = {
   start_time: string; end_time: string; available: boolean; remaining_capacity: number;
 };
 
+export type AvailableResource = Resource & {
+  remaining_capacity: number; venue_name: string; venue_address: string;
+};
+
 export type PopularVenue = Venue & {
   average_rating: number | null; review_count: number; first_available_at: string | null;
 };
@@ -29,4 +33,28 @@ export type Promotion = {
   id: number; code: string; venue_id: number; discount_percent: number;
   valid_from: string; valid_until: string; max_redemptions: number | null;
   redemption_count: number; is_active: boolean; created_at: string;
+};
+
+export type Reservation = {
+  id: number; start_time: string; end_time: string; status: string;
+  hold_expires_at: string | null; resource_id: number; party_size: number;
+  quoted_amount_cents: number; quoted_currency: string; attendance_status: string;
+};
+
+export type PageResult<T> = { items: T[]; total: number; limit: number; offset: number; has_next: boolean };
+
+export type Favorite = {
+  favorite_id: number; resource_id: number; resource_name: string; resource_type: string;
+  capacity: number; venue_id: number; venue_name: string; venue_address: string; created_at: string;
+};
+
+export type Notification = { id: number; title: string; message: string; is_read: boolean; created_at: string };
+
+export type OwnerVenue = { id: number; name: string; description: string | null; address: string; owner_id: number };
+export type OwnerResource = { id: number; name: string; resource_type: string; capacity: number; venue_id: number; venue_name: string };
+export type OwnerReservation = Reservation & { resource_name: string; venue_id: number; venue_name: string; user_id: number };
+export type OwnerStats = {
+  total_venues: number; total_resources: number; total_reservations: number;
+  reservations_by_status: Record<string, number>; total_revenue_cents: number;
+  top_resources: { resource_id: number; resource_name: string; reservation_count: number }[];
 };
