@@ -24,6 +24,8 @@ class VenueService:
             name=data.name,
             description=data.description,
             address=data.address,
+            latitude=data.latitude,
+            longitude=data.longitude,
             owner_id=current_user.id,
             free_cancellation_hours=data.free_cancellation_hours,
             late_cancellation_refund_percent=(data.late_cancellation_refund_percent),
