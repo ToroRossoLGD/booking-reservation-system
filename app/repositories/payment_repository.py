@@ -27,6 +27,12 @@ class PaymentRepository:
 
         return result.scalar_one_or_none()
 
+    async def get_by_provider_session_id(self, session_id: str) -> Payment | None:
+        result = await self.db.execute(
+            select(Payment).where(Payment.provider_session_id == session_id)
+        )
+        return result.scalar_one_or_none()
+
     async def update(
         self,
         payment: Payment,

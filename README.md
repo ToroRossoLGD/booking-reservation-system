@@ -85,7 +85,9 @@ The reservation service provides:
 - Rescheduling, recurring series, transfers, guests, add-ons, and waitlists
 - Signed check-in passes, attendance tracking, reminders, and audit events
 
-Payment records move through `pending`, `paid`, `failed`, `partially_refunded`, and `refunded`. The current service uses a mock payment provider so the workflow can be developed and tested without transmitting real payment details.
+Payment records move through `pending`, `paid`, `failed`, `partially_refunded`, and `refunded`. The legacy mock endpoint remains available for automated tests, while the frontend uses Stripe-hosted Checkout. Development is test-only: configure an `sk_test_` key and webhook signing secret. Live Stripe keys are rejected unless `STRIPE_ALLOW_LIVE_MODE=true` is deliberately enabled, so the default setup cannot create real charges or payment fees.
+
+Venues may include latitude and longitude. The home page can switch between list and map views using Leaflet and OpenStreetMap tiles, with required OpenStreetMap attribution. Set `VITE_MAP_TILE_URL` if deploying with another OSM-compatible tile provider; do not bulk-download or cache the public OpenStreetMap tile service.
 
 ### Background jobs
 

@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     S3_PRESIGNED_URL_EXPIRE_SECONDS: int = 3600
     MEDIA_MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024
 
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_ALLOW_LIVE_MODE: bool = False
+
     REDIS_HOST: str
     REDIS_PORT: int
     REDIS_DB: int = 0
@@ -71,6 +75,16 @@ class Settings(BaseSettings):
     LATE_CANCELLATION_REFUND_PERCENT: int = 50
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+
+    def validate_stripe_safety(self) -> None:
+        if (
+            self.STRIPE_SECRET_KEY.startswith("sk_live_")
+            and not self.STRIPE_ALLOW_LIVE_MODE
+        ):
+            raise ValueError(
+                "Live Stripe keys are disabled. Use an sk_test_ key or explicitly set "
+                "STRIPE_ALLOW_LIVE_MODE=true."
+            )
 
 
 settings = Settings()

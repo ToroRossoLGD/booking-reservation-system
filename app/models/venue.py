@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, Text
+from sqlalchemy import CheckConstraint, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -39,6 +39,8 @@ class Venue(Base):
             "max_active_reservations_per_customer BETWEEN 1 AND 100",
             name="ck_venues_max_active_reservations_per_customer",
         ),
+        CheckConstraint("latitude BETWEEN -90 AND 90", name="ck_venues_latitude"),
+        CheckConstraint("longitude BETWEEN -180 AND 180", name="ck_venues_longitude"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -57,6 +59,9 @@ class Venue(Base):
         String(255),
         nullable=False,
     )
+
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     owner_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
