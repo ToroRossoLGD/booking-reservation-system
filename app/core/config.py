@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:5173"
     OAUTH_COOKIE_SECURE: bool = False
 
+    S3_ENDPOINT_URL: str = ""
+    S3_REGION: str = "us-east-1"
+    S3_BUCKET: str = ""
+    S3_ACCESS_KEY_ID: str = ""
+    S3_SECRET_ACCESS_KEY: str = ""
+    S3_PUBLIC_BASE_URL: str = ""
+    S3_PRESIGNED_URL_EXPIRE_SECONDS: int = 3600
+    MEDIA_MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024
+
     REDIS_HOST: str
     REDIS_PORT: int
     REDIS_DB: int = 0

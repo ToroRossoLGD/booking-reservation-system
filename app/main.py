@@ -15,6 +15,7 @@ from app.api.routers.availability_rules import (
 from app.api.routers.calendar_feeds import router as calendar_feeds_router
 from app.api.routers.favorites import router as favorites_router
 from app.api.routers.maintenance import router as maintenance_router
+from app.api.routers.media import router as media_router
 from app.api.routers.notifications import router as notifications_router
 from app.api.routers.owner import router as owner_router
 from app.api.routers.payments import router as payments_router
@@ -69,6 +70,7 @@ app.include_router(reservation_transfers_router)
 app.include_router(owner_router)
 app.include_router(notifications_router)
 app.include_router(maintenance_router)
+app.include_router(media_router)
 app.include_router(payments_router)
 app.include_router(promotions_router)
 app.include_router(admin_router)

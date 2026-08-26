@@ -24,6 +24,28 @@ services:
       - "1025:1025"
       - "8025:8025"
 
+  minio:
+    image: minio/minio:latest
+    container_name: booking_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: bookica
+      MINIO_ROOT_PASSWORD: bookica-local-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  minio_setup:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "until mc alias set local http://minio:9000 bookica bookica-local-secret; do sleep 1; done;
+      mc mb --ignore-existing local/bookica-media;
+      mc anonymous set download local/bookica-media;"
+
   backend:
     build: .
     container_name: booking_backend
@@ -35,6 +57,14 @@ services:
       - postgres
       - redis
       - mailhog
+      - minio_setup
+    environment:
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: bookica-media
+      S3_ACCESS_KEY_ID: bookica
+      S3_SECRET_ACCESS_KEY: bookica-local-secret
+      S3_PUBLIC_BASE_URL: http://localhost:9000/bookica-media
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - .:/app
@@ -83,3 +113,4 @@ services:
 volumes:
   postgres_data:
   frontend_node_modules:
+  minio_data:

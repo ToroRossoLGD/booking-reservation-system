@@ -189,6 +189,8 @@ The services are then available at:
 - FastAPI documentation: <http://localhost:8000/docs>
 - API health check: <http://localhost:8000/health>
 - MailHog inbox: <http://localhost:8025>
+- MinIO S3 API: <http://localhost:9000>
+- MinIO console: <http://localhost:9001>
 
 ## Local development
 

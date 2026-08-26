@@ -4,6 +4,7 @@ from app.models.availability_rule import AvailabilityRule
 from app.models.calendar_feed import CalendarFeed
 from app.models.favorite_resource import FavoriteResource
 from app.models.maintenance import MaintenanceActivity, MaintenanceWorkOrder
+from app.models.media_asset import MediaAsset as MediaAsset
 from app.models.notification import Notification
 from app.models.password_reset_token import PasswordResetToken
 from app.models.payment import Payment
