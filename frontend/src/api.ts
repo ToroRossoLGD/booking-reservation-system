@@ -1,4 +1,4 @@
-import type { AvailableResource, AvailableSlot, Favorite, Notification, OwnerReservation, OwnerResource, OwnerStats, OwnerVenue, PageResult, Promotion, Quote, RatingSummary, Reservation, Resource, User, Venue } from "./types";
+import type { AvailableResource, AvailableSlot, Favorite, MediaAsset, Notification, OwnerReservation, OwnerResource, OwnerStats, OwnerVenue, PageResult, Promotion, Quote, RatingSummary, Reservation, Resource, User, Venue } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 
@@ -13,7 +13,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("bookica_token");
   const headers = new Headers(options.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  if (options.body && !(options.body instanceof URLSearchParams)) headers.set("Content-Type", "application/json");
+  if (options.body && !(options.body instanceof URLSearchParams) && !(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
@@ -64,4 +64,8 @@ export const api = {
   ownerStats: () => request<OwnerStats>("/owner/stats"),
   createVenue: (data: { name: string; address: string; description?: string }) => request<Venue>("/venues", { method: "POST", body: JSON.stringify(data) }),
   createResource: (venueId: number, data: { name: string; resource_type: string; capacity: number; hourly_rate_cents: number; currency: string }) => request<Resource>(`/venues/${venueId}/resources`, { method: "POST", body: JSON.stringify(data) }),
+  venueMedia: (venueId: number) => request<MediaAsset[]>(`/venues/${venueId}/media`),
+  resourceMedia: (resourceId: number) => request<MediaAsset[]>(`/resources/${resourceId}/media`),
+  uploadVenueMedia: (venueId: number, file: File) => { const body = new FormData(); body.set("file", file); return request<MediaAsset>(`/venues/${venueId}/media`, { method: "POST", body }); },
+  uploadResourceMedia: (resourceId: number, file: File) => { const body = new FormData(); body.set("file", file); return request<MediaAsset>(`/resources/${resourceId}/media`, { method: "POST", body }); },
 };

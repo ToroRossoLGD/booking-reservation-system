@@ -58,3 +58,9 @@ export type OwnerStats = {
   reservations_by_status: Record<string, number>; total_revenue_cents: number;
   top_resources: { resource_id: number; resource_name: string; reservation_count: number }[];
 };
+
+export type MediaAsset = {
+  id: number; venue_id: number | null; resource_id: number | null;
+  original_filename: string; content_type: string; size_bytes: number;
+  caption: string | null; sort_order: number; created_at: string; url: string;
+};
