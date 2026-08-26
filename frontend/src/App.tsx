@@ -75,6 +75,11 @@ function consumeOAuthRedirect() {
 }
 
 const oauthRedirect = consumeOAuthRedirect();
+const pageGuideCookie = "bookica_page_guide_dismissed";
+
+function hasDismissedPageGuide() {
+  return document.cookie.split("; ").some((cookie) => cookie.startsWith(`${pageGuideCookie}=`));
+}
 
 function AuthModal({ initialMode, initialError = "", onClose, onAuthenticated }: { initialMode: "login" | "register"; initialError?: string; onClose: () => void; onAuthenticated: (user: User) => void }) {
   const [mode, setMode] = useState<"login" | "register">(initialMode);
@@ -177,6 +182,7 @@ export default function App() {
   const [popularVenues, setPopularVenues] = useState<PopularVenue[]>([]); const [popularLoading, setPopularLoading] = useState(true);
   const [promotions, setPromotions] = useState<Promotion[]>([]); const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [query, setQuery] = useState(""); const [loading, setLoading] = useState(true); const [apiOffline, setApiOffline] = useState(false);
+  const [showPageGuide, setShowPageGuide] = useState(() => !hasDismissedPageGuide());
   useEffect(() => { api.venues().then(setVenues).catch(() => setApiOffline(true)).finally(() => setLoading(false)); api.me().then(setUser).catch(() => localStorage.removeItem("bookica_token")); }, []);
   useEffect(() => { api.activePromotions().then(setPromotions).catch(() => setPromotions([])); }, []);
   useEffect(() => { if (!venues.length) return; let active = true; getPopularVenues(venues).then((items) => active && setPopularVenues(items)).finally(() => active && setPopularLoading(false)); return () => { active = false; }; }, [venues]);
@@ -185,6 +191,7 @@ export default function App() {
   function scrollToExplore() { document.getElementById("explore")?.scrollIntoView({ behavior: "smooth" }); }
   function exploreCategory(label = "") { setQuery(label); scrollToExplore(); }
   function logOut() { localStorage.removeItem("bookica_token"); setUser(null); }
+  function dismissPageGuide() { document.cookie = `${pageGuideCookie}=1; Max-Age=315360000; Path=/; SameSite=Lax`; setShowPageGuide(false); }
   async function copyCoupon(code: string) { await navigator.clipboard.writeText(code); setCopiedCode(code); window.setTimeout(() => setCopiedCode((current) => current === code ? null : current), 1800); }
   return <div className="app-shell">
     <header className="site-header"><a className="brand" href="#top" aria-label="Bookica home"><span className="brand-mark">B</span><span>Bookica</span></a><nav>
@@ -207,6 +214,7 @@ export default function App() {
       <section className="host-section" id="host"><div><p className="eyebrow light">For space owners</p><h2>Your empty hours<br/>could be someone’s<br/>perfect moment.</h2><p>Put your venue to work with flexible rules, real-time scheduling, and tools built to keep operations simple.</p><button className="button cream" onClick={()=>setAuthMode("register")}>List your space <Icon name="arrow"/></button></div><div className="host-art"><div className="host-stat"><small>Bookings this month</small><strong>+38%</strong><div className="bars"><i/><i/><i/><i/><i/><i/></div></div><div className="host-orbit"><span>B</span></div></div></section>
     </main>
     <footer><a className="brand footer-brand" href="#top"><span className="brand-mark">B</span><span>Bookica</span></a><p>Make room for what matters.</p><div><a href="#explore">Explore</a><a href="#how">How it works</a><a href="#host">For owners</a></div><small>© {new Date().getFullYear()} Bookica</small></footer>
+    {showPageGuide && <aside className="page-guide" aria-label="Page guide"><button className="guide-close" onClick={dismissPageGuide} aria-label="Dismiss page guide"><Icon name="close" size={17}/></button><div className="guide-mark"><Icon name="spark" size={19}/></div><div className="guide-heading"><p className="eyebrow">New to Bookica?</p><h2>Here’s what you’ll find.</h2></div><nav><a href="#explore"><strong>Explore spaces</strong><small>Search and browse places near you.</small></a><a href="#how"><strong>How it works</strong><small>See the three simple booking steps.</small></a><a href="#host"><strong>List your space</strong><small>Turn free hours into bookings.</small></a></nav><button className="guide-done" onClick={dismissPageGuide}>Got it</button></aside>}
     {selectedVenue && <div className="drawer-backdrop" onMouseDown={(e)=>e.target===e.currentTarget&&setSelectedVenue(null)}><aside className="venue-drawer"><button className="icon-button drawer-close" onClick={()=>setSelectedVenue(null)}><Icon name="close"/></button><div className="drawer-hero"><span>{selectedVenue.name.slice(0,2).toUpperCase()}</span></div><p className="eyebrow">Venue details</p><h2>{selectedVenue.name}</h2><p className="location-line"><Icon name="pin" size={17}/>{selectedVenue.address}</p><p className="drawer-copy">{selectedVenue.description || "A flexible, reservable venue for your next plan."}</p><div className="policy-row"><span><Icon name="clock"/><small>Minimum booking</small><strong>{selectedVenue.minimum_booking_duration_minutes} minutes</strong></span><span><Icon name="shield"/><small>Free cancellation</small><strong>Up to {selectedVenue.free_cancellation_hours}h before</strong></span></div><div className="resource-heading"><h3>Choose a space</h3><span>{resources.length} available</span></div><div className="resource-list">{resources.length ? resources.map((resource)=><button className="resource-row" key={resource.id} onClick={()=>setBooking(resource)}><span className="resource-icon"><Icon name={resource.resource_type.toLowerCase().includes("court")?"sport":"work"}/></span><span><strong>{resource.name}</strong><small>{resource.resource_type} · up to {resource.capacity} guests</small></span><span className="resource-price"><strong>{formatMoney(resource.hourly_rate_cents,resource.currency)}</strong><small>/ hour</small></span><Icon name="chevron" size={17}/></button>) : <p className="drawer-empty">No resources have been added to this venue yet.</p>}</div></aside></div>}
     {authMode && <AuthModal initialMode={authMode} initialError={authError} onClose={()=>{setAuthMode(null);setAuthError("");}} onAuthenticated={setUser}/>}
     {booking && <BookingModal resource={booking} user={user} onClose={()=>setBooking(null)} requestLogin={()=>setAuthMode("login")}/>}
