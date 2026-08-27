@@ -1,6 +1,9 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "./api";
 import type {
+  AddOn,
+  AvailabilityException,
+  AvailabilityRule,
   Favorite,
   Notification,
   OwnerReservation,
@@ -10,6 +13,7 @@ import type {
   Reservation,
   ReservationWorkspace,
   User,
+  Venue,
 } from "./types";
 
 type AccountTab = "reservations" | "favorites" | "notifications";
@@ -487,7 +491,17 @@ function Empty({
   );
 }
 
-export function OwnerDashboard({ onExplore }: { onExplore: () => void }) {
+export function OwnerDashboard({
+  onExplore,
+  venueId,
+  onOpenVenue,
+  onCloseVenue,
+}: {
+  onExplore: () => void;
+  venueId?: number;
+  onOpenVenue: (id: number) => void;
+  onCloseVenue: () => void;
+}) {
   const [stats, setStats] = useState<OwnerStats | null>(null);
   const [venues, setVenues] = useState<OwnerVenue[]>([]);
   const [resources, setResources] = useState<OwnerResource[]>([]);
@@ -551,6 +565,9 @@ export function OwnerDashboard({ onExplore }: { onExplore: () => void }) {
       )
       .finally(() => setLoading(false));
   }, []);
+
+  if (venueId)
+    return <OwnerVenueManager venueId={venueId} onBack={onCloseVenue} />;
 
   async function createVenue(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -661,7 +678,11 @@ export function OwnerDashboard({ onExplore }: { onExplore: () => void }) {
               </div>
               {venues.length ? (
                 venues.map((venue) => (
-                  <article className="compact-row" key={venue.id}>
+                  <button
+                    className="compact-row compact-row-button"
+                    key={venue.id}
+                    onClick={() => onOpenVenue(venue.id)}
+                  >
                     <span>{venue.name.slice(0, 2).toUpperCase()}</span>
                     <div>
                       <strong>{venue.name}</strong>
@@ -674,7 +695,7 @@ export function OwnerDashboard({ onExplore }: { onExplore: () => void }) {
                       }{" "}
                       resources
                     </em>
-                  </article>
+                  </button>
                 ))
               ) : (
                 <Empty
@@ -814,6 +835,99 @@ export function OwnerDashboard({ onExplore }: { onExplore: () => void }) {
       )}
     </main>
   );
+}
+
+const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+function OwnerVenueManager({ venueId, onBack }: { venueId: number; onBack: () => void }) {
+  const [venue, setVenue] = useState<Venue | null>(null);
+  const [resources, setResources] = useState<OwnerResource[]>([]);
+  const [selectedResource, setSelectedResource] = useState<number | null>(null);
+  const [rules, setRules] = useState<AvailabilityRule[]>([]);
+  const [exceptions, setExceptions] = useState<AvailabilityException[]>([]);
+  const [promotions, setPromotions] = useState<import("./types").Promotion[]>([]);
+  const [addOns, setAddOns] = useState<AddOn[]>([]);
+  const [tab, setTab] = useState<"details" | "availability" | "offers">("details");
+  const [message, setMessage] = useState("");
+
+  function loadVenue() {
+    Promise.all([api.venue(venueId), api.ownerResources(), api.venuePromotions(venueId), api.managedAddOns(venueId)])
+      .then(([nextVenue, allResources, nextPromotions, nextAddOns]) => {
+        const ownResources = allResources.filter((item) => item.venue_id === venueId);
+        setVenue(nextVenue);
+        setResources(ownResources);
+        setPromotions(nextPromotions);
+        setAddOns(nextAddOns);
+        setSelectedResource((current) => current ?? ownResources[0]?.id ?? null);
+      })
+      .catch((error) => setMessage(error instanceof Error ? error.message : "Unable to load venue"));
+  }
+
+  useEffect(loadVenue, [venueId]);
+  useEffect(() => {
+    if (!selectedResource) return;
+    Promise.all([api.availabilityRules(selectedResource), api.availabilityExceptions(selectedResource)])
+      .then(([nextRules, nextExceptions]) => { setRules(nextRules); setExceptions(nextExceptions); })
+      .catch((error) => setMessage(error instanceof Error ? error.message : "Unable to load availability"));
+  }, [selectedResource]);
+
+  async function saveDetails(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    try {
+      const coordinates = [String(form.get("latitude") ?? "").trim(), String(form.get("longitude") ?? "").trim()];
+      await api.updateVenue(venueId, {
+        name: String(form.get("name")), address: String(form.get("address")), description: String(form.get("description")),
+        latitude: coordinates[0] ? Number(coordinates[0]) : null,
+        longitude: coordinates[1] ? Number(coordinates[1]) : null,
+      });
+      await api.updateBookingRules(venueId, {
+        minimum_booking_notice_minutes: Number(form.get("minimum_notice")), maximum_advance_booking_days: Number(form.get("maximum_advance")),
+        minimum_booking_duration_minutes: Number(form.get("minimum_duration")), maximum_booking_duration_minutes: Number(form.get("maximum_duration")),
+        max_active_reservations_per_customer: Number(form.get("maximum_active")),
+      });
+      await api.updateCancellationPolicy(venueId, { free_cancellation_hours: Number(form.get("free_cancellation")), late_cancellation_refund_percent: Number(form.get("late_refund")) });
+      setMessage("Venue settings saved."); loadVenue();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to save venue"); }
+  }
+
+  async function addRule(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if (!selectedResource) return;
+    const form = new FormData(event.currentTarget);
+    try { const rule = await api.createAvailabilityRule(selectedResource, { weekday: Number(form.get("weekday")), start_time: String(form.get("start")), end_time: String(form.get("end")) }); setRules((items) => [...items, rule]); event.currentTarget.reset(); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Unable to add hours"); }
+  }
+  async function removeRule(rule: AvailabilityRule) { await api.deleteAvailabilityRule(rule.resource_id, rule.id); setRules((items) => items.filter((item) => item.id !== rule.id)); }
+  async function addException(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if (!selectedResource) return; const form = new FormData(event.currentTarget);
+    try { const exception = await api.createAvailabilityException(selectedResource, { start_time: new Date(String(form.get("start"))).toISOString(), end_time: new Date(String(form.get("end"))).toISOString(), reason: String(form.get("reason")) }); setExceptions((items) => [...items, exception]); event.currentTarget.reset(); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Unable to add closure"); }
+  }
+  async function removeException(item: AvailabilityException) { await api.deleteAvailabilityException(item.resource_id, item.id); setExceptions((items) => items.filter((value) => value.id !== item.id)); }
+  async function addPromotion(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); const form = new FormData(event.currentTarget);
+    try { const promotion = await api.createPromotion(venueId, { code: String(form.get("code")), discount_percent: Number(form.get("discount")), valid_from: new Date(String(form.get("from"))).toISOString(), valid_until: new Date(String(form.get("until"))).toISOString(), max_redemptions: form.get("maximum") ? Number(form.get("maximum")) : null }); setPromotions((items) => [...items, promotion]); event.currentTarget.reset(); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Unable to add promotion"); }
+  }
+  async function addAddOn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); const form = new FormData(event.currentTarget);
+    try { const item = await api.createAddOn(venueId, { name: String(form.get("name")), description: String(form.get("description")), price_cents: Math.round(Number(form.get("price")) * 100), stock: Number(form.get("stock")) }); setAddOns((items) => [...items, item]); event.currentTarget.reset(); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Unable to add extra"); }
+  }
+
+  return <main className="dashboard-page owner-page">
+    <section className="dashboard-hero"><div><button className="back-link" onClick={onBack}>← Owner dashboard</button><p className="eyebrow">Venue management</p><h1>{venue?.name ?? "Loading venue…"}</h1><p>{venue?.address}</p></div></section>
+    <div className="owner-manager">
+      {message && <p className="dashboard-message">{message}</p>}
+      <nav className="owner-manager-tabs"><button className={tab === "details" ? "active" : ""} onClick={() => setTab("details")}>Details & policies</button><button className={tab === "availability" ? "active" : ""} onClick={() => setTab("availability")}>Availability</button><button className={tab === "offers" ? "active" : ""} onClick={() => setTab("offers")}>Offers & extras</button></nav>
+      {venue && tab === "details" && <form className="owner-panel settings-form" onSubmit={saveDetails}>
+        <div className="dashboard-title"><div><p className="eyebrow">Settings</p><h2>Venue details and policies</h2></div></div>
+        <div className="settings-grid"><label>Name<input name="name" defaultValue={venue.name} required /></label><label>Address<input name="address" defaultValue={venue.address} required /></label><label className="wide">Description<textarea name="description" defaultValue={venue.description ?? ""} rows={3} /></label><label>Latitude<input name="latitude" type="number" step="any" defaultValue={venue.latitude ?? ""} /></label><label>Longitude<input name="longitude" type="number" step="any" defaultValue={venue.longitude ?? ""} /></label><label>Minimum notice (minutes)<input name="minimum_notice" type="number" defaultValue={venue.minimum_booking_notice_minutes} /></label><label>Advance window (days)<input name="maximum_advance" type="number" defaultValue={venue.maximum_advance_booking_days} /></label><label>Minimum duration (minutes)<input name="minimum_duration" type="number" defaultValue={venue.minimum_booking_duration_minutes} /></label><label>Maximum duration (minutes)<input name="maximum_duration" type="number" defaultValue={venue.maximum_booking_duration_minutes} /></label><label>Active bookings per customer<input name="maximum_active" type="number" defaultValue={venue.max_active_reservations_per_customer} /></label><label>Free cancellation (hours)<input name="free_cancellation" type="number" defaultValue={venue.free_cancellation_hours} /></label><label>Late refund (%)<input name="late_refund" type="number" defaultValue={venue.late_cancellation_refund_percent} /></label></div><button className="button primary">Save settings</button>
+      </form>}
+      {tab === "availability" && <div className="management-columns"><section className="owner-panel"><div className="dashboard-title"><div><p className="eyebrow">Weekly schedule</p><h2>Opening hours</h2></div></div><label className="resource-picker">Resource<select value={selectedResource ?? ""} onChange={(event) => setSelectedResource(Number(event.target.value))}>{resources.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><form className="inline-management-form" onSubmit={addRule}><select name="weekday">{weekdays.map((day, index) => <option value={index} key={day}>{day}</option>)}</select><input name="start" type="time" required /><input name="end" type="time" required /><button className="button primary">Add hours</button></form><div className="management-list">{rules.sort((a,b) => a.weekday-b.weekday).map((rule) => <article key={rule.id}><div><strong>{weekdays[rule.weekday]}</strong><small>{rule.start_time.slice(0,5)}–{rule.end_time.slice(0,5)}</small></div><button onClick={() => removeRule(rule)}>Remove</button></article>)}</div></section><section className="owner-panel"><div className="dashboard-title"><div><p className="eyebrow">Closures</p><h2>Exceptions</h2></div></div><form className="stacked-management-form" onSubmit={addException}><label>From<input name="start" type="datetime-local" required /></label><label>Until<input name="end" type="datetime-local" required /></label><label>Reason<input name="reason" placeholder="Maintenance, holiday…" /></label><button className="button primary">Add closure</button></form><div className="management-list">{exceptions.map((item) => <article key={item.id}><div><strong>{item.reason || "Unavailable"}</strong><small>{when(item.start_time)} – {when(item.end_time)}</small></div><button onClick={() => removeException(item)}>Remove</button></article>)}</div></section></div>}
+      {tab === "offers" && <div className="management-columns"><section className="owner-panel"><div className="dashboard-title"><div><p className="eyebrow">Marketing</p><h2>Promotions</h2></div></div><form className="stacked-management-form" onSubmit={addPromotion}><label>Code<input name="code" minLength={3} required /></label><label>Discount %<input name="discount" type="number" min="1" max="100" required /></label><label>Starts<input name="from" type="datetime-local" required /></label><label>Ends<input name="until" type="datetime-local" required /></label><label>Maximum uses<input name="maximum" type="number" min="1" /></label><button className="button primary">Create promotion</button></form><div className="management-list">{promotions.map((item) => <article key={item.id}><div><strong>{item.code} · {item.discount_percent}% off</strong><small>{item.redemption_count}{item.max_redemptions ? ` / ${item.max_redemptions}` : ""} uses</small></div>{item.is_active && <button onClick={async () => { await api.deactivatePromotion(item.id); loadVenue(); }}>Deactivate</button>}</article>)}</div></section><section className="owner-panel"><div className="dashboard-title"><div><p className="eyebrow">Upsell</p><h2>Add-ons</h2></div></div><form className="stacked-management-form" onSubmit={addAddOn}><label>Name<input name="name" required /></label><label>Description<input name="description" /></label><label>Price<input name="price" type="number" min="0" step="0.01" required /></label><label>Stock<input name="stock" type="number" min="1" required /></label><button className="button primary">Create add-on</button></form><div className="management-list">{addOns.map((item) => <article key={item.id}><div><strong>{item.name} · {money(item.price_cents)}</strong><small>{item.stock} available · {item.is_active ? "Active" : "Inactive"}</small></div><button onClick={async () => { await api.updateAddOn(item.id, { is_active: !item.is_active }); loadVenue(); }}>{item.is_active ? "Disable" : "Enable"}</button></article>)}</div></section></div>}
+    </div>
+  </main>;
 }
 
 function FormModal({

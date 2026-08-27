@@ -8,6 +8,7 @@ from app.schemas.venue import (
     VenueBookingRulesUpdate,
     VenueCancellationPolicyUpdate,
     VenueCreate,
+    VenueUpdate,
 )
 
 
@@ -39,6 +40,24 @@ class VenueService:
         )
 
         return await self.venue_repository.create(venue)
+
+    async def update_venue(
+        self,
+        venue_id: int,
+        data: VenueUpdate,
+        current_user: User,
+    ) -> Venue:
+        venue = await self.venue_repository.get_by_id(venue_id)
+        if venue is None:
+            raise HTTPException(status_code=404, detail="Venue not found")
+        if current_user.role != "admin" and venue.owner_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You can update only your own venues",
+            )
+        for name, value in data.model_dump(exclude_unset=True).items():
+            setattr(venue, name, value)
+        return await self.venue_repository.update(venue)
 
     async def update_cancellation_policy(
         self,

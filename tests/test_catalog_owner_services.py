@@ -9,7 +9,7 @@ from app.models.reservation import ReservationStatus
 from app.models.resource import Resource
 from app.models.venue import Venue
 from app.schemas.resource import ResourceCreate
-from app.schemas.venue import VenueCreate
+from app.schemas.venue import VenueCreate, VenueUpdate
 from app.services.owner_service import OwnerService
 from app.services.resource_service import ResourceService
 from app.services.venue_service import VenueService
@@ -464,3 +464,38 @@ async def test_owner_venue_list_is_scoped_to_current_user():
 
     assert result == expected
     service.venue_repository.get_by_owner_id.assert_awaited_once_with(42)
+
+
+@pytest.mark.asyncio
+async def test_owner_can_update_general_venue_details():
+    service = VenueService(AsyncMock())
+    existing_venue = venue(id=5, name="Old name", address="Old address")
+    service.venue_repository.get_by_id = AsyncMock(return_value=existing_venue)
+    service.venue_repository.update = AsyncMock(return_value=existing_venue)
+
+    result = await service.update_venue(
+        5,
+        VenueUpdate(name="New name", address="New address"),
+        user(10),
+    )
+
+    assert result.name == "New name"
+    assert result.address == "New address"
+    service.venue_repository.update.assert_awaited_once_with(existing_venue)
+
+
+@pytest.mark.asyncio
+async def test_owner_cannot_update_another_owners_venue():
+    service = VenueService(AsyncMock())
+    service.venue_repository.get_by_id = AsyncMock(
+        return_value=venue(id=5, owner_id=10)
+    )
+
+    with pytest.raises(HTTPException) as exception_info:
+        await service.update_venue(
+            5,
+            VenueUpdate(name="Not allowed"),
+            user(99),
+        )
+
+    assert exception_info.value.status_code == 403

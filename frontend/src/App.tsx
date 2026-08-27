@@ -623,6 +623,10 @@ export default function App() {
     const match = window.location.pathname.match(/^\/account\/reservations\/(\d+)$/);
     return match ? Number(match[1]) : undefined;
   });
+  const [ownerVenueId, setOwnerVenueId] = useState<number | undefined>(() => {
+    const match = window.location.pathname.match(/^\/owner\/venues\/(\d+)$/);
+    return match ? Number(match[1]) : undefined;
+  });
   const [toast, setToast] = useState("");
   const [exploreView, setExploreView] = useState<"list" | "map">("list");
   const [searchDate, setSearchDate] = useState("");
@@ -691,6 +695,8 @@ export default function App() {
       );
       const match = window.location.pathname.match(/^\/account\/reservations\/(\d+)$/);
       setReservationId(match ? Number(match[1]) : undefined);
+      const venueMatch = window.location.pathname.match(/^\/owner\/venues\/(\d+)$/);
+      setOwnerVenueId(venueMatch ? Number(venueMatch[1]) : undefined);
     };
     window.addEventListener("popstate", updatePage);
     return () => window.removeEventListener("popstate", updatePage);
@@ -952,7 +958,19 @@ export default function App() {
           }}
         />
       ) : page === "owner" && user && ["owner", "admin"].includes(user.role) ? (
-        <OwnerDashboard onExplore={() => goHome("explore")} />
+        <OwnerDashboard
+          venueId={ownerVenueId}
+          onExplore={() => goHome("explore")}
+          onOpenVenue={(id) => {
+            window.history.pushState({}, "", `/owner/venues/${id}`);
+            setOwnerVenueId(id);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          onCloseVenue={() => {
+            window.history.pushState({}, "", "/owner");
+            setOwnerVenueId(undefined);
+          }}
+        />
       ) : (
         <main id="top">
           <section className="hero">

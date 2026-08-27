@@ -1,6 +1,9 @@
 import type {
   AvailableResource,
   AvailableSlot,
+  AvailabilityException,
+  AvailabilityRule,
+  AddOn,
   CheckoutSession,
   Favorite,
   MediaAsset,
@@ -167,6 +170,35 @@ export const api = {
   ownerResources: () => request<OwnerResource[]>("/owner/resources"),
   ownerReservations: () => request<OwnerReservation[]>("/owner/reservations"),
   ownerStats: () => request<OwnerStats>("/owner/stats"),
+  venue: (venueId: number) => request<Venue>(`/venues/${venueId}`),
+  updateVenue: (venueId: number, data: Partial<Venue>) =>
+    request<Venue>(`/venues/${venueId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  updateBookingRules: (venueId: number, data: {
+    minimum_booking_notice_minutes: number;
+    maximum_advance_booking_days: number;
+    minimum_booking_duration_minutes: number;
+    maximum_booking_duration_minutes: number;
+    max_active_reservations_per_customer: number;
+  }) => request(`/venues/${venueId}/booking-rules`, { method: "PATCH", body: JSON.stringify(data) }),
+  updateCancellationPolicy: (venueId: number, data: {
+    free_cancellation_hours: number;
+    late_cancellation_refund_percent: number;
+  }) => request(`/venues/${venueId}/cancellation-policy`, { method: "PATCH", body: JSON.stringify(data) }),
+  availabilityRules: (resourceId: number) => request<AvailabilityRule[]>(`/resources/${resourceId}/availability-rules`),
+  createAvailabilityRule: (resourceId: number, data: { weekday: number; start_time: string; end_time: string }) => request<AvailabilityRule>(`/resources/${resourceId}/availability-rules`, { method: "POST", body: JSON.stringify(data) }),
+  deleteAvailabilityRule: (resourceId: number, ruleId: number) => request(`/resources/${resourceId}/availability-rules/${ruleId}`, { method: "DELETE" }),
+  availabilityExceptions: (resourceId: number) => request<AvailabilityException[]>(`/resources/${resourceId}/availability-exceptions`),
+  createAvailabilityException: (resourceId: number, data: { start_time: string; end_time: string; reason?: string }) => request<AvailabilityException>(`/resources/${resourceId}/availability-exceptions`, { method: "POST", body: JSON.stringify(data) }),
+  deleteAvailabilityException: (resourceId: number, exceptionId: number) => request(`/resources/${resourceId}/availability-exceptions/${exceptionId}`, { method: "DELETE" }),
+  venuePromotions: (venueId: number) => request<Promotion[]>(`/venues/${venueId}/promotions`),
+  createPromotion: (venueId: number, data: { code: string; discount_percent: number; valid_from: string; valid_until: string; max_redemptions: number | null }) => request<Promotion>(`/venues/${venueId}/promotions`, { method: "POST", body: JSON.stringify(data) }),
+  deactivatePromotion: (promotionId: number) => request<Promotion>(`/promotions/${promotionId}/deactivate`, { method: "PATCH" }),
+  managedAddOns: (venueId: number) => request<AddOn[]>(`/venues/${venueId}/add-ons/manage`),
+  createAddOn: (venueId: number, data: { name: string; description?: string; price_cents: number; stock: number }) => request<AddOn>(`/venues/${venueId}/add-ons`, { method: "POST", body: JSON.stringify(data) }),
+  updateAddOn: (addOnId: number, data: Partial<AddOn>) => request<AddOn>(`/add-ons/${addOnId}`, { method: "PATCH", body: JSON.stringify(data) }),
   createVenue: (data: {
     name: string;
     address: string;

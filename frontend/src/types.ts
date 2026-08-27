@@ -119,6 +119,30 @@ export type OwnerVenue = {
   address: string;
   owner_id: number;
 };
+export type AvailabilityRule = {
+  id: number;
+  resource_id: number;
+  weekday: number;
+  start_time: string;
+  end_time: string;
+};
+export type AvailabilityException = {
+  id: number;
+  resource_id: number;
+  start_time: string;
+  end_time: string;
+  reason: string | null;
+};
+export type AddOn = {
+  id: number;
+  venue_id: number;
+  name: string;
+  description: string | null;
+  price_cents: number;
+  stock: number;
+  is_active: boolean;
+  created_at: string;
+};
 export type OwnerResource = {
   id: number;
   name: string;

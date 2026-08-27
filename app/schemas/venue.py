@@ -36,6 +36,23 @@ class VenueCreate(VenueBookingRulesMixin):
         return self
 
 
+class VenueUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=255)
+    description: str | None = None
+    address: str | None = Field(default=None, min_length=2, max_length=255)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+
+    @model_validator(mode="after")
+    def validate_coordinates(self):
+        fields = self.model_fields_set
+        if ("latitude" in fields) != ("longitude" in fields):
+            raise ValueError("latitude and longitude must be updated together")
+        if "latitude" in fields and (self.latitude is None) != (self.longitude is None):
+            raise ValueError("latitude and longitude must both be set or cleared")
+        return self
+
+
 class VenueCancellationPolicyUpdate(BaseModel):
     free_cancellation_hours: int = Field(ge=0, le=720)
     late_cancellation_refund_percent: int = Field(ge=0, le=100)
