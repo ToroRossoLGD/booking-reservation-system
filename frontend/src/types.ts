@@ -165,3 +165,36 @@ export type CheckoutSession = {
   checkout_url: string;
   test_mode: boolean;
 };
+
+export type ReservationEvent = {
+  id: number;
+  event_type: string;
+  actor_role: string;
+  previous_status: string | null;
+  new_status: string;
+  details: Record<string, unknown>;
+  occurred_at: string;
+};
+
+export type CancellationPreview = {
+  refund_percentage: number;
+  refund_amount_cents: number;
+  cancellation_fee_cents: number;
+  applied_free_cancellation_hours: number;
+  applied_late_refund_percent: number;
+};
+
+export type ReservationWorkspace = {
+  reservation: Reservation;
+  resource: Pick<Resource, "id" | "name" | "resource_type" | "capacity">;
+  venue: Pick<Venue, "id" | "name" | "address">;
+  payment: {
+    id: number;
+    amount_cents: number;
+    currency: string;
+    status: string;
+  } | null;
+  timeline: ReservationEvent[];
+  allowed_actions: string[];
+  cancellation_preview: CancellationPreview | null;
+};

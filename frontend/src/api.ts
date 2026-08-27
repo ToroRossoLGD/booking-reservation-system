@@ -14,6 +14,7 @@ import type {
   Quote,
   RatingSummary,
   Reservation,
+  ReservationWorkspace,
   Resource,
   User,
   Venue,
@@ -139,6 +140,17 @@ export const api = {
     ),
   cancelReservation: (reservationId: number) =>
     request(`/reservations/${reservationId}/cancel`, { method: "PATCH" }),
+  reservationWorkspace: (reservationId: number) =>
+    request<ReservationWorkspace>(`/reservations/${reservationId}/workspace`),
+  rescheduleReservation: (
+    reservationId: number,
+    startTime: string,
+    endTime: string,
+  ) =>
+    request<Reservation>(`/reservations/${reservationId}/reschedule`, {
+      method: "PATCH",
+      body: JSON.stringify({ start_time: startTime, end_time: endTime }),
+    }),
   createCheckout: (reservationId: number) =>
     request<CheckoutSession>(
       `/payments/reservations/${reservationId}/checkout`,

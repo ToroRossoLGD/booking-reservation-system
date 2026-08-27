@@ -1158,6 +1158,94 @@ class ReservationService:
 
         return late_refund_percent
 
+    async def preview_cancellation(
+        self,
+        reservation_id: int,
+        current_user: User,
+    ) -> dict:
+        reservation = await self.get_reservation(reservation_id, current_user)
+        if current_user.role != "admin" and reservation.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can preview cancellation only for your own reservation",
+            )
+        if reservation.status not in {
+            ReservationStatus.PENDING.value,
+            ReservationStatus.CONFIRMED.value,
+        }:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This reservation can no longer be cancelled",
+            )
+
+        refund_percentage = self._get_refund_percentage(
+            reservation,
+            datetime.now(UTC),
+        )
+        payment = await self.payment_repository.get_by_reservation_id(reservation.id)
+        paid_amount = (
+            payment.amount_cents
+            if payment is not None and payment.status == PaymentStatus.PAID.value
+            else 0
+        )
+        refund_amount = paid_amount * refund_percentage // 100
+        return {
+            "refund_percentage": refund_percentage if paid_amount else 0,
+            "refund_amount_cents": refund_amount,
+            "cancellation_fee_cents": paid_amount - refund_amount,
+            "applied_free_cancellation_hours": reservation.cancellation_free_hours,
+            "applied_late_refund_percent": (
+                reservation.cancellation_late_refund_percent
+            ),
+        }
+
+    async def get_reservation_workspace(
+        self,
+        reservation_id: int,
+        current_user: User,
+    ) -> dict:
+        reservation = await self.get_reservation(reservation_id, current_user)
+        resource = await self.resource_repository.get_by_id(reservation.resource_id)
+        if resource is None:
+            raise HTTPException(status_code=404, detail="Resource not found")
+        venue = await self.venue_repository.get_by_id(resource.venue_id)
+        if venue is None:
+            raise HTTPException(status_code=404, detail="Venue not found")
+
+        payment = await self.payment_repository.get_by_reservation_id(reservation.id)
+        events = await self.reservation_event_repository.get_for_reservation(
+            reservation.id
+        )
+        allowed_actions: list[str] = []
+        cancellation_preview = None
+        can_self_manage = (
+            current_user.role == "admin" or reservation.user_id == current_user.id
+        )
+        if can_self_manage and reservation.status == ReservationStatus.PENDING.value:
+            allowed_actions.append("pay")
+        if can_self_manage and reservation.status in {
+            ReservationStatus.PENDING.value,
+            ReservationStatus.CONFIRMED.value,
+        }:
+            allowed_actions.extend(["cancel", "reschedule"])
+            cancellation_preview = await self.preview_cancellation(
+                reservation.id, current_user
+            )
+        if can_self_manage and reservation.status == ReservationStatus.CONFIRMED.value:
+            allowed_actions.extend(["guests", "transfer", "check_in_pass"])
+        if can_self_manage and reservation.status == ReservationStatus.COMPLETED.value:
+            allowed_actions.append("review")
+
+        return {
+            "reservation": reservation,
+            "resource": resource,
+            "venue": venue,
+            "payment": payment,
+            "timeline": events,
+            "allowed_actions": allowed_actions,
+            "cancellation_preview": cancellation_preview,
+        }
+
     async def cancel_reservation(
         self,
         reservation_id: int,

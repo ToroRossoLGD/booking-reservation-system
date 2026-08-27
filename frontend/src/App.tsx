@@ -619,6 +619,10 @@ export default function App() {
         ? "account"
         : "home",
   );
+  const [reservationId, setReservationId] = useState<number | undefined>(() => {
+    const match = window.location.pathname.match(/^\/account\/reservations\/(\d+)$/);
+    return match ? Number(match[1]) : undefined;
+  });
   const [toast, setToast] = useState("");
   const [exploreView, setExploreView] = useState<"list" | "map">("list");
   const [searchDate, setSearchDate] = useState("");
@@ -677,7 +681,7 @@ export default function App() {
     return () => document.removeEventListener("pointerdown", closeMenus);
   }, []);
   useEffect(() => {
-    const updatePage = () =>
+    const updatePage = () => {
       setPage(
         window.location.pathname.startsWith("/owner")
           ? "owner"
@@ -685,6 +689,9 @@ export default function App() {
             ? "account"
             : "home",
       );
+      const match = window.location.pathname.match(/^\/account\/reservations\/(\d+)$/);
+      setReservationId(match ? Number(match[1]) : undefined);
+    };
     window.addEventListener("popstate", updatePage);
     return () => window.removeEventListener("popstate", updatePage);
   }, []);
@@ -930,7 +937,20 @@ export default function App() {
         </div>
       </header>
       {page === "account" && user ? (
-        <AccountDashboard user={user} onExplore={() => goHome("explore")} />
+        <AccountDashboard
+          user={user}
+          reservationId={reservationId}
+          onExplore={() => goHome("explore")}
+          onOpenReservation={(id) => {
+            window.history.pushState({}, "", `/account/reservations/${id}`);
+            setReservationId(id);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          onCloseReservation={() => {
+            window.history.pushState({}, "", "/account");
+            setReservationId(undefined);
+          }}
+        />
       ) : page === "owner" && user && ["owner", "admin"].includes(user.role) ? (
         <OwnerDashboard onExplore={() => goHome("explore")} />
       ) : (
