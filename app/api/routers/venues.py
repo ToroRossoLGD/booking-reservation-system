@@ -12,6 +12,7 @@ from app.schemas.venue import (
     VenueCreate,
     VenueListRead,
     VenueRead,
+    VenueUpdate,
 )
 from app.services.venue_service import VenueService
 
@@ -65,6 +66,16 @@ async def get_venue(
 ):
     service = VenueService(db)
     return await service.get_venue_by_id(venue_id)
+
+
+@router.patch("/{venue_id}", response_model=VenueRead)
+async def update_venue(
+    venue_id: int,
+    data: VenueUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("owner", "admin")),
+):
+    return await VenueService(db).update_venue(venue_id, data, current_user)
 
 
 @router.patch(
