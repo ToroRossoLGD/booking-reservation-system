@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "./api";
+import { StatusBadge } from "./components/StatusBadge";
 import type {
   AddOn,
   AvailabilityException,
@@ -29,14 +30,6 @@ function when(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
-}
-
-function Status({ value }: { value: string }) {
-  return (
-    <span className={`status-badge status-${value}`}>
-      {value.replaceAll("_", " ")}
-    </span>
-  );
 }
 
 export function AccountDashboard({
@@ -190,7 +183,7 @@ export function AccountDashboard({
                   {reservations.map((item) => (
                     <article className="data-card" key={item.id}>
                       <div>
-                        <Status value={item.status} />
+                        <StatusBadge value={item.status} />
                         <button
                           className="reservation-link"
                           onClick={() => onOpenReservation(item.id)}
@@ -397,7 +390,7 @@ function ReservationDetail({
           <h1>{workspace?.resource.name ?? "Reservation details"}</h1>
           {workspace && <p>{workspace.venue.name} · {workspace.venue.address}</p>}
         </div>
-        {workspace && <Status value={workspace.reservation.status} />}
+        {workspace && <StatusBadge value={workspace.reservation.status} />}
       </section>
       <section className="reservation-workspace" aria-live="polite">
         {error && <p className="dashboard-message error-message">{error}</p>}
@@ -718,7 +711,7 @@ export function OwnerDashboard({
                     <strong>{item.resource_name}</strong>
                     <small>{when(item.start_time)}</small>
                   </div>
-                  <Status value={item.status} />
+                  <StatusBadge value={item.status} />
                 </article>
               ))}
               {!reservations.length && (

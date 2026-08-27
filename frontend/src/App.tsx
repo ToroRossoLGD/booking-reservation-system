@@ -1,7 +1,9 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { api, googleLoginUrl } from "./api";
 import { AccountDashboard, OwnerDashboard } from "./Dashboard";
 import { VenueMap } from "./VenueMap";
+import { parseApplicationRoute } from "./routing";
 import type {
   AvailableResource,
   PopularVenue,
@@ -593,6 +595,8 @@ function BookingModal({
 }
 
 export default function App() {
+  const location = useLocation();
+  const routerNavigate = useNavigate();
   const [venues, setVenues] = useState<Venue[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
@@ -612,21 +616,9 @@ export default function App() {
   const [showPageGuide, setShowPageGuide] = useState(
     () => !hasDismissedPageGuide(),
   );
-  const [page, setPage] = useState<"home" | "account" | "owner">(() =>
-    window.location.pathname.startsWith("/owner")
-      ? "owner"
-      : window.location.pathname.startsWith("/account")
-        ? "account"
-        : "home",
+  const { page, reservationId, ownerVenueId } = parseApplicationRoute(
+    location.pathname,
   );
-  const [reservationId, setReservationId] = useState<number | undefined>(() => {
-    const match = window.location.pathname.match(/^\/account\/reservations\/(\d+)$/);
-    return match ? Number(match[1]) : undefined;
-  });
-  const [ownerVenueId, setOwnerVenueId] = useState<number | undefined>(() => {
-    const match = window.location.pathname.match(/^\/owner\/venues\/(\d+)$/);
-    return match ? Number(match[1]) : undefined;
-  });
   const [toast, setToast] = useState("");
   const [exploreView, setExploreView] = useState<"list" | "map">("list");
   const [searchDate, setSearchDate] = useState("");
@@ -684,23 +676,6 @@ export default function App() {
     document.addEventListener("pointerdown", closeMenus);
     return () => document.removeEventListener("pointerdown", closeMenus);
   }, []);
-  useEffect(() => {
-    const updatePage = () => {
-      setPage(
-        window.location.pathname.startsWith("/owner")
-          ? "owner"
-          : window.location.pathname.startsWith("/account")
-            ? "account"
-            : "home",
-      );
-      const match = window.location.pathname.match(/^\/account\/reservations\/(\d+)$/);
-      setReservationId(match ? Number(match[1]) : undefined);
-      const venueMatch = window.location.pathname.match(/^\/owner\/venues\/(\d+)$/);
-      setOwnerVenueId(venueMatch ? Number(venueMatch[1]) : undefined);
-    };
-    window.addEventListener("popstate", updatePage);
-    return () => window.removeEventListener("popstate", updatePage);
-  }, []);
   const filtered =
     availableMatches === null
       ? venues.filter((v) =>
@@ -721,8 +696,7 @@ export default function App() {
   }
   function navigate(nextPage: "home" | "account" | "owner") {
     const path = nextPage === "home" ? "/" : `/${nextPage}`;
-    window.history.pushState({}, "", path);
-    setPage(nextPage);
+    routerNavigate(path);
     closeHeaderMenus();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -948,13 +922,11 @@ export default function App() {
           reservationId={reservationId}
           onExplore={() => goHome("explore")}
           onOpenReservation={(id) => {
-            window.history.pushState({}, "", `/account/reservations/${id}`);
-            setReservationId(id);
+            routerNavigate(`/account/reservations/${id}`);
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
           onCloseReservation={() => {
-            window.history.pushState({}, "", "/account");
-            setReservationId(undefined);
+            routerNavigate("/account");
           }}
         />
       ) : page === "owner" && user && ["owner", "admin"].includes(user.role) ? (
@@ -962,13 +934,11 @@ export default function App() {
           venueId={ownerVenueId}
           onExplore={() => goHome("explore")}
           onOpenVenue={(id) => {
-            window.history.pushState({}, "", `/owner/venues/${id}`);
-            setOwnerVenueId(id);
+            routerNavigate(`/owner/venues/${id}`);
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
           onCloseVenue={() => {
-            window.history.pushState({}, "", "/owner");
-            setOwnerVenueId(undefined);
+            routerNavigate("/owner");
           }}
         />
       ) : (
