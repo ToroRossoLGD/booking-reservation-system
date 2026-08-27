@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from app.schemas.add_on import AddOnSelection, ReservationAddOnRead
 from app.schemas.payment import PaymentRead
+from app.schemas.reservation_event import ReservationEventRead
 
 
 class ReservationCreate(BaseModel):
@@ -118,6 +119,41 @@ class ReservationCancellationRead(BaseModel):
     cancellation_fee_cents: int
     applied_free_cancellation_hours: int
     applied_late_refund_percent: int
+
+
+class ReservationCancellationPreviewRead(BaseModel):
+    refund_percentage: int
+    refund_amount_cents: int
+    cancellation_fee_cents: int
+    applied_free_cancellation_hours: int
+    applied_late_refund_percent: int
+
+
+class ReservationResourceSummaryRead(BaseModel):
+    id: int
+    name: str
+    resource_type: str
+    capacity: int
+
+    model_config = {"from_attributes": True}
+
+
+class ReservationVenueSummaryRead(BaseModel):
+    id: int
+    name: str
+    address: str
+
+    model_config = {"from_attributes": True}
+
+
+class ReservationWorkspaceRead(BaseModel):
+    reservation: ReservationRead
+    resource: ReservationResourceSummaryRead
+    venue: ReservationVenueSummaryRead
+    payment: PaymentRead | None
+    timeline: list[ReservationEventRead]
+    allowed_actions: list[str]
+    cancellation_preview: ReservationCancellationPreviewRead | None
 
 
 class ReservationQuoteRead(BaseModel):

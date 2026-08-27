@@ -16,12 +16,14 @@ from app.schemas.reservation import (
     RecurringSeriesCancellationRead,
     RecurringSeriesCancellationRequest,
     ReminderDispatchRead,
+    ReservationCancellationPreviewRead,
     ReservationCancellationRead,
     ReservationCreate,
     ReservationListRead,
     ReservationQuoteRead,
     ReservationRead,
     ReservationReschedule,
+    ReservationWorkspaceRead,
 )
 from app.schemas.reservation_event import ReservationTimelineRead
 from app.services.reservation_reminder_service import ReservationReminderService
@@ -203,6 +205,21 @@ async def cancel_reservation(
 
 
 @router.get(
+    "/{reservation_id}/cancellation-preview",
+    response_model=ReservationCancellationPreviewRead,
+)
+async def preview_reservation_cancellation(
+    reservation_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await ReservationService(db).preview_cancellation(
+        reservation_id=reservation_id,
+        current_user=current_user,
+    )
+
+
+@router.get(
     "/resources/{resource_id}/availability",
     response_model=AvailabilityRead,
 )
@@ -253,6 +270,21 @@ async def get_reservation_timeline(
 ):
     service = ReservationService(db)
     return await service.get_reservation_timeline(reservation_id, current_user)
+
+
+@router.get(
+    "/{reservation_id}/workspace",
+    response_model=ReservationWorkspaceRead,
+)
+async def get_reservation_workspace(
+    reservation_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await ReservationService(db).get_reservation_workspace(
+        reservation_id=reservation_id,
+        current_user=current_user,
+    )
 
 
 @router.get(

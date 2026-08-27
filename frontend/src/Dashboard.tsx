@@ -8,6 +8,7 @@ import type {
   OwnerStats,
   OwnerVenue,
   Reservation,
+  ReservationWorkspace,
   User,
 } from "./types";
 
@@ -38,10 +39,16 @@ export function AccountDashboard({
   user,
   initialTab = "reservations",
   onExplore,
+  reservationId,
+  onOpenReservation,
+  onCloseReservation,
 }: {
   user: User;
   initialTab?: AccountTab;
   onExplore: () => void;
+  reservationId?: number;
+  onOpenReservation: (id: number) => void;
+  onCloseReservation: () => void;
 }) {
   const [tab, setTab] = useState<AccountTab>(initialTab);
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -67,6 +74,14 @@ export function AccountDashboard({
       )
       .finally(() => setLoading(false));
   }, [tab]);
+
+  if (reservationId)
+    return (
+      <ReservationDetail
+        reservationId={reservationId}
+        onBack={onCloseReservation}
+      />
+    );
 
   function chooseTab(nextTab: AccountTab) {
     setLoading(true);
@@ -172,7 +187,12 @@ export function AccountDashboard({
                     <article className="data-card" key={item.id}>
                       <div>
                         <Status value={item.status} />
-                        <h3>Resource #{item.resource_id}</h3>
+                        <button
+                          className="reservation-link"
+                          onClick={() => onOpenReservation(item.id)}
+                        >
+                          Reservation #{item.id}
+                        </button>
                         <p>
                           {when(item.start_time)} – {when(item.end_time)}
                         </p>
@@ -289,6 +309,157 @@ export function AccountDashboard({
           )}
         </section>
       </div>
+    </main>
+  );
+}
+
+function ReservationDetail({
+  reservationId,
+  onBack,
+}: {
+  reservationId: number;
+  onBack: () => void;
+}) {
+  const [workspace, setWorkspace] = useState<ReservationWorkspace | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [rescheduling, setRescheduling] = useState(false);
+
+  function load() {
+    setError("");
+    api.reservationWorkspace(reservationId).then(setWorkspace).catch((reason) =>
+      setError(reason instanceof Error ? reason.message : "Unable to load reservation"),
+    );
+  }
+
+  useEffect(() => {
+    api.reservationWorkspace(reservationId).then(setWorkspace).catch((reason) =>
+      setError(reason instanceof Error ? reason.message : "Unable to load reservation"),
+    );
+  }, [reservationId]);
+
+  async function cancel() {
+    setBusy(true);
+    try {
+      await api.cancelReservation(reservationId);
+      setConfirmingCancel(false);
+      load();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to cancel reservation");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function pay() {
+    setBusy(true);
+    try {
+      const checkout = await api.createCheckout(reservationId);
+      window.location.assign(checkout.checkout_url);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to start checkout");
+      setBusy(false);
+    }
+  }
+
+  async function reschedule(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const start = new Date(String(form.get("start")));
+    const duration = Number(form.get("duration"));
+    setBusy(true);
+    try {
+      await api.rescheduleReservation(
+        reservationId,
+        start.toISOString(),
+        new Date(start.getTime() + duration * 60_000).toISOString(),
+      );
+      setRescheduling(false);
+      load();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to reschedule reservation");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="dashboard-page reservation-detail-page">
+      <section className="dashboard-hero reservation-detail-hero">
+        <div>
+          <button className="back-link" onClick={onBack}>← My reservations</button>
+          <p className="eyebrow">Reservation #{reservationId}</p>
+          <h1>{workspace?.resource.name ?? "Reservation details"}</h1>
+          {workspace && <p>{workspace.venue.name} · {workspace.venue.address}</p>}
+        </div>
+        {workspace && <Status value={workspace.reservation.status} />}
+      </section>
+      <section className="reservation-workspace" aria-live="polite">
+        {error && <p className="dashboard-message error-message">{error}</p>}
+        {!workspace ? (
+          !error && <div className="dashboard-loading standalone">Loading reservation…</div>
+        ) : (
+          <>
+            <div className="reservation-overview">
+              <article>
+                <small>When</small>
+                <strong>{when(workspace.reservation.start_time)}</strong>
+                <span>Until {when(workspace.reservation.end_time)}</span>
+              </article>
+              <article>
+                <small>Guests</small>
+                <strong>{workspace.reservation.party_size}</strong>
+                <span>Capacity {workspace.resource.capacity}</span>
+              </article>
+              <article>
+                <small>Total</small>
+                <strong>{money(workspace.reservation.quoted_amount_cents, workspace.reservation.quoted_currency)}</strong>
+                <span>{workspace.payment ? `Payment ${workspace.payment.status}` : "Not paid"}</span>
+              </article>
+            </div>
+            <div className="reservation-detail-grid">
+              <section className="owner-panel">
+                <div className="dashboard-title"><div><p className="eyebrow">Progress</p><h2>Reservation history</h2></div></div>
+                <div className="timeline-list">
+                  {workspace.timeline.map((event) => (
+                    <article key={event.id}>
+                      <span />
+                      <div><strong>{event.event_type.replaceAll("_", " ")}</strong><small>{when(event.occurred_at)} · {event.actor_role}</small></div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+              <aside className="owner-panel action-panel">
+                <div className="dashboard-title"><div><p className="eyebrow">Manage</p><h2>Available actions</h2></div></div>
+                {workspace.allowed_actions.includes("pay") && <button className="button primary" disabled={busy} onClick={pay}>Pay reservation</button>}
+                {workspace.allowed_actions.includes("reschedule") && <button className="button secondary" disabled={busy} onClick={() => setRescheduling(true)}>Reschedule</button>}
+                {workspace.allowed_actions.includes("cancel") && <button className="danger-button" disabled={busy} onClick={() => setConfirmingCancel(true)}>Cancel reservation</button>}
+                {!workspace.allowed_actions.some((action) => ["pay", "reschedule", "cancel"].includes(action)) && <p className="muted-copy">This reservation has no pending actions.</p>}
+              </aside>
+            </div>
+          </>
+        )}
+      </section>
+      {confirmingCancel && workspace?.cancellation_preview && (
+        <div className="modal-backdrop">
+          <div className="management-modal" role="dialog" aria-modal="true" aria-labelledby="cancel-title">
+            <h2 id="cancel-title">Cancel reservation?</h2>
+            <p className="modal-copy">This applies the policy saved when you booked.</p>
+            <div className="cancellation-preview">
+              <span>Refund <strong>{money(workspace.cancellation_preview.refund_amount_cents, workspace.reservation.quoted_currency)}</strong></span>
+              <span>Cancellation fee <strong>{money(workspace.cancellation_preview.cancellation_fee_cents, workspace.reservation.quoted_currency)}</strong></span>
+            </div>
+            <div className="modal-actions"><button className="button secondary" onClick={() => setConfirmingCancel(false)}>Keep reservation</button><button className="danger-button" disabled={busy} onClick={cancel}>Confirm cancellation</button></div>
+          </div>
+        </div>
+      )}
+      {rescheduling && workspace && (
+        <FormModal title="Reschedule reservation" onClose={() => setRescheduling(false)} onSubmit={reschedule}>
+          <label>New date and time<input name="start" type="datetime-local" required /></label>
+          <label>Duration<select name="duration" defaultValue={(new Date(workspace.reservation.end_time).getTime() - new Date(workspace.reservation.start_time).getTime()) / 60_000}><option value="60">1 hour</option><option value="90">1.5 hours</option><option value="120">2 hours</option><option value="180">3 hours</option></select></label>
+        </FormModal>
+      )}
     </main>
   );
 }
