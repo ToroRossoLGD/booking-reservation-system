@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,7 @@ from app.schemas.analytics_pipeline import (
     AnalyticsPipelineRunRead,
     DailyVenueMetricRead,
 )
+from app.schemas.demand_forecast import ForecastMetric, VenueDemandForecastRead
 from app.schemas.demand_insights import VenueDemandInsightsRead
 from app.services.analytics_export_service import (
     AnalyticsExportService,
@@ -18,9 +19,35 @@ from app.services.analytics_export_service import (
 )
 from app.services.analytics_pipeline_service import AnalyticsPipelineService
 from app.services.analytics_service import AnalyticsService
+from app.services.demand_forecast_service import DemandForecastService
 from app.services.demand_insights_service import DemandInsightsService
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
+
+
+@router.get(
+    "/venues/{venue_id}/forecast",
+    response_model=VenueDemandForecastRead,
+)
+async def get_venue_demand_forecast(
+    venue_id: int,
+    metric: ForecastMetric = Query(default=ForecastMetric.RESERVATIONS),
+    as_of_date: date = Query(default_factory=lambda: datetime.now(UTC).date()),
+    horizon_days: int = Query(default=7),
+    history_days: int = Query(default=84),
+    currency: str | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("owner", "admin")),
+):
+    return await DemandForecastService(db).forecast(
+        venue_id=venue_id,
+        metric=metric,
+        as_of_date=as_of_date,
+        horizon_days=horizon_days,
+        history_days=history_days,
+        currency=currency,
+        current_user=current_user,
+    )
 
 
 @router.post("/pipeline/refresh", response_model=AnalyticsPipelineRunRead)
