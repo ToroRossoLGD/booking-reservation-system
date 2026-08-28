@@ -62,9 +62,7 @@ class AnalyticsPipelineService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You can view analytics only for your own venues",
             )
-        return await self.repository.get_venue_metrics(
-            venue_id, start_date, end_date
-        )
+        return await self.repository.get_venue_metrics(venue_id, start_date, end_date)
 
     @classmethod
     def _validate_range(cls, start_date: date, end_date: date) -> None:
@@ -87,9 +85,7 @@ class AnalyticsPipelineService:
             "booked_capacity_minutes": 0,
             "cancelled_count": 0,
             "no_show_count": 0,
-            "reservations_by_status": {
-                item.value: 0 for item in ReservationStatus
-            },
+            "reservations_by_status": {item.value: 0 for item in ReservationStatus},
             "revenue_by_currency": {},
         }
 
@@ -112,15 +108,11 @@ class AnalyticsPipelineService:
 
         refreshed_at = datetime.now(UTC)
         venues = [
-            DailyVenueMetric(
-                **cls._model_values(values), refreshed_at=refreshed_at
-            )
+            DailyVenueMetric(**cls._model_values(values), refreshed_at=refreshed_at)
             for values in venue_buckets.values()
         ]
         resources = [
-            DailyResourceMetric(
-                **cls._model_values(values), refreshed_at=refreshed_at
-            )
+            DailyResourceMetric(**cls._model_values(values), refreshed_at=refreshed_at)
             for values in resource_buckets.values()
         ]
         return venues, resources
@@ -135,8 +127,7 @@ class AnalyticsPipelineService:
             minutes = max(
                 0,
                 int(
-                    (reservation.end_time - reservation.start_time).total_seconds()
-                    / 60
+                    (reservation.end_time - reservation.start_time).total_seconds() / 60
                 ),
             )
             bucket["booked_minutes"] += minutes
@@ -171,9 +162,7 @@ class AnalyticsPipelineService:
         for venue in venues:
             children = resource_groups[(venue.metric_date, venue.venue_id)]
             for field in cls.ADDITIVE_FIELDS:
-                resource_total = sum(
-                    getattr(item, field) for item in children
-                )
+                resource_total = sum(getattr(item, field) for item in children)
                 if getattr(venue, field) != resource_total:
                     raise ValueError(
                         f"Analytics reconciliation failed for {field} on "
@@ -182,9 +171,7 @@ class AnalyticsPipelineService:
                 checks += 1
             currencies = set(venue.revenue_by_currency)
             currencies.update(
-                currency
-                for child in children
-                for currency in child.revenue_by_currency
+                currency for child in children for currency in child.revenue_by_currency
             )
             for currency in currencies:
                 for field in ("gross", "refunded", "net"):

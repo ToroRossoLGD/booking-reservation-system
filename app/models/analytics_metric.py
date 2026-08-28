@@ -37,9 +37,7 @@ class DailyVenueMetric(Base):
 class DailyResourceMetric(Base):
     __tablename__ = "daily_resource_metrics"
     __table_args__ = (
-        UniqueConstraint(
-            "metric_date", "resource_id", name="uq_daily_resource_metric"
-        ),
+        UniqueConstraint("metric_date", "resource_id", name="uq_daily_resource_metric"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

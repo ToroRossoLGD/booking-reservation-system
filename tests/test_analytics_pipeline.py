@@ -119,9 +119,7 @@ async def test_empty_backfill_replaces_range_with_no_metrics():
 
 def test_backfill_range_is_bounded():
     with pytest.raises(ValueError, match="cannot exceed 366 days"):
-        AnalyticsPipelineService._validate_range(
-            date(2025, 1, 1), date(2026, 1, 2)
-        )
+        AnalyticsPipelineService._validate_range(date(2025, 1, 1), date(2026, 1, 2))
 
 
 @pytest.mark.asyncio
