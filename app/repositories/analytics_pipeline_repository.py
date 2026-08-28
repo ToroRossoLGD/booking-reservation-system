@@ -62,3 +62,8 @@ class AnalyticsPipelineRepository:
             .order_by(DailyVenueMetric.metric_date)
         )
         return list(result.scalars().all())
+
+    async def get_venue_metric_history(
+        self, venue_id: int, start_date: date, end_date: date
+    ) -> list[DailyVenueMetric]:
+        return await self.get_venue_metrics(venue_id, start_date, end_date)
