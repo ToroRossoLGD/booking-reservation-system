@@ -1,3 +1,4 @@
+from app.models.analytics_metric import DailyResourceMetric, DailyVenueMetric
 from app.models.api_key import APIKey
 from app.models.availability_exception import AvailabilityException
 from app.models.availability_rule import AvailabilityRule
@@ -29,6 +30,8 @@ from app.models.webhook import WebhookDelivery, WebhookSubscription
 __all__ = [
     "User",
     "APIKey",
+    "DailyVenueMetric",
+    "DailyResourceMetric",
     "Venue",
     "VenueStaff",
     "VenueCustomerBlock",

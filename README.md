@@ -36,6 +36,7 @@ Bookica is a full-stack booking and reservation platform for discovering venues,
 - Payments, refunds, add-ons, promotion codes, and customer access controls
 - Maintenance work orders, reservation reminders, no-show handling, and audit history
 - Venue analytics, demand insights, and CSV exports
+- Nightly analytics ETL with persisted venue/resource metrics and reconciliation checks
 - Review moderation, API keys, webhooks, and webhook-delivery retries
 - Background processing with Celery and Redis
 - Development email delivery through MailHog

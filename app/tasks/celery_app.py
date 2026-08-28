@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.schedules import crontab
 
 from app.core.config import settings
 
@@ -9,6 +10,7 @@ celery_app = Celery(
     include=[
         "app.tasks.reservation_tasks",
         "app.tasks.webhook_tasks",
+        "app.tasks.analytics_tasks",
     ],
 )
 
@@ -34,6 +36,12 @@ celery_app.conf.update(
         "deliver-due-webhooks-periodically": {
             "task": "deliver_due_webhooks_task",
             "schedule": settings.CELERY_WEBHOOK_INTERVAL_SECONDS,
+        },
+        "refresh-daily-analytics": {
+            "task": "refresh_daily_analytics_task",
+            "schedule": crontab(
+                hour=settings.CELERY_ANALYTICS_REFRESH_HOUR_UTC, minute=0
+            ),
         },
     },
 )
