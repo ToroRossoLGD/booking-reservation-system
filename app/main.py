@@ -1,5 +1,9 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.routers.add_ons import router as add_ons_router
 from app.api.routers.admin import router as admin_router
@@ -34,6 +38,7 @@ from app.api.routers.waitlist import router as waitlist_router
 from app.api.routers.waivers import router as waivers_router
 from app.api.routers.webhooks import router as webhooks_router
 from app.core.config import settings
+from app.db.session import get_db
 
 app = FastAPI(title=settings.APP_NAME)
 app.add_middleware(
@@ -52,6 +57,19 @@ app.add_middleware(
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+
+@app.get("/ready")
+async def readiness_check(db: AsyncSession = Depends(get_db)):
+    try:
+        await db.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        return JSONResponse(
+            status_code=503,
+            content={"status": "not_ready", "database": "unavailable"},
+        )
+
+    return {"status": "ready", "database": "available"}
 
 
 app.include_router(auth_router)
