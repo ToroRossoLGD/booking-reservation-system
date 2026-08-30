@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,4 +72,43 @@ class NotificationRepository:
 
         result = await self.db.execute(query)
 
+        return result.scalar_one()
+
+    async def get_by_id_for_user(
+        self,
+        notification_id: int,
+        user_id: int,
+    ) -> Notification | None:
+        result = await self.db.execute(
+            select(Notification).where(
+                Notification.id == notification_id,
+                Notification.user_id == user_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def mark_as_read(self, notification: Notification) -> Notification:
+        notification.is_read = True
+        await self.db.commit()
+        await self.db.refresh(notification)
+        return notification
+
+    async def mark_all_as_read(self, user_id: int) -> None:
+        await self.db.execute(
+            update(Notification)
+            .where(
+                Notification.user_id == user_id,
+                Notification.is_read.is_(False),
+            )
+            .values(is_read=True)
+        )
+        await self.db.commit()
+
+    async def count_unread(self, user_id: int) -> int:
+        result = await self.db.execute(
+            select(func.count(Notification.id)).where(
+                Notification.user_id == user_id,
+                Notification.is_read.is_(False),
+            )
+        )
         return result.scalar_one()
