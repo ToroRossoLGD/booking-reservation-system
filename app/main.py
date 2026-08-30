@@ -1,9 +1,12 @@
+from uuid import UUID, uuid4
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
 
 from app.api.routers.add_ons import router as add_ons_router
 from app.api.routers.admin import router as admin_router
@@ -51,7 +54,26 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
+
+
+def request_id_from_header(value: str | None) -> str:
+    if value:
+        try:
+            return str(UUID(value))
+        except ValueError:
+            pass
+    return str(uuid4())
+
+
+@app.middleware("http")
+async def attach_request_id(request: Request, call_next):
+    request_id = request_id_from_header(request.headers.get("X-Request-ID"))
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
 @app.get("/health")
