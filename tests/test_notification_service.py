@@ -137,3 +137,41 @@ async def test_bulk_read_and_unread_count_delegate_with_user_scope():
     assert result == 3
     service.notification_repository.mark_all_as_read.assert_awaited_once_with(7)
     service.notification_repository.count_unread.assert_awaited_once_with(7)
+
+
+@pytest.mark.asyncio
+async def test_dismiss_notification_rejects_unknown_or_unowned_notification():
+    service = notification_service()
+    service.notification_repository.get_by_id_for_user = AsyncMock(return_value=None)
+
+    with pytest.raises(HTTPException) as error:
+        await service.dismiss_notification(notification_id=99, user_id=7)
+
+    assert error.value.status_code == 404
+    assert error.value.detail == "Notification not found"
+    service.notification_repository.delete.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_dismiss_notification_deletes_owned_notification():
+    service = notification_service()
+    notification = SimpleNamespace(id=12, user_id=7)
+    service.notification_repository.get_by_id_for_user = AsyncMock(
+        return_value=notification
+    )
+    service.notification_repository.delete = AsyncMock()
+
+    await service.dismiss_notification(notification_id=12, user_id=7)
+
+    service.notification_repository.delete.assert_awaited_once_with(notification)
+
+
+@pytest.mark.asyncio
+async def test_dismiss_read_notifications_delegates_with_user_scope():
+    service = notification_service()
+    service.notification_repository.delete_read_by_user_id = AsyncMock(return_value=4)
+
+    result = await service.dismiss_read_notifications(user_id=7)
+
+    assert result == 4
+    service.notification_repository.delete_read_by_user_id.assert_awaited_once_with(7)

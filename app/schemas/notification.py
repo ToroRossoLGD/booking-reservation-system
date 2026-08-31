@@ -18,6 +18,10 @@ class UnreadNotificationCount(BaseModel):
     unread_count: int
 
 
+class DismissedNotificationCount(BaseModel):
+    dismissed_count: int
+
+
 class NotificationListRead(BaseModel):
     items: list[NotificationRead]
     total: int

@@ -127,3 +127,23 @@ class NotificationService:
         user_id: int,
     ) -> int:
         return await self.notification_repository.count_unread(user_id)
+
+    async def dismiss_notification(
+        self,
+        notification_id: int,
+        user_id: int,
+    ) -> None:
+        notification = await self.notification_repository.get_by_id_for_user(
+            notification_id=notification_id,
+            user_id=user_id,
+        )
+        if notification is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Notification not found",
+            )
+
+        await self.notification_repository.delete(notification)
+
+    async def dismiss_read_notifications(self, user_id: int) -> int:
+        return await self.notification_repository.delete_read_by_user_id(user_id)
