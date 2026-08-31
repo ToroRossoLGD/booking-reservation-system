@@ -132,6 +132,59 @@ export function AccountDashboard({
     }
   }
 
+  async function markNotificationRead(id: number) {
+    try {
+      const updated = await api.markNotificationRead(id);
+      setNotifications((items) =>
+        items.map((item) => (item.id === id ? updated : item)),
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Unable to update notification",
+      );
+    }
+  }
+
+  async function markAllNotificationsRead() {
+    try {
+      await api.markAllNotificationsRead();
+      setNotifications((items) =>
+        items.map((item) => ({ ...item, is_read: true })),
+      );
+      setMessage("All notifications marked as read.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Unable to update notifications",
+      );
+    }
+  }
+
+  async function dismissNotification(id: number) {
+    try {
+      await api.dismissNotification(id);
+      setNotifications((items) => items.filter((item) => item.id !== id));
+      setMessage("Notification dismissed.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Unable to dismiss notification",
+      );
+    }
+  }
+
+  async function clearReadNotifications() {
+    try {
+      const result = await api.dismissReadNotifications();
+      setNotifications((items) => items.filter((item) => !item.is_read));
+      setMessage(
+        `${result.dismissed_count} read notification${result.dismissed_count === 1 ? "" : "s"} cleared.`,
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Unable to clear notifications",
+      );
+    }
+  }
+
   return (
     <main className="dashboard-page">
       <section className="dashboard-hero">
@@ -280,6 +333,24 @@ export function AccountDashboard({
                   {notifications.filter((item) => !item.is_read).length} unread
                 </span>
               </div>
+              {notifications.length > 0 && (
+                <div className="notification-toolbar">
+                  <button
+                    className="button secondary"
+                    disabled={notifications.every((item) => item.is_read)}
+                    onClick={markAllNotificationsRead}
+                  >
+                    Mark all read
+                  </button>
+                  <button
+                    className="button secondary"
+                    disabled={notifications.every((item) => !item.is_read)}
+                    onClick={clearReadNotifications}
+                  >
+                    Clear read
+                  </button>
+                </div>
+              )}
               {notifications.length ? (
                 <div className="notification-list">
                   {notifications.map((item) => (
@@ -287,11 +358,21 @@ export function AccountDashboard({
                       className={item.is_read ? "read" : ""}
                       key={item.id}
                     >
-                      <span />
-                      <div>
+                      <span aria-hidden="true" />
+                      <div className="notification-body">
                         <h3>{item.title}</h3>
                         <p>{item.message}</p>
                         <small>{when(item.created_at)}</small>
+                      </div>
+                      <div className="notification-actions">
+                        {!item.is_read && (
+                          <button onClick={() => markNotificationRead(item.id)}>
+                            Mark read
+                          </button>
+                        )}
+                        <button onClick={() => dismissNotification(item.id)}>
+                          Dismiss
+                        </button>
                       </div>
                     </article>
                   ))}

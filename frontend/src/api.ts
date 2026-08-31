@@ -166,6 +166,18 @@ export const api = {
     request(`/favorites/resources/${resourceId}`, { method: "DELETE" }),
   notifications: () =>
     request<PageResult<Notification>>("/notifications/my?limit=50"),
+  markNotificationRead: (notificationId: number) =>
+    request<Notification>(`/notifications/${notificationId}/read`, {
+      method: "PATCH",
+    }),
+  markAllNotificationsRead: () =>
+    request<void>("/notifications/read-all", { method: "POST" }),
+  dismissNotification: (notificationId: number) =>
+    request<void>(`/notifications/${notificationId}`, { method: "DELETE" }),
+  dismissReadNotifications: () =>
+    request<{ dismissed_count: number }>("/notifications/read", {
+      method: "DELETE",
+    }),
   ownerVenues: () => request<OwnerVenue[]>("/owner/venues"),
   ownerResources: () => request<OwnerResource[]>("/owner/resources"),
   ownerReservations: () => request<OwnerReservation[]>("/owner/reservations"),
