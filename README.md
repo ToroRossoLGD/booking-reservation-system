@@ -25,7 +25,7 @@ Bookica is a full-stack booking and reservation platform for discovering venues,
 - Server-calculated quotes, promotion codes, and expiring reservation holds
 - Email/password authentication, Google OAuth, and password recovery
 - Secure check-in passes, reservation guests, transfers, waitlists, and waivers
-- Favorites, reviews, manageable notification inboxes, support tickets, and calendar feeds
+- Favorites, reviews, interactive notification inboxes, support tickets, and calendar feeds
 - First-visit page guide that remains dismissed with a browser cookie
 - Accessible dropdown navigation, mobile menus, dialogs, drawers, and venue cards
 
