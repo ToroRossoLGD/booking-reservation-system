@@ -1,4 +1,4 @@
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -112,3 +112,17 @@ class NotificationRepository:
             )
         )
         return result.scalar_one()
+
+    async def delete(self, notification: Notification) -> None:
+        await self.db.delete(notification)
+        await self.db.commit()
+
+    async def delete_read_by_user_id(self, user_id: int) -> int:
+        result = await self.db.execute(
+            delete(Notification).where(
+                Notification.user_id == user_id,
+                Notification.is_read.is_(True),
+            )
+        )
+        await self.db.commit()
+        return result.rowcount

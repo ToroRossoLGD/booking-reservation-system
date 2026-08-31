@@ -5,6 +5,7 @@ from app.core.dependencies import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.notification import (
+    DismissedNotificationCount,
     NotificationListRead,
     NotificationRead,
     UnreadNotificationCount,
@@ -65,4 +66,28 @@ async def mark_all_notifications_as_read(
     current_user: User = Depends(get_current_user),
 ):
     await NotificationService(db).mark_all_notifications_as_read(current_user.id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete("/read", response_model=DismissedNotificationCount)
+async def dismiss_read_notifications(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    dismissed_count = await NotificationService(db).dismiss_read_notifications(
+        current_user.id
+    )
+    return DismissedNotificationCount(dismissed_count=dismissed_count)
+
+
+@router.delete("/{notification_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def dismiss_notification(
+    notification_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    await NotificationService(db).dismiss_notification(
+        notification_id=notification_id,
+        user_id=current_user.id,
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
