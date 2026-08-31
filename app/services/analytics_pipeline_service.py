@@ -4,12 +4,20 @@ from datetime import UTC, date, datetime, timedelta
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.analytics_metric import DailyResourceMetric, DailyVenueMetric
+from app.models.analytics_metric import (
+    AnalyticsPipelineRun,
+    DailyResourceMetric,
+    DailyVenueMetric,
+)
 from app.models.reservation import AttendanceStatus, ReservationStatus
 from app.models.user import User
 from app.repositories.analytics_pipeline_repository import AnalyticsPipelineRepository
 from app.repositories.venue_repository import VenueRepository
-from app.schemas.analytics_pipeline import AnalyticsPipelineRunRead
+from app.schemas.analytics_pipeline import (
+    AnalyticsPipelineRunListRead,
+    AnalyticsPipelineRunRead,
+    AnalyticsPipelineTrigger,
+)
 from app.services.analytics_service import AnalyticsService
 
 
@@ -28,14 +36,26 @@ class AnalyticsPipelineService:
         self.venue_repository = VenueRepository(db)
 
     async def refresh(
-        self, start_date: date, end_date: date
+        self,
+        start_date: date,
+        end_date: date,
+        trigger: AnalyticsPipelineTrigger = AnalyticsPipelineTrigger.MANUAL,
     ) -> AnalyticsPipelineRunRead:
         self._validate_range(start_date, end_date)
         rows = await self.repository.get_source_rows(start_date, end_date)
         venue_metrics, resource_metrics = self._aggregate(rows)
         checks = self._validate_reconciliation(venue_metrics, resource_metrics)
+        run = AnalyticsPipelineRun(
+            start_date=start_date,
+            end_date=end_date,
+            trigger=trigger.value,
+            source_reservation_count=len(rows),
+            venue_metric_count=len(venue_metrics),
+            resource_metric_count=len(resource_metrics),
+            quality_checks_passed=checks,
+        )
         await self.repository.replace_range(
-            start_date, end_date, venue_metrics, resource_metrics
+            start_date, end_date, venue_metrics, resource_metrics, run
         )
         return AnalyticsPipelineRunRead(
             start_date=start_date,
@@ -44,6 +64,26 @@ class AnalyticsPipelineService:
             venue_metric_count=len(venue_metrics),
             resource_metric_count=len(resource_metrics),
             quality_checks_passed=checks,
+        )
+
+    async def get_pipeline_runs(
+        self, limit: int, offset: int
+    ) -> AnalyticsPipelineRunListRead:
+        if limit < 1 or limit > 100:
+            raise HTTPException(
+                status_code=400, detail="limit must be between 1 and 100"
+            )
+        if offset < 0:
+            raise HTTPException(
+                status_code=400, detail="offset must be greater than or equal to 0"
+            )
+        items, total = await self.repository.get_pipeline_runs(limit, offset)
+        return AnalyticsPipelineRunListRead(
+            items=items,
+            total=total,
+            limit=limit,
+            offset=offset,
+            has_next=offset + limit < total,
         )
 
     async def get_venue_metrics(
@@ -191,4 +231,6 @@ class AnalyticsPipelineService:
 
     async def refresh_yesterday(self) -> AnalyticsPipelineRunRead:
         yesterday = datetime.now(UTC).date() - timedelta(days=1)
-        return await self.refresh(yesterday, yesterday)
+        return await self.refresh(
+            yesterday, yesterday, trigger=AnalyticsPipelineTrigger.SCHEDULED
+        )

@@ -1,4 +1,8 @@
-from app.models.analytics_metric import DailyResourceMetric, DailyVenueMetric
+from app.models.analytics_metric import (
+    AnalyticsPipelineRun,
+    DailyResourceMetric,
+    DailyVenueMetric,
+)
 from app.models.api_key import APIKey
 from app.models.availability_exception import AvailabilityException
 from app.models.availability_rule import AvailabilityRule
@@ -32,6 +36,7 @@ __all__ = [
     "APIKey",
     "DailyVenueMetric",
     "DailyResourceMetric",
+    "AnalyticsPipelineRun",
     "Venue",
     "VenueStaff",
     "VenueCustomerBlock",

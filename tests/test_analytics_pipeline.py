@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException
 
+from app.schemas.analytics_pipeline import AnalyticsPipelineTrigger
 from app.services.analytics_pipeline_service import AnalyticsPipelineService
 
 
@@ -85,6 +86,12 @@ async def test_refresh_builds_reconciled_daily_metrics():
         "EUR": {"gross": 9000, "refunded": 3000, "net": 6000},
         "USD": {"gross": 2000, "refunded": 0, "net": 2000},
     }
+    run = args[4]
+    assert run.trigger == "manual"
+    assert run.source_reservation_count == 3
+    assert run.venue_metric_count == 1
+    assert run.resource_metric_count == 2
+    assert run.quality_checks_passed == 11
 
 
 @pytest.mark.asyncio
@@ -112,14 +119,79 @@ async def test_empty_backfill_replaces_range_with_no_metrics():
     result = await service.refresh(date(2026, 8, 20), date(2026, 8, 21))
 
     assert result.source_reservation_count == 0
-    service.repository.replace_range.assert_awaited_once_with(
-        date(2026, 8, 20), date(2026, 8, 21), [], []
-    )
+    call = service.repository.replace_range.await_args
+    assert call.args[:4] == (date(2026, 8, 20), date(2026, 8, 21), [], [])
+    assert call.args[4].source_reservation_count == 0
 
 
 def test_backfill_range_is_bounded():
     with pytest.raises(ValueError, match="cannot exceed 366 days"):
         AnalyticsPipelineService._validate_range(date(2025, 1, 1), date(2026, 1, 2))
+
+
+@pytest.mark.asyncio
+async def test_scheduled_refresh_records_trigger():
+    service = AnalyticsPipelineService(AsyncMock())
+    service.repository.get_source_rows = AsyncMock(return_value=[])
+    service.repository.replace_range = AsyncMock()
+
+    await service.refresh(
+        date(2026, 8, 27),
+        date(2026, 8, 27),
+        trigger=AnalyticsPipelineTrigger.SCHEDULED,
+    )
+
+    run = service.repository.replace_range.await_args.args[4]
+    assert run.trigger == "scheduled"
+
+
+@pytest.mark.asyncio
+async def test_pipeline_run_history_is_paginated():
+    service = AnalyticsPipelineService(AsyncMock())
+    completed_at = datetime(2026, 8, 28, 2, tzinfo=UTC)
+    service.repository.get_pipeline_runs = AsyncMock(
+        return_value=(
+            [
+                SimpleNamespace(
+                    id=4,
+                    start_date=date(2026, 8, 27),
+                    end_date=date(2026, 8, 27),
+                    trigger="scheduled",
+                    source_reservation_count=5,
+                    venue_metric_count=2,
+                    resource_metric_count=3,
+                    quality_checks_passed=16,
+                    completed_at=completed_at,
+                )
+            ],
+            3,
+        )
+    )
+
+    result = await service.get_pipeline_runs(limit=1, offset=1)
+
+    assert result.total == 3
+    assert result.has_next is True
+    assert result.items[0].id == 4
+    assert result.items[0].trigger == AnalyticsPipelineTrigger.SCHEDULED
+    service.repository.get_pipeline_runs.assert_awaited_once_with(1, 1)
+
+
+@pytest.mark.parametrize(("limit", "detail"), [(0, "limit"), (101, "limit")])
+@pytest.mark.asyncio
+async def test_pipeline_run_history_rejects_invalid_limit(limit, detail):
+    service = AnalyticsPipelineService(AsyncMock())
+
+    with pytest.raises(HTTPException, match=detail):
+        await service.get_pipeline_runs(limit=limit, offset=0)
+
+
+@pytest.mark.asyncio
+async def test_pipeline_run_history_rejects_negative_offset():
+    service = AnalyticsPipelineService(AsyncMock())
+
+    with pytest.raises(HTTPException, match="offset"):
+        await service.get_pipeline_runs(limit=20, offset=-1)
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,14 @@
 from datetime import UTC, date, datetime
 
-from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -62,4 +70,23 @@ class DailyResourceMetric(Base):
     revenue_by_currency: Mapped[dict] = mapped_column(JSON, nullable=False)
     refreshed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+
+
+class AnalyticsPipelineRun(Base):
+    __tablename__ = "analytics_pipeline_runs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    trigger: Mapped[str] = mapped_column(String(20), nullable=False)
+    source_reservation_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    venue_metric_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    resource_metric_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    quality_checks_passed: Mapped[int] = mapped_column(Integer, nullable=False)
+    completed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        index=True,
     )

@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.analytics import VenueAnalyticsRead
 from app.schemas.analytics_pipeline import (
+    AnalyticsPipelineRunListRead,
     AnalyticsPipelineRunRead,
     DailyVenueMetricRead,
 )
@@ -61,6 +62,16 @@ async def refresh_analytics_pipeline(
         return await AnalyticsPipelineService(db).refresh(start_date, end_date)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/pipeline/runs", response_model=AnalyticsPipelineRunListRead)
+async def get_analytics_pipeline_runs(
+    limit: int = Query(default=20),
+    offset: int = Query(default=0),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("admin")),
+):
+    return await AnalyticsPipelineService(db).get_pipeline_runs(limit, offset)
 
 
 @router.get(

@@ -14,7 +14,8 @@ and one row per resource/day in `daily_venue_metrics` and `daily_resource_metric
 4. Data-quality checks reconcile every additive venue metric and revenue amount to its
    resource-level children.
 5. In one database transaction, the loader deletes and recreates the requested dates.
-   This makes retries and historical backfills idempotent.
+   It also records the refresh metadata in `analytics_pipeline_runs`. This makes retries
+   and historical backfills idempotent while preserving an operational audit trail.
 
 Only payment states recognized by the existing analytics service contribute revenue.
 Currency values remain separate; amounts with different currencies are never added.
@@ -33,6 +34,16 @@ Owners and administrators can query persisted venue metrics with:
 ```http
 GET /analytics/venues/7/warehouse?start_date=2026-08-01&end_date=2026-08-27
 ```
+
+Administrators can inspect manual and scheduled refresh history with:
+
+```http
+GET /analytics/pipeline/runs?limit=20&offset=0
+```
+
+Each run records its covered date range, trigger, completion time, source reservation
+count, generated venue/resource rows, and passed reconciliation checks. A run appears
+only when the warehouse replacement and audit record commit successfully together.
 
 The operational analytics endpoints remain available. The warehouse endpoint is meant
 for dashboards, BI exports, and future forecasting without repeatedly scanning raw
