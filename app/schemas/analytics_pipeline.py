@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from enum import Enum
 
 from pydantic import BaseModel, ConfigDict
 
@@ -26,3 +27,24 @@ class AnalyticsPipelineRunRead(BaseModel):
     venue_metric_count: int
     resource_metric_count: int
     quality_checks_passed: int
+
+
+class AnalyticsPipelineTrigger(str, Enum):
+    MANUAL = "manual"
+    SCHEDULED = "scheduled"
+
+
+class AnalyticsPipelineRunHistoryRead(AnalyticsPipelineRunRead):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    trigger: AnalyticsPipelineTrigger
+    completed_at: datetime
+
+
+class AnalyticsPipelineRunListRead(BaseModel):
+    items: list[AnalyticsPipelineRunHistoryRead]
+    total: int
+    limit: int
+    offset: int
+    has_next: bool

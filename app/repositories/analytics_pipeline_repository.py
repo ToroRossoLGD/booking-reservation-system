@@ -1,9 +1,13 @@
 from datetime import UTC, date, datetime, time, timedelta
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.analytics_metric import DailyResourceMetric, DailyVenueMetric
+from app.models.analytics_metric import (
+    AnalyticsPipelineRun,
+    DailyResourceMetric,
+    DailyVenueMetric,
+)
 from app.models.payment import Payment
 from app.models.reservation import Reservation
 from app.models.resource import Resource
@@ -34,6 +38,7 @@ class AnalyticsPipelineRepository:
         end_date: date,
         venue_metrics: list[DailyVenueMetric],
         resource_metrics: list[DailyResourceMetric],
+        pipeline_run: AnalyticsPipelineRun,
     ) -> None:
         filters = (
             DailyResourceMetric.metric_date >= start_date,
@@ -46,8 +51,22 @@ class AnalyticsPipelineRepository:
                 DailyVenueMetric.metric_date <= end_date,
             )
         )
-        self.db.add_all([*venue_metrics, *resource_metrics])
+        self.db.add_all([*venue_metrics, *resource_metrics, pipeline_run])
         await self.db.commit()
+
+    async def get_pipeline_runs(
+        self, limit: int, offset: int
+    ) -> tuple[list[AnalyticsPipelineRun], int]:
+        result = await self.db.execute(
+            select(AnalyticsPipelineRun)
+            .order_by(AnalyticsPipelineRun.completed_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        count_result = await self.db.execute(
+            select(func.count(AnalyticsPipelineRun.id))
+        )
+        return list(result.scalars().all()), count_result.scalar_one()
 
     async def get_venue_metrics(
         self, venue_id: int, start_date: date, end_date: date
