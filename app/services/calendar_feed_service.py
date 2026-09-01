@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.models.calendar_feed import CalendarFeed
 from app.models.user import User
 from app.repositories.calendar_feed_repository import CalendarFeedRepository
+from app.repositories.reservation_repository import ReservationRepository
 from app.repositories.resource_repository import ResourceRepository
 from app.repositories.venue_repository import VenueRepository
 from app.repositories.venue_staff_repository import VenueStaffRepository
@@ -20,6 +21,7 @@ from app.schemas.calendar_feed import CalendarFeedCreate
 class CalendarFeedService:
     def __init__(self, db: AsyncSession):
         self.repository = CalendarFeedRepository(db)
+        self.reservation_repository = ReservationRepository(db)
         self.venue_repository = VenueRepository(db)
         self.resource_repository = ResourceRepository(db)
         self.staff_repository = VenueStaffRepository(db)
@@ -147,14 +149,14 @@ class CalendarFeedService:
         lines.append(current)
         return lines
 
-    def _render(self, feed: CalendarFeed, entries: list[tuple]) -> str:
+    def _render_entries(self, calendar_name: str, entries: list[tuple]) -> str:
         lines = [
             "BEGIN:VCALENDAR",
             "VERSION:2.0",
             "PRODID:-//Booking Reservation System//Calendar Feed//EN",
             "CALSCALE:GREGORIAN",
             "METHOD:PUBLISH",
-            f"X-WR-CALNAME:{self._escape(feed.name)}",
+            f"X-WR-CALNAME:{self._escape(calendar_name)}",
         ]
         for reservation, resource, venue in entries:
             calendar_status = (
@@ -178,6 +180,31 @@ class CalendarFeedService:
         lines.append("END:VCALENDAR")
         folded = [physical for logical in lines for physical in self._fold(logical)]
         return "\r\n".join(folded) + "\r\n"
+
+    def _render(self, feed: CalendarFeed, entries: list[tuple]) -> str:
+        return self._render_entries(feed.name, entries)
+
+    async def render_reservation(self, reservation_id: int, user: User) -> str:
+        reservation = await self.reservation_repository.get_by_id(reservation_id)
+        if reservation is None:
+            raise HTTPException(status_code=404, detail="Reservation not found")
+        if user.role != "admin" and reservation.user_id != user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You can download only your own reservation",
+            )
+
+        resource = await self.resource_repository.get_by_id(reservation.resource_id)
+        if resource is None:
+            raise HTTPException(status_code=404, detail="Resource not found")
+        venue = await self.venue_repository.get_by_id(resource.venue_id)
+        if venue is None:
+            raise HTTPException(status_code=404, detail="Venue not found")
+
+        return self._render_entries(
+            f"Reservation #{reservation.id}",
+            [(reservation, resource, venue)],
+        )
 
     async def render(
         self, token: str, current_time: datetime | None = None

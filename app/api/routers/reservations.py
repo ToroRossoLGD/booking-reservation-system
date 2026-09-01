@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, require_roles
@@ -26,6 +26,7 @@ from app.schemas.reservation import (
     ReservationWorkspaceRead,
 )
 from app.schemas.reservation_event import ReservationTimelineRead
+from app.services.calendar_feed_service import CalendarFeedService
 from app.services.reservation_reminder_service import ReservationReminderService
 from app.services.reservation_service import ReservationService
 from app.tasks.reservation_tasks import (
@@ -182,6 +183,26 @@ async def get_my_reservations(
         limit=limit,
         offset=offset,
         status_filter=status,
+    )
+
+
+@router.get("/{reservation_id}/calendar.ics", response_class=Response)
+async def download_reservation_calendar_event(
+    reservation_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    content = await CalendarFeedService(db).render_reservation(
+        reservation_id, current_user
+    )
+    return Response(
+        content=content,
+        media_type="text/calendar; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="reservation-{reservation_id}.ics"'
+            )
+        },
     )
 
 
