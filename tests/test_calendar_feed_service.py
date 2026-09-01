@@ -6,6 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.routers.calendar_feeds import get_calendar_feed
+from app.api.routers.reservations import download_reservation_calendar_event
 from app.core.config import settings
 from app.schemas.calendar_feed import CalendarFeedCreate
 from app.services.calendar_feed_service import CalendarFeedService
@@ -215,6 +216,55 @@ def test_pending_reservation_is_marked_tentative():
     )
 
     assert "STATUS:TENTATIVE\r\n" in content
+
+
+@pytest.mark.asyncio
+async def test_customer_downloads_owned_reservation_as_calendar_event():
+    service = CalendarFeedService(AsyncMock())
+    booking = reservation(user_id=10)
+    resource = MagicMock(id=5, venue_id=7)
+    resource.name = "Court One"
+    place = venue()
+    service.reservation_repository.get_by_id = AsyncMock(return_value=booking)
+    service.resource_repository.get_by_id = AsyncMock(return_value=resource)
+    service.venue_repository.get_by_id = AsyncMock(return_value=place)
+
+    content = await service.render_reservation(42, user(10, "customer"))
+
+    assert "X-WR-CALNAME:Reservation #42" in content
+    assert "UID:reservation-42@booking-reservation-system" in content
+    assert "SUMMARY:Court One - Central\\, Courts" in content
+
+
+@pytest.mark.asyncio
+async def test_customer_cannot_download_another_users_reservation():
+    service = CalendarFeedService(AsyncMock())
+    service.reservation_repository.get_by_id = AsyncMock(
+        return_value=reservation(user_id=99)
+    )
+
+    with pytest.raises(HTTPException) as error:
+        await service.render_reservation(42, user(10, "customer"))
+
+    assert error.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_reservation_calendar_download_has_attachment_headers():
+    db = AsyncMock()
+    with patch.object(
+        CalendarFeedService,
+        "render_reservation",
+        new=AsyncMock(return_value="BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n"),
+    ):
+        response = await download_reservation_calendar_event(
+            42, db, user(10, "customer")
+        )
+
+    assert response.media_type == "text/calendar; charset=utf-8"
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="reservation-42.ics"'
+    )
 
 
 @pytest.mark.asyncio
