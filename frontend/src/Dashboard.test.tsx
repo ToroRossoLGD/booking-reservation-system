@@ -4,12 +4,40 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountDashboard } from "./Dashboard";
 
 const apiMock = vi.hoisted(() => ({
+  myReservations: vi.fn(),
   notifications: vi.fn(),
   markNotificationRead: vi.fn(),
   markAllNotificationsRead: vi.fn(),
   dismissNotification: vi.fn(),
   dismissReadNotifications: vi.fn(),
 }));
+
+const reservations = [
+  {
+    id: 1042,
+    start_time: "2026-09-10T10:00:00Z",
+    end_time: "2026-09-10T11:00:00Z",
+    status: "confirmed",
+    hold_expires_at: null,
+    resource_id: 4,
+    party_size: 2,
+    quoted_amount_cents: 5000,
+    quoted_currency: "EUR",
+    attendance_status: "scheduled",
+  },
+  {
+    id: 2057,
+    start_time: "2026-09-12T10:00:00Z",
+    end_time: "2026-09-12T11:00:00Z",
+    status: "cancelled",
+    hold_expires_at: null,
+    resource_id: 8,
+    party_size: 1,
+    quoted_amount_cents: 3000,
+    quoted_currency: "EUR",
+    attendance_status: "scheduled",
+  },
+];
 
 vi.mock("./api", () => ({ api: apiMock }));
 
@@ -106,5 +134,55 @@ describe("AccountDashboard notification inbox", () => {
     await waitFor(() => expect(apiMock.dismissReadNotifications).toHaveBeenCalledOnce());
     expect(screen.getByText("You’re all caught up")).toBeInTheDocument();
     expect(screen.getByText("2 read notifications cleared.")).toBeInTheDocument();
+  });
+});
+
+describe("AccountDashboard reservation filters", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    apiMock.myReservations.mockResolvedValue({
+      items: reservations,
+      total: reservations.length,
+      limit: 50,
+      offset: 0,
+      has_next: false,
+    });
+  });
+
+  function renderReservations() {
+    return render(
+      <AccountDashboard
+        user={{ id: 7, email: "guest@example.com", role: "customer" }}
+        onExplore={vi.fn()}
+        onOpenReservation={vi.fn()}
+        onCloseReservation={vi.fn()}
+      />,
+    );
+  }
+
+  it("filters reservations by status", async () => {
+    const user = userEvent.setup();
+    renderReservations();
+
+    await screen.findByText("Reservation #1042");
+    await user.selectOptions(screen.getByLabelText("Status"), "cancelled");
+
+    expect(screen.queryByText("Reservation #1042")).not.toBeInTheDocument();
+    expect(screen.getByText("Reservation #2057")).toBeInTheDocument();
+    expect(screen.getByText("1 of 2")).toBeInTheDocument();
+  });
+
+  it("searches by reservation ID and clears an empty result", async () => {
+    const user = userEvent.setup();
+    renderReservations();
+
+    const search = await screen.findByLabelText("Search by reservation ID");
+    await user.type(search, "9999");
+
+    expect(screen.getByText("No matching reservations")).toBeInTheDocument();
+    await user.click(screen.getAllByRole("button", { name: "Clear filters" })[0]);
+
+    expect(screen.getByText("Reservation #1042")).toBeInTheDocument();
+    expect(screen.getByText("Reservation #2057")).toBeInTheDocument();
   });
 });
