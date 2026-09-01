@@ -51,6 +51,8 @@ export function AccountDashboard({
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [reservationQuery, setReservationQuery] = useState("");
+  const [reservationStatus, setReservationStatus] = useState("all");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -185,6 +187,19 @@ export function AccountDashboard({
     }
   }
 
+  const normalizedReservationQuery = reservationQuery.trim().replace(/^#/, "");
+  const filteredReservations = reservations.filter(
+    (item) =>
+      (reservationStatus === "all" || item.status === reservationStatus) &&
+      (!normalizedReservationQuery ||
+        String(item.id).includes(normalizedReservationQuery)),
+  );
+
+  function clearReservationFilters() {
+    setReservationQuery("");
+    setReservationStatus("all");
+  }
+
   return (
     <main className="dashboard-page">
       <section className="dashboard-hero">
@@ -229,12 +244,49 @@ export function AccountDashboard({
                   <p className="eyebrow">Bookings</p>
                   <h2>My reservations</h2>
                 </div>
-                <span>{reservations.length} total</span>
+                <span>
+                  {filteredReservations.length === reservations.length
+                    ? `${reservations.length} total`
+                    : `${filteredReservations.length} of ${reservations.length}`}
+                </span>
               </div>
+              {reservations.length > 0 && (
+                <div className="reservation-filters" aria-label="Reservation filters">
+                  <label>
+                    Search by reservation ID
+                    <input
+                      type="search"
+                      value={reservationQuery}
+                      onChange={(event) => setReservationQuery(event.target.value)}
+                      placeholder="e.g. 1042"
+                    />
+                  </label>
+                  <label>
+                    Status
+                    <select
+                      value={reservationStatus}
+                      onChange={(event) => setReservationStatus(event.target.value)}
+                    >
+                      <option value="all">All statuses</option>
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="expired">Expired</option>
+                    </select>
+                  </label>
+                  {(reservationQuery || reservationStatus !== "all") && (
+                    <button type="button" onClick={clearReservationFilters}>
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+              )}
               {reservations.length ? (
-                <div className="data-list">
-                  {reservations.map((item) => (
-                    <article className="data-card" key={item.id}>
+                filteredReservations.length ? (
+                  <div className="data-list">
+                    {filteredReservations.map((item) => (
+                      <article className="data-card" key={item.id}>
                       <div>
                         <StatusBadge value={item.status} />
                         <button
@@ -270,9 +322,17 @@ export function AccountDashboard({
                         </button>
                     )}
                     </div>
-                    </article>
-                  ))}
-                </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <Empty
+                    title="No matching reservations"
+                    copy="Try another reservation ID or status."
+                    action={clearReservationFilters}
+                    actionLabel="Clear filters"
+                  />
+                )
               ) : (
                 <Empty
                   title="No reservations yet"
@@ -546,10 +606,12 @@ function Empty({
   title,
   copy,
   action,
+  actionLabel = "Explore spaces",
 }: {
   title: string;
   copy: string;
   action?: () => void;
+  actionLabel?: string;
 }) {
   return (
     <div className="dashboard-empty">
@@ -558,7 +620,7 @@ function Empty({
       <p>{copy}</p>
       {action && (
         <button className="button primary" onClick={action}>
-          Explore spaces
+          {actionLabel}
         </button>
       )}
     </div>
