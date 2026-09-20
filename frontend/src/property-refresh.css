@@ -1,0 +1,89 @@
+/* Marketplace presentation; existing owner form styles stay in property-home.css. */
+.property-home { background: #faf9f6; }
+.ph-header { border-bottom: 1px solid #e4e7df; }
+.ph-header nav a { padding: 12px 0; }
+.ph-header nav a:hover, .ph-mobile-nav a:hover { color: #a66039; }
+.ph-header > .ph-outline { background: #294a3c; color: white; border-color: #294a3c; }
+.ph-mobile-nav { display: none; }
+.ph-live-dot { display: inline-block; width: 7px; height: 7px; background: #a66039; border-radius: 50%; margin-right: 7px; }
+.ph-hero { padding-top: 48px; padding-bottom: 46px; }
+.ph-hero-art { height: 440px; border: 8px solid #fff; box-shadow: 0 18px 45px #253e3510; }
+.ph-hero-note { display: flex; gap: 12px; align-items: center; margin-top: 25px; }
+.ph-hero-note > span { width: 40px; height: 40px; display: grid; place-items: center; background: #eceee3; border-radius: 50%; font-size: 24px; }
+.ph-hero-note p { margin: 0; font-size: 12px; }
+.ph-hero-note small { display: block; color: #69766b; font-size: 10px; margin-top: 4px; }
+.ph-search { border-radius: 18px; box-shadow: 0 12px 36px #253e350b; }
+.ph-search label { color: #617260; }
+.ph-search input { padding: 9px 0; color: #253e35; }
+.ph-tabs button { min-height: 52px; }
+.ph-tabs button:hover { color: #253e35; }
+.ph-primary, .ph-outline, .ph-card-bottom button { transition: background .18s, box-shadow .18s; }
+.ph-primary { display: inline-block; text-align: center; }
+.ph-primary:hover { background: #19382b; box-shadow: 0 5px 15px #253e3520; }
+.ph-outline:hover { background: #edf0e7; }
+.ph-header > .ph-outline:hover { background: #19382b; }
+.ph-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 24px; }
+.ph-card { border-radius: 16px; transition: box-shadow .2s; }
+.ph-card:hover { box-shadow: 0 12px 30px #253e3510; }
+.ph-card-art { height: 228px; }
+.ph-tag { top: 16px; left: 16px; padding: 8px 12px; font-size: 11px; border-radius: 20px; }
+.ph-art-label { font-size: 9px; letter-spacing: .5px; background: #fff9; padding: 4px 8px; border-radius: 5px; bottom: 10px; }
+.ph-card-body { padding: 22px; }
+.ph-location { color: #687667; font-size: 12px; }
+.ph-card h3 { font: 400 24px Georgia, serif; line-height: 1.25; margin-bottom: 12px; }
+.ph-card-preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 12px; line-height: 1.7; color: #69766b; min-height: 40px; }
+.ph-card:has(.ph-detail:not([hidden])) .ph-card-preview { display: none; }
+.ph-facts { display: inline-block; background: #f2f4ec; border-radius: 6px; padding: 8px 10px; margin: 4px 0; }
+.ph-card-bottom { gap: 10px; padding-top: 18px; }
+.ph-card-bottom strong { display: block; font-size: 23px; margin-bottom: 2px; }
+.ph-card-bottom button { border-radius: 8px; width: auto; height: auto; min-height: 44px; padding: 10px 13px; font-size: 12px; white-space: nowrap; background: #f2f4ec; }
+.ph-card-bottom button:hover { background: #e5eadb; }
+.ph-detail { font-size: 13px; }
+.ph-detail .ph-outline { display: block; text-align: center; background: #294a3c; color: white; margin-top: 18px; }
+.ph-active-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 2px 0 24px; }
+.ph-active-filters button { border: 1px solid #dfe4d8; background: #eef1e7; border-radius: 20px; padding: 10px 14px; font-size: 12px; max-width: 100%; overflow-wrap: anywhere; min-height: 42px; }
+.ph-active-filters button span { margin-left: 12px; }
+.ph-active-filters .ph-clear-filters { background: transparent; border-color: transparent; text-decoration: underline; color: #69766b; }
+.ph-empty { border: 1px solid #e3e7db; background: #f1f3eb; padding: 48px 24px; border-radius: 18px; }
+.ph-empty-icon { display: grid; place-items: center; width: 60px; height: 60px; margin: auto; font-size: 34px; border-radius: 50%; background: white; color: #57705c; }
+.ph-empty h3 { font: 400 26px Georgia, serif; }
+.ph-empty p { color: #69766b; line-height: 1.7; margin-bottom: 24px; }
+.ph-skeleton { border: 1px solid #e3e7db; padding-bottom: 24px; border-radius: 16px; overflow: hidden; background: white; }
+.ph-skeleton div, .ph-skeleton span { background: #edf0e7; animation: ph-pulse 1.5s ease-in-out infinite alternate; }
+.ph-skeleton div { height: 228px; margin-bottom: 24px; }
+.ph-skeleton span { display: block; height: 14px; margin: 12px 24px; border-radius: 4px; }
+.ph-skeleton span:last-child { width: 40%; }
+.ph-owner-invite { display: flex; align-items: center; justify-content: space-between; gap: 36px; border-top: 1px solid #dfe4d8; padding: 46px 0 60px; }
+.ph-owner-invite p:not(.ph-eyebrow) { font-size: 14px; line-height: 1.8; color: #69766b; max-width: 520px; }
+.ph-owner-invite > a { flex-shrink: 0; }
+.ph-destinations { margin-bottom: 24px; border-radius: 18px; }
+.ph-destination-links a { min-height: 56px; align-items: center; border: 1px solid transparent; }
+.ph-destination-links a:hover { border-color: #a7b59b; }
+.ph-listings, .ph-destinations { scroll-margin-top: 24px; }
+@keyframes ph-pulse { to { opacity: .45; } }
+@media (max-width: 1000px) {
+  .ph-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ph-hero-art { height: 360px; }
+  .ph-header nav { gap: 16px; }
+}
+@media (max-width: 650px) {
+  .ph-mobile-nav { display: flex; justify-content: space-between; margin: 0 18px; padding: 8px 0; gap: 8px; border-bottom: 1px solid #e4e7df; }
+  .ph-mobile-nav a { padding: 12px 0; font-size: 12px; }
+  .ph-hero { padding: 30px 0; gap: 26px; }
+  .ph-hero h1 { font-size: clamp(40px, 10vw, 54px); }
+  .ph-hero-art { height: 235px; border-radius: 75px 75px 14px 14px; border-width: 5px; }
+  .ph-house { transform: scale(.8); transform-origin: bottom center; bottom: 46px; }
+  .ph-art-caption { bottom: 14px; font-size: 10px; }
+  .ph-hero-note { margin-top: 18px; }
+  .ph-grid { grid-template-columns: 1fr; }
+  .ph-card-art { height: 215px; }
+  .ph-section-heading { gap: 8px; margin-bottom: 18px; }
+  .ph-owner-invite { flex-direction: column; align-items: stretch; gap: 16px; padding: 30px 0; }
+  .ph-owner-invite h2 { line-height: 1.2; }
+  .ph-empty .ph-primary { width: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .ph-skeleton div, .ph-skeleton span { animation: none; }
+  .ph-card, .ph-primary, .ph-outline, .ph-card-bottom button { transition: none; }
+}
