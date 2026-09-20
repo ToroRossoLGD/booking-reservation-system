@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "./api";
+import PropertyManager from "./PropertyManager";
 import { StatusBadge } from "./components/StatusBadge";
 import type {
   AddOn,
@@ -786,6 +787,7 @@ export function OwnerDashboard({
         </div>
       ) : (
         <>
+          <PropertyManager venues={venues} />
           <section className="stat-grid">
             <article>
               <small>Venues</small>

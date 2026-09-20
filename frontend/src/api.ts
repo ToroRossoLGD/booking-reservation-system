@@ -23,6 +23,8 @@ import type {
   Venue,
 } from "./types";
 
+import type { PropertyInput, PropertyListing, PropertyPage } from "./property-types";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 
 export const googleLoginUrl = `${API_URL}/auth/google/login`;
@@ -58,6 +60,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  properties: (city: string, offerType: string, offset = 0, signal?: AbortSignal) => {
+    const params = new URLSearchParams({ city, offset: String(offset), limit: "12" });
+    if (offerType) params.set("offer_type", offerType);
+    return request<PropertyPage>(`/properties?${params}`, { signal });
+  },
+  ownerProperties: (offset = 0) => request<PropertyPage>(`/owner/properties?offset=${offset}&limit=20`),
+  createProperty: (data: PropertyInput) => request<PropertyListing>("/properties", { method: "POST", body: JSON.stringify(data) }),
+  updateProperty: (id: number, data: PropertyInput) => request<PropertyListing>(`/properties/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   venues: () => request<Venue[]>("/venues"),
   resources: (venueId: number) =>
     request<Resource[]>(`/venues/${venueId}/resources`),
