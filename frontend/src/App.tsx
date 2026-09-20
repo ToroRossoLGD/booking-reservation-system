@@ -695,7 +695,7 @@ export default function App() {
       .forEach((menu) => menu.removeAttribute("open"));
   }
   function navigate(nextPage: "home" | "account" | "owner") {
-    const path = nextPage === "home" ? "/" : `/${nextPage}`;
+    const path = nextPage === "home" ? "/booking" : `/${nextPage}`;
     routerNavigate(path);
     closeHeaderMenus();
     window.scrollTo({ top: 0, behavior: "smooth" });
