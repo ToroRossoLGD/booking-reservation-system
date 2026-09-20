@@ -1,5 +1,11 @@
 # Bookica
 
+The home page is being adapted into a property marketplace for short stays,
+long-term rentals and sales. Owners can publish property listings using their
+existing venues; the original hourly booking platform remains at `/booking`.
+See [the property marketplace guide](docs/property-marketplace.md) for setup,
+publishing instructions and the current scope of the transition.
+
 Bookica is a full-stack booking and reservation platform for discovering venues, checking live availability, receiving an exact quote, and reserving spaces. It also provides owners and staff with tools for managing venues, availability, customers, payments, promotions, analytics, and day-to-day operations.
 
 ## Contents
