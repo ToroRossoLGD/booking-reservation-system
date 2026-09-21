@@ -1,264 +1,159 @@
-# Bookica
+﻿# Bookica
 
-The home page is being adapted into a property marketplace for short stays,
-long-term rentals and sales. Owners can publish property listings using their
-existing venues; the original hourly booking platform remains at `/booking`.
-See [the property marketplace guide](docs/property-marketplace.md) for setup,
-publishing instructions and the current scope of the transition.
+**A place to stay. A space to call home.**
 
-Bookica is a full-stack booking and reservation platform for discovering venues, checking live availability, receiving an exact quote, and reserving spaces. It also provides owners and staff with tools for managing venues, availability, customers, payments, promotions, analytics, and day-to-day operations.
+Bookica is a property marketplace **under active development**. It brings apartment sales, long-term rentals and short stays into one application—from finding a new home to booking a few nights in the city, mountains or by the sea.
 
-## Contents
+The project started as a general booking platform. It is now being developed around real estate, reusing its authentication, owner tools and reservation infrastructure. The original hourly booking application remains available at `/booking`.
 
-- [What is included](#what-is-included)
-- [Technology](#technology)
-- [Backend guide](#backend-guide)
-- [Using Bookica](#using-bookica)
-- [Quick start with Docker](#quick-start-with-docker)
-- [Local development](#local-development)
-- [Google login](#google-login)
-- [Validation](#validation)
-- [Project structure](#project-structure)
-- [API overview](#api-overview)
+[What works today](#what-works-today) · [Roadmap](#roadmap) · [Run locally](#run-locally) · [Documentation](#documentation)
 
-## What is included
+## Preview
 
-### Customer experience
+<img src="docs/images/property-marketplace.png" alt="Bookica property marketplace with city search, offer filters, an apartment listing and owner contact" width="780" />
 
-- Responsive React storefront for desktop, tablet, and mobile
-- Venue search, category shortcuts, popular venues, ratings, and availability
-- Venue and resource details with capacity, price, and cancellation information
-- Server-calculated quotes, promotion codes, and expiring reservation holds
-- Email/password authentication, Google OAuth, and password recovery
-- Secure check-in passes, downloadable calendar events, reservation guests, transfers, waitlists, and waivers
-- Reservation search and status filters, favorites, reviews, interactive notification inboxes, support tickets, and calendar feeds
-- First-visit page guide that remains dismissed with a browser cookie
-- Accessible dropdown navigation, mobile menus, dialogs, drawers, and venue cards
+*Current interface with a test listing used in browser checks. Property illustrations are placeholders, not photographs of real apartments.*
 
-### Owner and operations API
+## What Bookica is being built to do
 
-- Venue, resource, staff, availability-rule, and availability-exception management
-- Capacity-aware bookings, recurring reservations, rescheduling, and cancellation policies
-- Payments, refunds, add-ons, promotion codes, and customer access controls
-- Maintenance work orders, reservation reminders, no-show handling, and audit history
-- Venue analytics, demand insights, and CSV exports
-- Nightly analytics ETL with persisted metrics, reconciliation checks, and run history
-- Explainable demand forecasts, walk-forward accuracy metrics, and anomaly detection
-- Review moderation, API keys, webhooks, and webhook-delivery retries
-- Background processing with Celery and Redis
-- Development email delivery through MailHog
+| Offer | Intended experience | Current implementation |
+| --- | --- | --- |
+| Short stays | Find and reserve an entire apartment for a city break or holiday | Availability calendar, nightly quotes, confirmation and cancellation; payment at the property |
+| Long-term rentals | Find a home, contact the owner and arrange a viewing | Published listings, monthly asking prices, search and email contact |
+| Apartment sales | Explore properties, compare details and contact sellers | Published listings, total asking prices, search and email contact |
+
+The goal is one place for property discovery and owner management, with a reservation flow for short stays. Sales and long-term rentals use an inquiry-based workflow; they are not purchased through the short-stay checkout.
+
+## What works today
+
+### Property marketplace
+
+- Owners can create, edit, publish and withdraw listings, or keep them as private drafts.
+- Listings include city, description, floor area, room count, price, currency and a public contact email.
+- Visitors can search by city and offer type, browse paginated results and open listing details.
+- The responsive storefront includes mobile navigation, active filters and loading, empty and error states.
+- Contact links open the visitor's email application; messages are not yet stored inside Bookica.
+
+### Nightly reservations
+
+- Owners explicitly enable booking and set the maximum number of guests, minimum nights and property timezone.
+- Guests choose arrival, departure and guest count, view occupied nights and request a server-calculated quote.
+- Confirmation rechecks price and availability. A reservation occupies the entire apartment, regardless of guest count.
+- PostgreSQL transaction locks protect against simultaneous overlapping reservations. Repeated requests return the existing reservation.
+- Guests can view their stays and cancel for free before the arrival date in the property's timezone.
+- Owners can view reservations and guest contact details.
+
+**Short-stay reservations currently use payment at the property.** There is no online charge, deposit or payment hold for these stays. The existing hourly booking payment integration has not yet been connected to nightly reservations.
+
+### Existing foundation
+
+Email/password login, Google OAuth, customer/owner/admin roles and database migrations are already part of the application. The original hourly platform also retains its reservations, payment workflows, reviews, favorites, notifications and operational tools. Those features are not all available for property listings yet.
+
+## Roadmap
+
+The next development areas are:
+
+- [ ] Property photographs, galleries and dedicated property pages.
+- [ ] Seasonal nightly pricing and more flexible booking rules.
+- [ ] Owner calendar blocks and synchronization with external booking calendars.
+- [ ] Online payments and deposits for short stays.
+- [ ] Stored inquiries, viewing appointments and richer rental/sales workflows.
+- [ ] Property favorites, reviews, map search and additional filters.
+- [ ] Guest notifications, rescheduling and more complete host operations.
+
+These are planned features, not claims about the current release. Bookica is still being built and is not presented as a finished real-estate platform.
+
+## Try the current flow
+
+| Page | Purpose |
+| --- | --- |
+| `/` | Property search and listing details |
+| `/owner` | Existing owner workspace, property editor and nightly booking settings |
+| `/stays` | Guest's nightly reservations and cancellation |
+| `/owner/stays` | Owner's apartment reservations and guest contact |
+| `/account` | Account access and original booking dashboard |
+| `/booking` | Original hourly booking storefront |
+
+To publish your first property:
+
+1. Sign in with an existing `owner` or `admin` account and open `/owner`.
+2. Create an object using **Add venue**, then select **Novi oglas** under **Tvoji oglasi**.
+3. Enter the property details and save a draft or check **Objavi oglas** to publish it.
+4. For short stays, set the booking rules and explicitly enable whole-apartment reservations.
+5. Open the listing on `/`, check dates and price, and confirm from a guest account.
+
+The catalog starts empty; real listings are not automatically seeded. Each bookable venue represents one whole apartment. Multiple ads for that venue share occupancy. Hourly resources and nightly apartments must use separate venues.
+
+See the [property guide](docs/property-marketplace.md) and [nightly booking guide](docs/nightly-stays.md) for the complete rules and limitations.
 
 ## Technology
 
-- Backend: Python 3.12, FastAPI, SQLAlchemy, PostgreSQL, Alembic
-- Frontend: React, TypeScript, Vite
-- Background jobs: Celery and Redis
-- Development services: Docker Compose and MailHog
-- Testing and quality: pytest, Ruff, ESLint, TypeScript, and Vite production builds
+| Layer | Stack |
+| --- | --- |
+| Frontend | React, TypeScript, Vite |
+| API | Python 3.12, FastAPI, Pydantic |
+| Persistence | PostgreSQL, SQLAlchemy, Alembic |
+| Background jobs | Celery, Redis |
+| Local services | Docker Compose, MailHog, MinIO |
+| Checks | pytest, Ruff, Vitest, ESLint, TypeScript, Playwright |
 
-## Backend guide
+## Run locally
 
-The FastAPI backend uses a layered structure:
-
-```text
-HTTP request
-    -> API router and dependency checks
-    -> service containing business rules
-    -> repository/database operations
-    -> SQLAlchemy model in PostgreSQL
-```
-
-Pydantic schemas define API input and output contracts. Alembic owns schema changes, while Celery workers handle scheduled and retryable work through Redis.
-
-### Authentication and authorization
-
-- Passwords are hashed before storage and successful login returns a JWT bearer token.
-- Google OAuth can create or connect an account using the provider's stable identity.
-- Protected endpoints accept either `Authorization: Bearer <token>` or `X-API-Key: <key>` where API-key access is supported.
-- Application roles are `customer`, `owner`, and `admin`.
-- Venue staff can separately be assigned as `manager` or `check_in_agent` for a specific venue.
-- JWT token versions allow previously issued tokens to be invalidated.
-
-### Reservation lifecycle
-
-Reservations move through `pending`, `confirmed`, `cancelled`, `completed`, and `expired` states. Attendance is tracked separately as `scheduled`, `checked_in`, or `no_show`.
-
-The reservation service provides:
-
-- Availability and capacity validation before creation
-- Server-owned pricing and promotion calculations
-- Idempotency keys to prevent duplicate creation requests
-- Temporary holds with configurable expiration
-- Payment confirmation and full or partial cancellation refunds
-- Rescheduling, recurring series, transfers, guests, add-ons, and waitlists
-- Signed check-in passes, attendance tracking, reminders, and audit events
-
-Payment records move through `pending`, `paid`, `failed`, `partially_refunded`, and `refunded`. The legacy mock endpoint remains available for automated tests, while the frontend uses Stripe-hosted Checkout. Development is test-only: configure an `sk_test_` key and webhook signing secret. Live Stripe keys are rejected unless `STRIPE_ALLOW_LIVE_MODE=true` is deliberately enabled, so the default setup cannot create real charges or payment fees.
-
-Venues may include latitude and longitude. The home page can switch between list and map views using Leaflet and OpenStreetMap tiles, with required OpenStreetMap attribution. Set `VITE_MAP_TILE_URL` if deploying with another OSM-compatible tile provider; do not bulk-download or cache the public OpenStreetMap tile service.
-
-### Background jobs
-
-Celery Beat schedules work and Celery workers execute it. The included periodic tasks:
-
-- Expire unpaid reservation holds
-- Mark eligible reservations as no-shows
-- Send upcoming reservation reminders
-- Deliver or retry due webhook notifications
-
-Intervals and broker/result URLs are configured through the backend environment variables documented in `.env.example`.
-
-### Main API groups
-
-| Area | Base path | Purpose |
-| --- | --- | --- |
-| Authentication | `/auth` | Registration, login, Google OAuth, password recovery, user identity, and API keys |
-| Venues and resources | `/venues`, `/resources` | Catalog management, search, availability, staff, policies, and reservable resources |
-| Reservations | `/reservations` | Quotes, booking, pagination, details, changes, cancellation, check-in, and history |
-| Payments and offers | `/payments`, `/promotions` | Payment status, refunds, and venue promotion codes |
-| Owner operations | `/owner`, `/analytics` | Dashboards, performance summaries, demand insights, and CSV exports |
-| Customer tools | `/favorites`, `/notifications`, `/support` | Saved resources, notifications, and support conversations |
-| Trust and safety | `/resources`, `/review-moderation`, `/waivers` | Reviews, reports, moderation, and waiver signatures |
-| Venue operations | `/venues/{venue_id}` | Staff, customer blocks, maintenance, calendar feeds, add-ons, and webhooks |
-| Waitlist | `/waitlist` | Joining, viewing, and leaving resource waitlists |
-| Administration | `/admin` | Platform-wide operational summaries |
-
-Some related resources use nested paths. The generated OpenAPI page at `/docs` is the authoritative endpoint reference.
-
-## Using Bookica
-
-### Navigating the storefront
-
-- **Explore** opens shortcuts for all spaces, workspaces, sports, events, and wellness venues.
-- **How it works** explains the discover, choose, and reserve flow.
-- **List your space** takes prospective owners to the owner section.
-- On phones, the same destinations are available from the menu button in the header.
-- Signed-in users can open their avatar menu to explore spaces, revisit the booking guide, reach the owner section, or log out.
-- A short navigation bubble appears on the first visit. Closing it stores a long-lived cookie so it does not appear again in that browser.
-
-### Signing in with Google
-
-Google OAuth must first be configured as described in [Google login](#google-login). Once configured:
-
-1. Select **Log in** on the storefront.
-2. Choose **Google** in the login dialog.
-3. Sign in and approve the request on Google's page.
-4. Google returns to the backend callback, which verifies the OAuth response and redirects to Bookica.
-5. Bookica stores the issued access token in the browser and loads the signed-in profile.
-
-If Google reports a redirect error, confirm that the URI in Google Cloud exactly matches `GOOGLE_REDIRECT_URI`. The frontend displays a configuration message when the provider is not configured.
-
-### Finding and reserving a space
-
-1. Enter a venue name, address, description keyword, or category in the hero search field, then select **Find a space**.
-2. Alternatively, use the Explore menu, category cards, popular venues, or limited-time offers.
-3. Select a venue to open its details and available resources.
-4. Choose a resource, date, start time, duration, guest count, and optional promotion code.
-5. Review the server-calculated quote and select **Reserve this space**.
-6. Sign in when prompted. A successful reservation receives a temporary hold that must be paid before it expires.
-
-The public backend also supports paginated venue and resource search at `/venues/search`, `/resources/search`, and `/resources/search/available`. The available-resource search accepts a time range, minimum capacity, resource type, and optional text query.
-
-### Adding venues and resources as an owner
-
-The owner catalog workflow is currently available through the API; a complete owner upload dashboard has not yet been added to the storefront. There is also no venue-image upload endpoint yet—“adding” currently means creating venue and resource records.
-
-To add inventory through the interactive API:
-
-1. Open <http://localhost:8000/docs>.
-2. Sign in with an account whose application role is `owner` or `admin` and copy its bearer token.
-3. Select **Authorize** in the OpenAPI page and enter the token.
-4. Call `POST /venues` with the venue name, address, description, booking rules, and cancellation policy.
-5. Copy the returned venue ID and call `POST /venues/{venue_id}/resources` for each bookable room, court, desk, or other resource.
-6. Configure availability rules or exceptions under `/resources/{resource_id}/availability-rules` and `/resources/{resource_id}/availability-exceptions`.
-7. Optionally configure add-ons, promotions, staff, maintenance, calendar feeds, customer blocks, and webhooks using the matching venue endpoints.
-8. Refresh the storefront; public venues and their resources are loaded from the API.
-
-Creating or promoting owner/admin accounts should be controlled by an administrator in a deployed environment. Never place an owner token or API key in frontend source code.
-
-## Quick start with Docker
+### Docker Compose
 
 Requirements: Docker and Docker Compose.
 
-1. Review `.env.docker` and replace development secrets before using the stack outside a local environment.
-2. Start the services:
-
-   ```bash
-   docker compose up --build
-   ```
-
-3. Apply the database migrations in another terminal:
-
-   ```bash
-   docker compose exec backend alembic upgrade head
-   ```
-
-The services are then available at:
-
-- Bookica frontend: <http://localhost:5173>
-- FastAPI documentation: <http://localhost:8000/docs>
-- API health check: <http://localhost:8000/health>
-- MailHog inbox: <http://localhost:8025>
-- MinIO S3 API: <http://localhost:9000>
-- MinIO console: <http://localhost:9001>
-
-## Local development
-
-Requirements: Python 3.12, Node.js, PostgreSQL, and Redis.
-
-### Backend
-
-Create a virtual environment, install the dependencies, and copy the environment template:
+The Compose stack expects a root `.env.docker` file. This file is not tracked; create it from `.env.example` if it does not already exist, then configure the service addresses for Docker: PostgreSQL host `postgres`, Redis host `redis`, SMTP host `mailhog`, and the corresponding database/Celery URLs. Keep browser-facing frontend and OAuth URLs on `localhost`.
 
 ```bash
+docker compose up --build
+```
+
+In another terminal, apply migrations:
+
+```bash
+docker compose exec backend alembic upgrade head
+```
+
+- Frontend: <http://localhost:5173>
+- API documentation: <http://localhost:8000/docs>
+- MailHog: <http://localhost:8025>
+- MinIO console: <http://localhost:9001>
+
+### Backend without Docker
+
+Requirements: Python 3.12, PostgreSQL and Redis. From the repository root on Windows:
+
+```powershell
 python -m venv .venv
-```
-
-Activate the environment on Windows:
-
-```powershell
 .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-Then configure and start the API:
+Edit `.env` for your local database and services, then run:
 
 ```powershell
-pip install -r requirements.txt
-Copy-Item .env.example .env
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-Do not commit `.env`; it contains local secrets and credentials.
-
 ### Frontend
 
-From the `frontend` directory:
+Use Node.js 22.12 or later (CI uses Node.js 22). From `frontend`:
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-During local development, Vite proxies `/api` requests to `http://localhost:8000`. Copy `frontend/.env.example` to `frontend/.env` only when you need to override the API or proxy target.
+Vite proxies `/api` to `http://localhost:8000`. Use `frontend/.env.example` as a template only if you need to override the API or proxy target. Keep local environment files out of Git.
 
-## Google login
-
-Google login requires an OAuth client ID and secret. Add the following values to the backend environment:
-
-```env
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
-FRONTEND_URL=http://localhost:5173
-OAUTH_COOKIE_SECURE=false
-```
-
-The authorized redirect URI in Google Cloud must exactly match `GOOGLE_REDIRECT_URI`. See [GOOGLE_LOGIN_SETUP.md](GOOGLE_LOGIN_SETUP.md) for the complete setup procedure.
+Apply `alembic upgrade head` before starting a newer API version against an existing database. New nightly booking settings default to disabled; owners opt in after reviewing their listings.
 
 ## Validation
 
-Run the backend test suite and formatting checks from the repository root:
+Backend, from the repository root with the virtual environment active:
 
 ```bash
 pytest
@@ -266,40 +161,56 @@ ruff check .
 ruff format --check .
 ```
 
-Run the frontend checks from `frontend`:
+For PostgreSQL concurrency tests, use a development database configured in `.env`:
+
+```powershell
+$env:STAY_TEST_POSTGRES = "1"
+pytest tests/test_stays.py
+```
+
+The concurrency test creates and removes a uniquely named test schema. CI runs it along with the migration chain and backend suite.
+
+Frontend, from `frontend`:
 
 ```bash
 npm run lint
+npm test
 npm run build
+npx playwright install chromium
+npm run test:e2e
 ```
+
+Browser tests use deterministic API fixtures. Backend tests separately verify persistence, permissions, pricing, cancellation and concurrent reservations.
 
 ## Project structure
 
 ```text
 app/
-  api/routers/       HTTP endpoints grouped by feature
-  core/              Configuration, authentication dependencies, caching, and security
-  db/                Async SQLAlchemy engine, sessions, and model registration
-  models/            Persistent database entities and state enums
-  repositories/      Focused database queries and persistence operations
-  schemas/           Pydantic request and response contracts
-  services/          Business rules and transaction workflows
-  tasks/             Celery configuration and background jobs
-  main.py            FastAPI application and router registration
-alembic/             Migration environment and versioned database changes
+  api/routers/       HTTP endpoints and authorization dependencies
+  models/            Database models
+  schemas/           Request and response contracts
+  repositories/      Database queries and locking
+  services/          Business rules and reservation workflows
+  tasks/             Background jobs
+alembic/             Versioned database migrations
 frontend/src/
-  App.tsx            Storefront UI and customer interactions
-  api.ts             Typed frontend API client and authentication storage
-  types.ts           Shared frontend response types
-  styles.css         Desktop and responsive presentation
-tests/               Backend unit and integration-style service tests
-docker-compose.yml   Local application and infrastructure stack
+  PropertyHome.tsx   Property storefront
+  PropertyManager.tsx  Owner listing editor
+  StayBooking.tsx    Nightly calendar, quote and confirmation
+  StaysPage.tsx      Guest and owner stay views
+  App.tsx           Original hourly booking application
+  api.ts            Typed API client
+frontend/e2e/        Browser workflow tests
+tests/               Backend tests
+docs/                Feature guides and interface preview
 ```
 
-When adding a backend feature, the usual path is model and migration, schema, repository or service logic, router, and tests. Keep business rules in services rather than routers. When adding a frontend feature, update the API client/types first, then the UI and responsive styles, and finish with lint and production-build validation.
+## Documentation
 
-## API overview
+- [Property marketplace](docs/property-marketplace.md): publishing, offer types and listing APIs.
+- [Nightly stays](docs/nightly-stays.md): activation, date rules, inventory, payment terms and reservation APIs.
+- [Google login setup](GOOGLE_LOGIN_SETUP.md): OAuth configuration.
+- [Analytics pipeline](docs/analytics-data-pipeline.md): existing booking analytics infrastructure.
+- [Demand forecasting](docs/demand-forecasting.md): existing forecasting implementation.
 
-The API includes endpoints for authentication, venues, resources, reservations, payments, promotions, availability, owners, analytics, favorites, notifications, reviews, support, maintenance, staff, waitlists, webhooks, waivers, and administrative operations.
-
-Use the interactive OpenAPI documentation at `/docs` for current request bodies, response schemas, and authorization requirements.
+The running API's `/docs` page is the reference for request bodies, responses and authentication requirements.
