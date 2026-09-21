@@ -34,6 +34,7 @@ from app.api.routers.reservations import router as reservations_router
 from app.api.routers.resource_reviews import router as resource_reviews_router
 from app.api.routers.resources import router as resources_router
 from app.api.routers.review_moderation import router as review_moderation_router
+from app.api.routers.stays import router as stays_router
 from app.api.routers.support import router as support_router
 from app.api.routers.venue_customer_blocks import router as venue_customer_blocks_router
 from app.api.routers.venue_staff import router as venue_staff_router
@@ -105,6 +106,7 @@ app.include_router(venue_staff_router)
 app.include_router(venue_customer_blocks_router)
 app.include_router(resources_router)
 app.include_router(support_router)
+app.include_router(stays_router)
 app.include_router(reservations_router)
 app.include_router(reservation_guests_router)
 app.include_router(reservation_transfers_router)

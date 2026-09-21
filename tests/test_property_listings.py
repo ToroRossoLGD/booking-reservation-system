@@ -177,7 +177,12 @@ def test_migration_upgrade_and_downgrade_preserve_existing_venues():
         inspector = inspect(connection)
         assert {
             column["name"] for column in inspector.get_columns("property_listings")
-        } == set(PropertyListing.__table__.columns.keys())
+        } == set(PropertyListing.__table__.columns.keys()) - {
+            "booking_enabled",
+            "max_guests",
+            "minimum_nights",
+            "timezone",
+        }
         assert len(inspector.get_indexes("property_listings")) == 4
         assert len(inspector.get_check_constraints("property_listings")) == 4
         migration.downgrade()

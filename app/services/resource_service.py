@@ -6,7 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.resource import Resource
 from app.models.user import User
 from app.repositories.reservation_repository import ReservationRepository
-from app.repositories.resource_repository import ResourceRepository
+from app.repositories.resource_repository import (
+    NightlyInventoryConflict,
+    ResourceRepository,
+)
 from app.repositories.venue_repository import VenueRepository
 from app.schemas.resource import (
     AvailableResourceListRead,
@@ -52,7 +55,14 @@ class ResourceService:
             venue_id=venue_id,
         )
 
-        return await self.resource_repository.create(resource)
+        try:
+            return await self.resource_repository.create(resource)
+        except NightlyInventoryConflict as exc:
+            raise HTTPException(
+                409,
+                "Use a separate venue for hourly resources; this apartment "
+                "has nightly reservations enabled or reservation history",
+            ) from exc
 
     async def get_resources_by_venue(
         self,

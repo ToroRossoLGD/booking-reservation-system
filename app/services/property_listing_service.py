@@ -1,7 +1,9 @@
 from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.property_listing import PropertyListing
+from app.models.stay import Stay
 from app.models.user import User
 from app.repositories.property_listing_repository import PropertyListingRepository
 from app.repositories.venue_repository import VenueRepository
@@ -22,14 +24,36 @@ class PropertyListingService:
 
     async def create(self, data: PropertyListingWrite, user: User):
         await self.authorize_venue(data.venue_id, user)
+        if data.booking_enabled and await self.repository.has_hourly_resources(
+            data.venue_id
+        ):
+            raise HTTPException(
+                409,
+                "Nightly stays require a venue without hourly resources",
+            )
         return await self.repository.save(PropertyListing(**data.model_dump()))
 
     async def update(self, listing_id: int, data: PropertyListingWrite, user: User):
-        listing = await self.repository.get(listing_id)
+        listing = await self.repository.get(listing_id, lock=True)
         if listing is None:
             raise HTTPException(404, "Listing not found")
         await self.authorize_venue(listing.venue_id, user)
         await self.authorize_venue(data.venue_id, user)
+        if data.booking_enabled and await self.repository.has_hourly_resources(
+            data.venue_id
+        ):
+            raise HTTPException(
+                409,
+                "Nightly stays require a venue without hourly resources",
+            )
+        if listing.venue_id != data.venue_id:
+            existing = await self.repository.db.scalar(
+                select(Stay.id).where(Stay.property_id == listing.id).limit(1)
+            )
+            if existing is not None:
+                raise HTTPException(
+                    409, "A listing with reservation history cannot change its venue"
+                )
         for field, value in data.model_dump().items():
             setattr(listing, field, value)
         return await self.repository.save(listing)
