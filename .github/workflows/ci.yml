@@ -130,5 +130,7 @@ jobs:
           alembic upgrade head
 
       - name: Run tests
+        env:
+          STAY_TEST_POSTGRES: "1"
         run: |
           pytest
