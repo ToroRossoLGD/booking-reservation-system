@@ -11,6 +11,10 @@ export type PropertyInput = {
   currency: "EUR" | "RSD" | "USD";
   contact_email: string;
   is_published: boolean;
+  booking_enabled?: boolean;
+  max_guests?: number;
+  minimum_nights?: number;
+  timezone?: string;
 };
 export type PropertyListing = PropertyInput & { id: number };
 export type PropertyPage = { items: PropertyListing[]; total: number; offset: number; limit: number; has_next: boolean };

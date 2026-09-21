@@ -203,6 +203,7 @@ export function AccountDashboard({
 
   return (
     <main className="dashboard-page">
+      <p className="dashboard-message"><a href="/stays">Rezervacije stanova — moji boravci ↗</a></p>
       <section className="dashboard-hero">
         <div>
           <p className="eyebrow">Your Bookica</p>
