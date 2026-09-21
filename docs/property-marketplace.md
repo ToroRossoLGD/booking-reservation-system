@@ -1,5 +1,10 @@
 # Property marketplace: first working slice
 
+Nightly booking is now available as an opt-in feature. See
+[nightly apartment reservations](nightly-stays.md) for activation, date rules,
+payment-at-property terms and deployment requirements. The contact-only path
+below remains the default for existing listings.
+
 The `/` home page now displays published property listings from the API instead
 of demonstration data. Existing hourly reservations remain at `/booking` and
 retain their account, payment, availability and owner workflows.
@@ -58,9 +63,9 @@ Property photographs, property favorites, map filters, stored inquiries,
 moderation and property-specific detail URLs are future work. The current cards
 use clearly labeled illustrations. Existing resource favorites are unchanged.
 
-Short stays currently use direct owner contact. Nightly bookings need separate
-arrival/departure rules, timezone handling, whole-unit availability, minimum
-stays and seasonal pricing before connecting to reservation checkout.
+Short stays may use direct owner contact or opt in to fixed-price nightly
+booking with payment at the property. Seasonal pricing and online checkout
+are not included yet; see the nightly booking guide.
 
 ## Validation
 

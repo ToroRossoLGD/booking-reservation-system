@@ -5,8 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.availability_exception import AvailabilityException
 from app.models.availability_rule import AvailabilityRule
+from app.models.property_listing import PropertyListing
 from app.models.resource import Resource
+from app.models.stay import Stay
 from app.models.venue import Venue
+
+
+class NightlyInventoryConflict(Exception):
+    pass
 
 
 class ResourceRepository:
@@ -66,6 +72,22 @@ class ResourceRepository:
         return conditions
 
     async def create(self, resource: Resource) -> Resource:
+        await self.db.scalar(
+            select(Venue.id).where(Venue.id == resource.venue_id).with_for_update()
+        )
+        enabled = await self.db.scalar(
+            select(PropertyListing.id)
+            .where(
+                PropertyListing.venue_id == resource.venue_id,
+                PropertyListing.booking_enabled.is_(True),
+            )
+            .limit(1)
+        )
+        history = await self.db.scalar(
+            select(Stay.id).where(Stay.venue_id == resource.venue_id).limit(1)
+        )
+        if enabled is not None or history is not None:
+            raise NightlyInventoryConflict()
         self.db.add(resource)
         await self.db.commit()
         await self.db.refresh(resource)

@@ -1,0 +1,31 @@
+.stay-booking { margin-top: 20px; padding-top: 18px; border-top: 1px solid #d9e1d3; }
+.stay-booking h4 { font: 400 23px Georgia, serif; margin: 0 0 12px; }
+.stay-booking fieldset { display: grid; gap: 12px; border: 0; padding: 0; margin: 18px 0; min-width: 0; }
+.stay-booking label { display: grid; gap: 6px; font-size: 12px; }
+.stay-booking input { width: 100%; min-width: 0; padding: 11px; border: 1px solid #cdd7c5; border-radius: 7px; background: white; color: #253e35; }
+.stay-month, .stay-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.stay-month button { width: 40px; height: 40px; border: 1px solid #cdd7c5; background: white; border-radius: 8px; font-size: 23px; }
+.stay-calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; text-align: center; margin: 10px 0; }
+.stay-calendar span, .stay-calendar small { padding: 7px 0; border-radius: 4px; }
+.stay-calendar .occupied { background: #f3dbd0; color: #73341f; text-decoration: line-through; }
+.stay-calendar .past { color: #91978d; }
+.stay-legend { font-size: 11px; line-height: 1.6; color: #62745f; }
+.stay-quote, .stay-success { background: #edf2e6; border: 1px solid #d8e2cd; border-radius: 10px; padding: 16px; margin-top: 15px; }
+.stay-quote > strong { display: block; font-size: 20px; }
+.stay-quote .ph-primary { width: 100%; }
+.stay-page { max-width: 1100px; margin: auto; padding: 28px; color: #253e35; }
+.stay-page header { display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #d8e2cd; padding-bottom: 20px; }
+.stay-page main { margin: 45px 0; }
+.stay-page h1 { font: 400 clamp(32px, 5vw, 48px) Georgia, serif; }
+.stay-page-nav { display: flex; flex-wrap: wrap; gap: 22px; margin: 25px 0; }
+.stay-page a { text-decoration: underline; text-underline-offset: 4px; }
+.stay-list { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.stay-list article { border: 1px solid #d8e2cd; border-radius: 14px; background: white; padding: 24px; overflow-wrap: anywhere; }
+.stay-list h2 { font: 400 26px Georgia, serif; }
+.stay-list p, .stay-row, .stay-list a { font-size: 13px; line-height: 1.7; }
+.stay-cancel { margin-top: 18px; }
+.stay-cancel button { border: 1px solid #cdd7c5; padding: 11px; border-radius: 7px; margin: 0 8px 8px 0; background: #f6f7f3; }
+.stay-page button, .stay-booking button { cursor: pointer; }
+.stay-page button:disabled, .stay-booking button:disabled { opacity: .5; cursor: default; }
+.stay-page :focus-visible, .stay-booking :focus-visible { outline: 3px solid #a96037; outline-offset: 3px; }
+@media (max-width: 650px) { .stay-list { grid-template-columns: 1fr; } .stay-page { padding: 20px; } .stay-page header { flex-wrap: wrap; } }

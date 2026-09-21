@@ -2,6 +2,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.property_listing import PropertyListing
+from app.models.resource import Resource
 from app.models.venue import Venue
 
 
@@ -9,14 +10,28 @@ class PropertyListingRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get(self, listing_id: int) -> PropertyListing | None:
-        return await self.db.get(PropertyListing, listing_id)
+    async def get(self, listing_id: int, lock=False) -> PropertyListing | None:
+        query = select(PropertyListing).where(PropertyListing.id == listing_id)
+        if lock:
+            query = query.with_for_update().execution_options(populate_existing=True)
+        return await self.db.scalar(query)
 
     async def save(self, listing: PropertyListing) -> PropertyListing:
         self.db.add(listing)
         await self.db.commit()
         await self.db.refresh(listing)
         return listing
+
+    async def has_hourly_resources(self, venue_id):
+        await self.db.scalar(
+            select(Venue.id).where(Venue.id == venue_id).with_for_update()
+        )
+        return (
+            await self.db.scalar(
+                select(Resource.id).where(Resource.venue_id == venue_id).limit(1)
+            )
+            is not None
+        )
 
     async def search(
         self, *, city="", offer_type=None, owner_id=None, limit=20, offset=0
