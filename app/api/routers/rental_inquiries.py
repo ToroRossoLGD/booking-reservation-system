@@ -10,9 +10,54 @@ from app.schemas.rental_inquiry import (
     RentalInquiryRead,
     RentalInquiryUpdate,
 )
+from app.schemas.rental_message import (
+    RentalMessageCreate,
+    RentalMessagePage,
+    RentalMessageRead,
+    RentalMessagesRead,
+    RentalUnreadCount,
+)
 from app.services.rental_inquiry_service import RentalInquiryService
+from app.services.rental_message_service import RentalMessageService
 
 router = APIRouter(tags=["Long-term rental inquiries"])
+
+
+@router.get("/rental-inquiries/{inquiry_id}/messages", response_model=RentalMessagePage)
+async def messages(
+    inquiry_id: int,
+    before_id: int | None = Query(None, ge=1),
+    limit: int = Query(50, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await RentalMessageService(db).list(inquiry_id, user, before_id, limit)
+
+
+@router.post(
+    "/rental-inquiries/{inquiry_id}/messages",
+    response_model=RentalMessageRead,
+    status_code=201,
+)
+async def send_message(
+    inquiry_id: int,
+    data: RentalMessageCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await RentalMessageService(db).send(inquiry_id, data, user)
+
+
+@router.post(
+    "/rental-inquiries/{inquiry_id}/messages/read", response_model=RentalUnreadCount
+)
+async def read_messages(
+    inquiry_id: int,
+    data: RentalMessagesRead,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await RentalMessageService(db).mark_read(inquiry_id, data, user)
 
 
 @router.post(

@@ -25,6 +25,7 @@ export interface RentalInquiry {
   status: "open" | "viewing_proposed" | "viewing_confirmed" | "closed" | "withdrawn";
   version: number;
   created_at: string;
+  unread_count?: number;
 }
 export interface RentalInquiryPage {
   items: RentalInquiry[];
@@ -38,3 +39,19 @@ export const rentalStatus: Record<RentalInquiry["status"], string> = {
   closed: "Zatvoren upit",
   withdrawn: "Povučen upit",
 };
+
+export interface RentalMessage {
+  id: number;
+  sender: "owner" | "tenant";
+  kind: "message" | "legacy_reply" | "propose" | "confirm" | "decline" | "close" | "withdraw";
+  body: string;
+  viewing_at: string | null;
+  created_at: string | null;
+  read_at: string | null;
+}
+export interface RentalMessagePage {
+  items: RentalMessage[];
+  has_more: boolean;
+  next_before_id: number | null;
+  unread_count: number;
+}
