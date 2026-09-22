@@ -19,7 +19,7 @@ The project started as a general booking platform. It is now being developed aro
 | Offer | Intended experience | Current implementation |
 | --- | --- | --- |
 | Short stays | Find and reserve an entire apartment for a city break or holiday | Availability calendar, nightly quotes, confirmation and cancellation; payment at the property |
-| Long-term rentals | Find a home, contact the owner and arrange a viewing | Published listings, monthly asking prices, search and email contact |
+| Long-term rentals | Find a home, contact the owner and arrange a viewing | Published listings, monthly prices, private inquiries and viewing proposals |
 | Apartment sales | Explore properties, compare details and contact sellers | Published listings, total asking prices, search and email contact |
 
 The goal is one place for property discovery and owner management, with a reservation flow for short stays. Sales and long-term rentals use an inquiry-based workflow; they are not purchased through the short-stay checkout.
@@ -32,7 +32,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - Listings include city, description, floor area, room count, price, currency and a public contact email.
 - Visitors can search by city and offer type, browse paginated results and open listing details.
 - The responsive storefront includes mobile navigation, active filters and loading, empty and error states.
-- Contact links open the visitor's email application; messages are not yet stored inside Bookica.
+- Contact links open the visitor's email application; long-term rentals also offer private inquiries stored in Bookica.
 
 ### Nightly reservations
 
@@ -44,6 +44,13 @@ The goal is one place for property discovery and owner management, with a reserv
 - Owners can view reservations and guest contact details.
 
 **Short-stay reservations currently use payment at the property.** There is no online charge, deposit or payment hold for these stays. The existing hourly booking payment integration has not yet been connected to nightly reservations.
+
+### Long-term rentals
+
+- Signed-in tenants send private inquiries with a move-in date, duration and message.
+- Owners reply and propose viewing times; tenants accept, decline or withdraw.
+- Both sides track inquiries in their own inbox, with protection against duplicate submissions and stale updates.
+- Inquiries do not reserve apartments or create leases or payments. See the [long-term rental guide](docs/long-term-rentals.md).
 
 ### Existing foundation
 
@@ -57,7 +64,8 @@ The next development areas are:
 - [ ] Seasonal nightly pricing and more flexible booking rules.
 - [ ] Owner calendar blocks and synchronization with external booking calendars.
 - [ ] Online payments and deposits for short stays.
-- [ ] Stored inquiries, viewing appointments and richer rental/sales workflows.
+- [x] Long-term rental inquiries and viewing proposals.
+- [ ] Leases, monthly rental payments and richer sales workflows.
 - [ ] Property favorites, reviews, map search and additional filters.
 - [ ] Guest notifications, rescheduling and more complete host operations.
 
@@ -69,6 +77,8 @@ These are planned features, not claims about the current release. Bookica is sti
 | --- | --- |
 | `/` | Property search and listing details |
 | `/owner` | Existing owner workspace, property editor and nightly booking settings |
+| `/rentals` | Tenant rental inquiries and viewing confirmations |
+| `/owner/rentals` | Owner replies and viewing proposals |
 | `/stays` | Guest's nightly reservations and cancellation |
 | `/owner/stays` | Owner's apartment reservations and guest contact |
 | `/account` | Account access and original booking dashboard |

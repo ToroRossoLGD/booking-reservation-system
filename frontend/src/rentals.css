@@ -1,0 +1,9 @@
+.rental-form fieldset { border: 0; margin: 16px 0; padding: 0; min-width: 0; }
+.rental-form label { display: grid; gap: 6px; margin: 12px 0; font-size: 13px; }
+.rental-form textarea, .rental-form input { box-sizing: border-box; width: 100%; min-width: 0; border: 1px solid #cdd7c5; border-radius: 7px; padding: 11px; font: inherit; color: #253e35; background: white; }
+.rental-form textarea { resize: vertical; }
+.rental-form button, .stay-page-nav button, .stay-page .ph-pagination button { border: 1px solid #cdd7c5; border-radius: 7px; padding: 11px 15px; background: #edf2e6; color: #253e35; }
+.rental-form h3 { font-size: 14px; margin-bottom: 6px; }
+.rental-message { white-space: pre-wrap; overflow-wrap: anywhere; }
+.rental-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.rental-actions p { flex-basis: 100%; }

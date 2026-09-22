@@ -28,7 +28,9 @@ data fallback when the API is unavailable.
 
 The public contact email is deliberately entered by the owner; it is not copied
 from their account. The contact link opens the visitor's email application.
-The application does not send messages or store inquiries in this release.
+Long-term rental listings also accept private inquiries and viewing proposals inside
+the application; see [long-term rentals](long-term-rentals.md). Email notifications
+are not sent for these inquiries.
 
 ## Price semantics
 
@@ -59,7 +61,7 @@ across owners; their owner catalog still shows their own venues' listings.
 
 ## Deliberately deferred
 
-Property photographs, property favorites, map filters, stored inquiries,
+Property photographs, property favorites, map filters, sales inquiries,
 moderation and property-specific detail URLs are future work. The current cards
 use clearly labeled illustrations. Existing resource favorites are unchanged.
 
