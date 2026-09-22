@@ -31,6 +31,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - Owners can create, edit, publish and withdraw listings, or keep them as private drafts.
 - Listings include city, description, floor area, room count, price, currency and a public contact email.
 - Visitors can search by city and offer type, browse paginated results and open listing details.
+- Signed-in users can save listings of any offer type and revisit them on `/saved`, with current prices and direct access to booking or rental inquiries.
 - The responsive storefront includes mobile navigation, active filters and loading, empty and error states.
 - Contact links open the visitor's email application; long-term rentals also offer private inquiries stored in Bookica.
 
@@ -67,7 +68,8 @@ The next development areas are:
 - [ ] Online payments and deposits for short stays.
 - [x] Long-term rental inquiries and viewing proposals.
 - [ ] Leases, monthly rental payments and richer sales workflows.
-- [ ] Property favorites, reviews, map search and additional filters.
+- [x] Private saved property listings.
+- [ ] Property reviews, map search and additional filters.
 - [ ] Guest notifications, rescheduling and more complete host operations.
 
 These are planned features, not claims about the current release. Bookica is still being built and is not presented as a finished real-estate platform.
@@ -77,6 +79,7 @@ These are planned features, not claims about the current release. Bookica is sti
 | Page | Purpose |
 | --- | --- |
 | `/` | Property search and listing details |
+| `/saved` | User's saved property listings |
 | `/owner` | Existing owner workspace, property editor and nightly booking settings |
 | `/rentals` | Tenant rental inquiries and viewing confirmations |
 | `/owner/rentals` | Owner replies and viewing proposals |

@@ -62,6 +62,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  savedProperties: (offset = 0, signal?: AbortSignal) => request<PropertyPage>(`/favorites/properties?offset=${offset}&limit=12`, { signal }),
+  savedPropertyIds: (ids: number[], signal?: AbortSignal) => request<{ property_ids: number[] }>(`/favorites/properties/status?${ids.map(id => `property_ids=${id}`).join("&")}`, { signal }),
+  saveProperty: (id: number) => request<{ property_id: number; saved: true }>(`/favorites/properties/${id}`, { method: "PUT" }),
+  unsaveProperty: (id: number) => request<void>(`/favorites/properties/${id}`, { method: "DELETE" }),
   rentalMessages: (id: number, beforeId?: number) => request<RentalMessagePage>(`/rental-inquiries/${id}/messages${beforeId ? `?before_id=${beforeId}` : ""}`),
   sendRentalMessage: (id: number, body: string, requestId: string) => request<RentalMessage>(`/rental-inquiries/${id}/messages`, { method: "POST", body: JSON.stringify({ body, request_id: requestId }) }),
   readRentalMessages: (id: number, messageIds: number[]) => request<{ unread_count: number }>(`/rental-inquiries/${id}/messages/read`, { method: "POST", body: JSON.stringify({ message_ids: messageIds }) }),

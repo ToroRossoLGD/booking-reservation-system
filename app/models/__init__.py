@@ -7,6 +7,7 @@ from app.models.api_key import APIKey
 from app.models.availability_exception import AvailabilityException
 from app.models.availability_rule import AvailabilityRule
 from app.models.calendar_feed import CalendarFeed
+from app.models.favorite_property import FavoriteProperty
 from app.models.favorite_resource import FavoriteResource
 from app.models.maintenance import MaintenanceActivity, MaintenanceWorkOrder
 from app.models.media_asset import MediaAsset as MediaAsset
@@ -36,6 +37,7 @@ from app.models.waiver import WaiverAcceptance, WaiverTemplate, WaiverVersion
 from app.models.webhook import WebhookDelivery, WebhookSubscription
 
 __all__ = [
+    "FavoriteProperty",
     "RentalMessage",
     "RentalInquiry",
     "Stay",

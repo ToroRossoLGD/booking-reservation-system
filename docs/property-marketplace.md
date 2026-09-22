@@ -61,13 +61,45 @@ across owners; their owner catalog still shows their own venues' listings.
 
 ## Deliberately deferred
 
-Property photographs, property favorites, map filters, sales inquiries,
+Property photographs, map filters, sales inquiries,
 moderation and property-specific detail URLs are future work. The current cards
 use clearly labeled illustrations. Existing resource favorites are unchanged.
 
 Short stays may use direct owner contact or opt in to fixed-price nightly
 booking with payment at the property. Seasonal pricing and online checkout
 are not included yet; see the nightly booking guide.
+
+## Saved properties
+
+Signed-in users can save any published listing with **Sačuvaj oglas**, revisit it
+at `/saved`, and remove it from either the catalog or their saved list. Saved
+cards retain listing details, nightly booking and long-term inquiry forms.
+The list is private, paginated (12 cards per page in the UI), and ordered by the
+most recent save. Repeating a save does not duplicate or reorder it.
+
+The saved list shows current listing prices, not a price snapshot or reservation.
+Unpublished listings disappear from the list and its count without exposing draft
+details. They reappear when the owner republishes them. Deleted listings remove
+their saved references through a cascading foreign key. Removing a saved listing
+is idempotent and affects only the signed-in user's list.
+
+- `GET /favorites/properties?offset=0&limit=12`: published saved listings.
+- `GET /favorites/properties/status?property_ids=1&property_ids=2`: saved IDs from
+  a batch of up to 50 visible listing IDs. The storefront makes one status request
+  per results page, and remains usable if that request fails.
+- `PUT /favorites/properties/{id}`: save a published listing; requires sign-in.
+- `DELETE /favorites/properties/{id}`: remove the user's saved reference (204),
+  even if the listing has since been unpublished or removed.
+
+All four endpoints require authentication and determine the user from their
+session. No caller-supplied owner/user ID is accepted. The original hourly
+resource favorites remain separate. Migration `c38f5d9e0241` adds
+`favorite_properties`; apply it with `alembic upgrade head` before deployment.
+Downgrading this migration removes saved property records only.
+
+Tests: `tests/test_favorite_properties.py`, `frontend/src/SavedProperties.test.tsx`
+and `frontend/e2e/saved-properties.spec.ts`. PostgreSQL concurrent-save coverage
+runs in CI with `STAY_TEST_POSTGRES=1`.
 
 ## Validation
 

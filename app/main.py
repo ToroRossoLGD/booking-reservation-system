@@ -20,6 +20,7 @@ from app.api.routers.availability_rules import (
     router as availability_rules_router,
 )
 from app.api.routers.calendar_feeds import router as calendar_feeds_router
+from app.api.routers.favorite_properties import router as favorite_properties_router
 from app.api.routers.favorites import router as favorites_router
 from app.api.routers.maintenance import router as maintenance_router
 from app.api.routers.media import router as media_router
@@ -121,6 +122,7 @@ app.include_router(promotions_router)
 app.include_router(property_listings_router)
 app.include_router(admin_router)
 app.include_router(favorites_router)
+app.include_router(favorite_properties_router)
 app.include_router(resource_reviews_router)
 app.include_router(review_moderation_router)
 app.include_router(availability_rules_router)
