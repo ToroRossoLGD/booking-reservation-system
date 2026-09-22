@@ -24,6 +24,7 @@ import type {
 } from "./types";
 
 import type { PropertyInput, PropertyListing, PropertyPage } from "./property-types";
+import type { RentalInquiry, RentalInquiryInput, RentalInquiryPage, RentalUpdate } from "./rental-types";
 import type { Stay, StayCalendar, StayCreate, StayDates, StayPage, StayQuote } from "./stay-types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
@@ -61,6 +62,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  createRentalInquiry: (id: number, data: RentalInquiryInput) => request<RentalInquiry>(`/properties/${id}/rental-inquiries`, { method: "POST", body: JSON.stringify(data) }),
+  rentalInquiries: (owner = false, offset = 0) => request<RentalInquiryPage>(`${owner ? "/owner/rental-inquiries" : "/rental-inquiries/mine"}?offset=${offset}&limit=20`),
+  updateRentalInquiry: (id: number, data: RentalUpdate) => request<RentalInquiry>(`/rental-inquiries/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   stayQuote: (id: number, dates: StayDates) => request<StayQuote>(`/properties/${id}/stay-quote`, { method: "POST", body: JSON.stringify(dates) }),
   createStay: (id: number, data: StayCreate) => request<Stay>(`/properties/${id}/stays`, { method: "POST", body: JSON.stringify(data) }),
   stayCalendar: (id: number, start: string, end: string, signal?: AbortSignal) => request<StayCalendar>(`/properties/${id}/calendar?${new URLSearchParams({ start, end })}`, { signal }),

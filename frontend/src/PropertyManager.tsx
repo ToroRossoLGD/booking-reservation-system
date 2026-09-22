@@ -60,7 +60,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
   return <section className="ph-manager owner-panel" aria-label="Oglasi za nekretnine">
     <div className="ph-section-heading"><div><p className="eyebrow">NEKRETNINE</p><h2>Tvoji oglasi</h2></div><button className="button primary" disabled={!venues.length || busy} onClick={() => { setEditing("new"); setType("short_stay"); setError(""); setMessage(""); }}>Novi oglas</button></div>
     <p className="muted-copy">Poveži oglas sa svojim objektom, odredi cenu i objavi ponudu za prodaju ili najam. <a href="/">Pogledaj javnu ponudu ↗</a></p>
-    <p><a href="/owner/stays">Pregledaj rezervacije stanova ↗</a></p>
+    <p><a href="/owner/stays">Pregledaj rezervacije stanova ↗</a> · <a href="/owner/rentals">Upiti za dugoročni najam ↗</a></p>
     {!venues.length && <p>Prvo dodaj objekat preko dugmeta „Add venue“, pa kreiraj oglas.</p>}
     {error && <p role="alert" className="error-message">{error}</p>}
     {message && <p role="status">{message}</p>}

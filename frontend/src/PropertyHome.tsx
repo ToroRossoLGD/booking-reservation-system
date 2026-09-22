@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
 import StayBooking from "./StayBooking";
+import RentalInquiryForm from "./RentalInquiryForm";
 import { offerLabels, priceUnits, propertyPrice } from "./property-types";
 import type { OfferType, PropertyListing, PropertyPage } from "./property-types";
 import "./property-home.css";
@@ -25,6 +26,7 @@ function PropertyCard({ property: p }: { property: PropertyListing }) {
       </div>
       <div id={`property-${p.id}`} className="ph-detail" hidden={!expanded}>
         <p className="ph-description">{p.description}</p>
+        {p.offer_type === "long_term" && expanded && <RentalInquiryForm property={p} />}
         {p.offer_type === "short_stay" && (p.booking_enabled ? expanded && <StayBooking property={p} /> : <p>Za dostupnost i cenu kontaktiraj domaćina. Online rezervacije za ovaj smeštaj nisu uključene.</p>)}
         <a className="ph-outline" href={`mailto:${encodeURIComponent(p.contact_email)}?subject=${encodeURIComponent(`Upit za nekretninu: ${p.title}`)}`}>Kontaktiraj vlasnika ↗</a>
       </div>
@@ -60,10 +62,10 @@ export default function PropertyHome() {
   return <div className="property-home">
     <header className="ph-header">
       <a className="ph-brand" href="/" aria-label="Bookica početna"><span>⌂</span> bookica<span className="ph-brand-dot">.</span></a>
-      <nav aria-label="Glavna navigacija"><a href="#ponuda">Pronađi nekretninu</a><a href="#destinacije">Destinacije</a><a href="/stays">Moji boravci</a><a href="/account">Moj nalog</a></nav>
+      <nav aria-label="Glavna navigacija"><a href="#ponuda">Pronađi nekretninu</a><a href="#destinacije">Destinacije</a><a href="/stays">Moji boravci</a><a href="/rentals">Moji upiti</a><a href="/account">Moj nalog</a></nav>
       <a className="ph-outline" href="/owner">Objavi oglas ↗</a>
     </header>
-    <nav className="ph-mobile-nav" aria-label="Mobilna navigacija"><a href="#ponuda">Ponuda</a><a href="/stays">Boravci</a><a href="/account">Moj nalog ↗</a></nav>
+    <nav className="ph-mobile-nav" aria-label="Mobilna navigacija"><a href="#ponuda">Ponuda</a><a href="/stays">Boravci</a><a href="/rentals">Upiti</a><a href="/account">Moj nalog ↗</a></nav>
     <main>
       <section className="ph-hero">
         <div className="ph-hero-copy"><p className="ph-eyebrow"><span className="ph-live-dot" /> TVOJE MESTO. TVOJ RITAM.</p><h1>Negde te čeka<br />tvoj <em>novi pogled.</em></h1><p>Za nekoliko dana, novo poglavlje ili ceo život.<br />Pronađi prostor u kom želiš da budeš.</p><a href="#ponuda" className="ph-text-link">Pronađi svoje mesto <span>↗</span></a><div className="ph-hero-note"><span aria-hidden="true">⌂</span><p>Jedna adresa za tvoje planove.<small>Odmor · Dugoročni najam · Novi dom</small></p></div></div>
