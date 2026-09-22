@@ -7,3 +7,14 @@
 .rental-message { white-space: pre-wrap; overflow-wrap: anywhere; }
 .rental-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .rental-actions p { flex-basis: 100%; }
+.rental-conversation { margin-top: 22px; padding-top: 18px; border-top: 1px solid #d8e2cd; }
+.rental-conversation-toggle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rental-unread { border-radius: 14px; background: #294a3c; color: white; padding: 4px 9px; font-size: 11px; }
+.rental-conversation-note { color: #62745f; }
+.rental-conversation-messages { list-style: none; padding: 0; display: grid; gap: 12px; }
+.rental-conversation-messages li { padding: 14px; border-radius: 10px; background: #f4f2ed; overflow-wrap: anywhere; min-width: 0; }
+.rental-conversation-messages .is-mine { background: #edf2e6; }
+.rental-message-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; font-size: 12px; }
+.rental-message-meta time, .rental-conversation small { font-size: 11px; color: #62745f; }
+.rental-event-label { font-weight: 600; }
+.rental-unread-label { display: block; font-weight: 600; }

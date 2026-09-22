@@ -6,8 +6,11 @@ from sqlalchemy import func, select
 
 from app.models.property_listing import PropertyListing
 from app.models.rental_inquiry import RentalInquiry
+from app.models.rental_message import RentalMessage
 from app.models.user import User
 from app.models.venue import Venue
+from app.schemas.rental_inquiry import RentalInquiryRead
+from app.services.rental_message_service import append_rental_message
 
 
 class RentalInquiryService:
@@ -76,6 +79,8 @@ class RentalInquiryService:
             message=data.message,
         )
         self.db.add(inquiry)
+        await self.db.flush()
+        append_rental_message(self.db, inquiry, user.id, data.message)
         await self.db.commit()
         await self.db.refresh(inquiry)
         return inquiry
@@ -90,6 +95,26 @@ class RentalInquiryService:
                 query.order_by(RentalInquiry.id.desc()).offset(offset).limit(limit)
             )
         )
+        if items:
+            unread = dict(
+                (
+                    await self.db.execute(
+                        select(RentalMessage.inquiry_id, func.count())
+                        .where(
+                            RentalMessage.inquiry_id.in_([item.id for item in items]),
+                            RentalMessage.sender_id != user.id,
+                            RentalMessage.read_at.is_(None),
+                        )
+                        .group_by(RentalMessage.inquiry_id)
+                    )
+                ).all()
+            )
+            items = [
+                RentalInquiryRead.model_validate(item).model_copy(
+                    update={"unread_count": unread.get(item.id, 0)}
+                )
+                for item in items
+            ]
         return {"items": items, "total": total, "has_next": offset + limit < total}
 
     async def update(self, inquiry_id, data, user):
@@ -132,6 +157,14 @@ class RentalInquiryService:
             inquiry.status = "closed" if data.action == "close" else "withdrawn"
         if owner_action and data.action != "close":
             inquiry.owner_reply = data.owner_reply
+        append_rental_message(
+            self.db,
+            inquiry,
+            user.id,
+            data.owner_reply,
+            kind="message" if data.action == "reply" else data.action,
+            viewing_at=data.viewing_at,
+        )
         inquiry.version += 1
         await self.db.commit()
         await self.db.refresh(inquiry)

@@ -48,6 +48,7 @@ class RentalInquiryRead(BaseModel):
     ]
     version: int
     created_at: datetime
+    unread_count: int = 0
 
 
 class RentalInquiryPage(BaseModel):

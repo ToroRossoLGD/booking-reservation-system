@@ -16,6 +16,7 @@ from app.models.payment import Payment
 from app.models.promotion import Promotion
 from app.models.property_listing import PropertyListing
 from app.models.rental_inquiry import RentalInquiry
+from app.models.rental_message import RentalMessage
 from app.models.reservation import Reservation
 from app.models.reservation_add_on import AddOn, ReservationAddOn
 from app.models.reservation_event import ReservationEvent
@@ -35,6 +36,7 @@ from app.models.waiver import WaiverAcceptance, WaiverTemplate, WaiverVersion
 from app.models.webhook import WebhookDelivery, WebhookSubscription
 
 __all__ = [
+    "RentalMessage",
     "RentalInquiry",
     "Stay",
     "PropertyListing",

@@ -3,6 +3,7 @@ import { api, ApiError } from "./api";
 import type { RentalInquiry, RentalInquiryPage, RentalUpdate } from "./rental-types";
 import { rentalStatus } from "./rental-types";
 import { displayDate, stayMoney } from "./stay-types";
+import RentalConversation from "./RentalConversation";
 import "./stays.css";
 import "./rentals.css";
 
@@ -36,6 +37,7 @@ function InquiryCard({ inquiry, owner, reload }: { inquiry: RentalInquiry; owner
       <div className="rental-actions">{confirmClose ? <><p>{owner ? "Zatvori ovaj upit?" : "Povuci ovaj upit?"} Dogovor oko razgledanja više neće biti aktivan.</p><button onClick={() => void update({ action: owner ? "close" : "withdraw" })}>Potvrdi</button><button onClick={() => setConfirmClose(false)}>Odustani</button></> : <button onClick={() => setConfirmClose(true)}>{owner ? "Zatvori upit" : "Povuci upit"}</button>}</div>
     </fieldset>}
     {busy && <p role="status">Čuvanje…</p>}{error && <p role="alert">{error}</p>}
+    <RentalConversation inquiryId={inquiry.id} owner={owner} active={active} unreadCount={inquiry.unread_count} />
   </article>;
 }
 

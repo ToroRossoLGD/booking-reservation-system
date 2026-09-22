@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.db.base import Base
 from app.models.property_listing import PropertyListing
 from app.models.rental_inquiry import RentalInquiry
+from app.models.rental_message import RentalMessage
 from app.models.user import User
 from app.models.venue import Venue
 from app.schemas.rental_inquiry import RentalInquiryCreate, RentalInquiryUpdate
@@ -50,6 +51,7 @@ def service():
             Venue.__table__,
             PropertyListing.__table__,
             RentalInquiry.__table__,
+            RentalMessage.__table__,
         ],
     )
     with Session(engine, expire_on_commit=False) as session:
@@ -86,7 +88,7 @@ def service():
         session.commit()
         db = MagicMock()
         db.add = session.add
-        for name in ("scalar", "scalars", "commit", "refresh"):
+        for name in ("scalar", "scalars", "commit", "refresh", "flush", "execute"):
             setattr(db, name, AsyncMock(side_effect=getattr(session, name)))
         yield RentalInquiryService(db)
     engine.dispose()
@@ -310,6 +312,20 @@ def test_routes_reject_unauthenticated_and_customer_owner_access():
     app.dependency_overrides[get_db] = lambda: AsyncMock()
     with TestClient(app) as client:
         assert client.get("/rental-inquiries/mine").status_code == 401
+        assert client.get("/rental-inquiries/1/messages").status_code == 401
+        assert (
+            client.post(
+                "/rental-inquiries/1/messages",
+                json={"body": "Hello", "request_id": str(uuid4())},
+            ).status_code
+            == 401
+        )
+        assert (
+            client.post(
+                "/rental-inquiries/1/messages/read", json={"message_ids": [1]}
+            ).status_code
+            == 401
+        )
         assert (
             client.post(
                 "/properties/1/rental-inquiries",
@@ -322,3 +338,12 @@ def test_routes_reject_unauthenticated_and_customer_owner_access():
         )
         assert client.get("/owner/rental-inquiries").status_code == 403
         assert client.get("/rental-inquiries/mine?offset=-1").status_code == 422
+        assert client.get("/rental-inquiries/1/messages?limit=51").status_code == 422
+        assert client.get("/rental-inquiries/1/messages?before_id=0").status_code == 422
+        assert (
+            client.post(
+                "/rental-inquiries/1/messages/read",
+                json={"message_ids": list(range(51))},
+            ).status_code
+            == 422
+        )
