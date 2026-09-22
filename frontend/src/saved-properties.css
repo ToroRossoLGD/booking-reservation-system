@@ -1,0 +1,16 @@
+.property-save { margin-bottom: 12px; }
+.property-save-button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #d0d9ca; border-radius: 20px; padding: 8px 12px; color: #294a3c; background: #fff; font: inherit; font-size: 12px; }
+.property-save-button[aria-pressed="true"] { background: #edf2e6; }
+.property-save-button span { font-size: 20px; line-height: 1; }
+.property-save-button:disabled { opacity: .6; cursor: default; }
+.property-save p { font-size: 12px; line-height: 1.6; }
+.property-save a, .saved-properties-heading > a { text-decoration: underline; text-underline-offset: 3px; }
+.saved-properties-page main { padding-bottom: 60px; }
+.saved-properties-heading { margin: 40px 0 24px; }
+.saved-properties-heading h1 { font: 400 clamp(32px, 5vw, 48px) Georgia, serif; }
+.saved-properties-heading p, .saved-properties-note { line-height: 1.7; }
+.saved-properties-note { font-size: 13px; color: #62745f; }
+.property-save-error { border: 1px solid #d0d9ca; padding: 14px; border-radius: 8px; margin-bottom: 18px; font-size: 13px; }
+.property-save-error a { margin-left: 12px; text-decoration: underline; }
+@media (max-width: 900px) { .ph-header nav { flex-wrap: wrap; row-gap: 8px; } }
+@media (max-width: 650px) { .ph-mobile-nav { flex-wrap: wrap; } }
