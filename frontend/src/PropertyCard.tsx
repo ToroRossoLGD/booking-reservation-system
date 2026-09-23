@@ -2,17 +2,18 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import StayBooking from "./StayBooking";
 import RentalInquiryForm from "./RentalInquiryForm";
+import PropertyGallery from "./PropertyGallery";
 import { offerLabels, priceUnits, propertyPrice } from "./property-types";
 import type { PropertyListing } from "./property-types";
 
 export default function PropertyCard({ property: p, saveAction }: { property: PropertyListing; saveAction?: ReactNode }) {
   const [expanded, setExpanded] = useState(false);
   return <article className="ph-card">
-    <div className={`ph-card-art ph-scene-${p.offer_type === "short_stay" ? "sea" : "city"}`}>
+    {p.photos?.length ? <div className="property-photo-card"><PropertyGallery key={p.photos.map(photo => photo.id).join(",")} photos={p.photos} title={p.title} /><span className="ph-tag">{offerLabels[p.offer_type]}</span></div> : <div className={`ph-card-art ph-scene-${p.offer_type === "short_stay" ? "sea" : "city"}`}>
       <span className="ph-tag">{offerLabels[p.offer_type]}</span>
       <div className="ph-mini-house" aria-hidden="true"><i /><i /><i /></div>
       <span className="ph-art-label">Ilustracija nekretnine</span>
-    </div>
+    </div>}
     <div className="ph-card-body">
       {saveAction}
       <p className="ph-location"><span aria-hidden="true">⌖</span> {p.city}</p><h3>{p.title}</h3>

@@ -11,6 +11,7 @@ from app.schemas.property_listing import (
     PropertyListingWrite,
 )
 from app.services.property_listing_service import PropertyListingService
+from app.services.property_photo_service import PropertyPhotoService
 
 router = APIRouter(tags=["Property listings"])
 
@@ -23,12 +24,13 @@ async def list_properties(
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
-    return await PropertyListingService(db).search(
+    page = await PropertyListingService(db).search(
         city=city,
         offer_type=offer_type,
         limit=limit,
         offset=offset,
     )
+    return await PropertyPhotoService(db).enrich_page(page)
 
 
 @router.get("/owner/properties", response_model=PropertyListingPage)
@@ -38,16 +40,18 @@ async def owner_properties(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_roles("owner", "admin")),
 ):
-    return await PropertyListingService(db).search(
+    page = await PropertyListingService(db).search(
         owner_id=user.id,
         limit=limit,
         offset=offset,
     )
+    return await PropertyPhotoService(db).enrich_page(page)
 
 
 @router.get("/properties/{listing_id}", response_model=PropertyListingRead)
 async def get_property(listing_id: int, db: AsyncSession = Depends(get_db)):
-    return await PropertyListingService(db).get_public(listing_id)
+    listing = await PropertyListingService(db).get_public(listing_id)
+    return await PropertyPhotoService(db).enrich_one(listing)
 
 
 @router.post("/properties", response_model=PropertyListingRead, status_code=201)
@@ -56,7 +60,8 @@ async def create_property(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_roles("owner", "admin")),
 ):
-    return await PropertyListingService(db).create(data, user)
+    listing = await PropertyListingService(db).create(data, user)
+    return await PropertyPhotoService(db).enrich_one(listing)
 
 
 @router.put("/properties/{listing_id}", response_model=PropertyListingRead)
@@ -66,4 +71,5 @@ async def update_property(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_roles("owner", "admin")),
 ):
-    return await PropertyListingService(db).update(listing_id, data, user)
+    listing = await PropertyListingService(db).update(listing_id, data, user)
+    return await PropertyPhotoService(db).enrich_one(listing)

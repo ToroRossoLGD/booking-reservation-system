@@ -32,6 +32,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - Listings include city, description, floor area, room count, price, currency and a public contact email.
 - Visitors can search by city and offer type, browse paginated results and open listing details.
 - Signed-in users can save listings of any offer type and revisit them on `/saved`, with current prices and direct access to booking or rental inquiries.
+- Owners can upload up to 12 photos per listing, select a cover, reorder and delete them; visitors can open a full-screen gallery on desktop and mobile.
 - The responsive storefront includes mobile navigation, active filters and loading, empty and error states.
 - Contact links open the visitor's email application; long-term rentals also offer private inquiries stored in Bookica.
 
@@ -62,7 +63,8 @@ Email/password login, Google OAuth, customer/owner/admin roles and database migr
 
 The next development areas are:
 
-- [ ] Property photographs, galleries and dedicated property pages.
+- [x] Property photographs, cover selection and galleries.
+- [ ] Dedicated property pages.
 - [ ] Seasonal nightly pricing and more flexible booking rules.
 - [ ] Owner calendar blocks and synchronization with external booking calendars.
 - [ ] Online payments and deposits for short stays.
@@ -222,6 +224,7 @@ docs/                Feature guides and interface preview
 ## Documentation
 
 - [Property marketplace](docs/property-marketplace.md): publishing, offer types and listing APIs.
+- [Property photos](docs/property-photos.md): uploads, galleries, private storage and deployment.
 - [Nightly stays](docs/nightly-stays.md): activation, date rules, inventory, payment terms and reservation APIs.
 - [Google login setup](GOOGLE_LOGIN_SETUP.md): OAuth configuration.
 - [Analytics pipeline](docs/analytics-data-pipeline.md): existing booking analytics infrastructure.

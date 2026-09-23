@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     S3_PUBLIC_BASE_URL: str = ""
     S3_PRESIGNED_URL_EXPIRE_SECONDS: int = 3600
     MEDIA_MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024
+    PROPERTY_PHOTO_BUCKET: str = ""
 
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""

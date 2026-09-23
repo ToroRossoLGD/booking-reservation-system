@@ -61,9 +61,11 @@ across owners; their owner catalog still shows their own venues' listings.
 
 ## Deliberately deferred
 
-Property photographs, map filters, sales inquiries,
+Map filters, sales inquiries,
 moderation and property-specific detail URLs are future work. The current cards
-use clearly labeled illustrations. Existing resource favorites are unchanged.
+use owner-uploaded cover photos when available and clearly labeled illustrations
+otherwise. See [property photos](property-photos.md) for upload limits, private
+storage setup and galleries. Existing resource favorites are unchanged.
 
 Short stays may use direct owner contact or opt in to fixed-price nightly
 booking with payment at the property. Seasonal pricing and online checkout
