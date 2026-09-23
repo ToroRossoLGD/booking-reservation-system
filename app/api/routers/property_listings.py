@@ -5,10 +5,10 @@ from app.core.dependencies import require_roles
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.property_listing import (
-    OfferType,
     PropertyListingPage,
     PropertyListingRead,
     PropertyListingWrite,
+    PropertySearch,
 )
 from app.services.property_listing_service import PropertyListingService
 from app.services.property_photo_service import PropertyPhotoService
@@ -18,18 +18,10 @@ router = APIRouter(tags=["Property listings"])
 
 @router.get("/properties", response_model=PropertyListingPage)
 async def list_properties(
-    city: str = Query("", max_length=100),
-    offer_type: OfferType | None = None,
-    limit: int = Query(20, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    filters: PropertySearch = Query(),
     db: AsyncSession = Depends(get_db),
 ):
-    page = await PropertyListingService(db).search(
-        city=city,
-        offer_type=offer_type,
-        limit=limit,
-        offset=offset,
-    )
+    page = await PropertyListingService(db).search(**filters.model_dump())
     return await PropertyPhotoService(db).enrich_page(page)
 
 

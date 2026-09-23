@@ -1,4 +1,14 @@
 export type OfferType = "short_stay" | "long_term" | "sale";
+
+export type PropertySearchFilters = {
+  currency?: "EUR" | "RSD" | "USD";
+  min_price_cents?: number;
+  max_price_cents?: number;
+  min_area_sqm?: number;
+  max_area_sqm?: number;
+  rooms?: number;
+  sort?: "newest" | "price_asc" | "price_desc" | "area_desc";
+};
 export type PropertyInput = {
   venue_id: number;
   title: string;

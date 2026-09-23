@@ -23,7 +23,7 @@ import type {
   Venue,
 } from "./types";
 
-import type { PropertyInput, PropertyListing, PropertyPage, PropertyPhoto } from "./property-types";
+import type { PropertyInput, PropertyListing, PropertyPage, PropertyPhoto, PropertySearchFilters } from "./property-types";
 import type { RentalInquiry, RentalInquiryInput, RentalInquiryPage, RentalUpdate, RentalMessage, RentalMessagePage } from "./rental-types";
 import type { Stay, StayCalendar, StayCreate, StayDates, StayPage, StayQuote } from "./stay-types";
 
@@ -87,9 +87,10 @@ export const api = {
   stayCalendar: (id: number, start: string, end: string, signal?: AbortSignal) => request<StayCalendar>(`/properties/${id}/calendar?${new URLSearchParams({ start, end })}`, { signal }),
   myStays: (owner = false, offset = 0) => request<StayPage>(`${owner ? "/owner/stays" : "/stays/mine"}?offset=${offset}&limit=20`),
   cancelStay: (id: number) => request<Stay>(`/stays/${id}/cancel`, { method: "POST" }),
-  properties: (city: string, offerType: string, offset = 0, signal?: AbortSignal) => {
+  properties: (city: string, offerType: string, offset = 0, signal?: AbortSignal, filters: PropertySearchFilters = {}) => {
     const params = new URLSearchParams({ city, offset: String(offset), limit: "12" });
     if (offerType) params.set("offer_type", offerType);
+    Object.entries(filters).forEach(([key, value]) => { if (value !== undefined) params.set(key, String(value)); });
     return request<PropertyPage>(`/properties?${params}`, { signal });
   },
   ownerProperties: (offset = 0) => request<PropertyPage>(`/owner/properties?offset=${offset}&limit=20`),

@@ -15,6 +15,38 @@ from app.schemas.property_photo import PropertyPhotoRead
 OfferType = Literal["short_stay", "long_term", "sale"]
 
 
+class PropertySearch(BaseModel):
+    city: str = Field(default="", max_length=100)
+    offer_type: OfferType | None = None
+    currency: Literal["EUR", "RSD", "USD"] | None = None
+    min_price_cents: int | None = Field(default=None, ge=0, le=1000000000000)
+    max_price_cents: int | None = Field(default=None, ge=0, le=1000000000000)
+    min_area_sqm: int | None = Field(default=None, ge=1, le=100000)
+    max_area_sqm: int | None = Field(default=None, ge=1, le=100000)
+    rooms: int | None = Field(default=None, ge=0, le=100)
+    sort: Literal["newest", "price_asc", "price_desc", "area_desc"] = "newest"
+    limit: int = Field(default=20, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
+
+    @model_validator(mode="after")
+    def valid_ranges(self):
+        for lower, upper in (
+            (self.min_price_cents, self.max_price_cents),
+            (self.min_area_sqm, self.max_area_sqm),
+        ):
+            if lower is not None and upper is not None and lower > upper:
+                raise ValueError("Minimum must not exceed maximum")
+        if (
+            self.min_price_cents is not None
+            or self.max_price_cents is not None
+            or self.sort.startswith("price_")
+        ) and (self.offer_type is None or self.currency is None):
+            raise ValueError(
+                "Price filters and sorting require offer_type and currency"
+            )
+        return self
+
+
 class PropertyListingWrite(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 

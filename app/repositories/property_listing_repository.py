@@ -34,7 +34,20 @@ class PropertyListingRepository:
         )
 
     async def search(
-        self, *, city="", offer_type=None, owner_id=None, limit=20, offset=0
+        self,
+        *,
+        city="",
+        offer_type=None,
+        owner_id=None,
+        limit=20,
+        offset=0,
+        currency=None,
+        min_price_cents=None,
+        max_price_cents=None,
+        min_area_sqm=None,
+        max_area_sqm=None,
+        rooms=None,
+        sort="newest",
     ):
         filters = []
         if owner_id is None:
@@ -45,9 +58,29 @@ class PropertyListingRepository:
             filters.append(PropertyListing.city.icontains(city, autoescape=True))
         if offer_type:
             filters.append(PropertyListing.offer_type == offer_type)
+        if currency is not None:
+            filters.append(PropertyListing.currency == currency)
+        if rooms is not None:
+            filters.append(PropertyListing.rooms == rooms)
+        for column, lower, upper in (
+            (PropertyListing.price_cents, min_price_cents, max_price_cents),
+            (PropertyListing.area_sqm, min_area_sqm, max_area_sqm),
+        ):
+            if lower is not None:
+                filters.append(column >= lower)
+            if upper is not None:
+                filters.append(column <= upper)
+        ordering = {
+            "newest": PropertyListing.id.desc(),
+            "price_asc": PropertyListing.price_cents.asc(),
+            "price_desc": PropertyListing.price_cents.desc(),
+            "area_desc": PropertyListing.area_sqm.desc(),
+        }[sort]
         query = select(PropertyListing).join(Venue).where(*filters)
         total = await self.db.scalar(select(func.count()).select_from(query.subquery()))
         result = await self.db.scalars(
-            query.order_by(PropertyListing.id.desc()).limit(limit).offset(offset)
+            query.order_by(ordering, PropertyListing.id.desc())
+            .limit(limit)
+            .offset(offset)
         )
         return list(result.all()), total or 0
