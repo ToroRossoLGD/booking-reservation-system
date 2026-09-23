@@ -44,6 +44,8 @@ services:
     entrypoint: >
       /bin/sh -c "until mc alias set local http://minio:9000 bookica bookica-local-secret; do sleep 1; done;
       mc mb --ignore-existing local/bookica-media;
+      mc mb --ignore-existing local/bookica-property-photos;
+      mc anonymous set none local/bookica-property-photos;
       mc anonymous set download local/bookica-media;"
 
   backend:
@@ -62,6 +64,7 @@ services:
       S3_ENDPOINT_URL: http://minio:9000
       S3_REGION: us-east-1
       S3_BUCKET: bookica-media
+      PROPERTY_PHOTO_BUCKET: bookica-property-photos
       S3_ACCESS_KEY_ID: bookica
       S3_SECRET_ACCESS_KEY: bookica-local-secret
       S3_PUBLIC_BASE_URL: http://localhost:9000/bookica-media

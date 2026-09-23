@@ -10,6 +10,8 @@ from pydantic import (
     model_validator,
 )
 
+from app.schemas.property_photo import PropertyPhotoRead
+
 OfferType = Literal["short_stay", "long_term", "sale"]
 
 
@@ -51,6 +53,7 @@ class PropertyListingWrite(BaseModel):
 class PropertyListingRead(PropertyListingWrite):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    photos: list[PropertyPhotoRead] = Field(default_factory=list)
 
 
 class PropertyListingPage(BaseModel):

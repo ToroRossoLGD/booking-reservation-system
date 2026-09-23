@@ -23,7 +23,7 @@ import type {
   Venue,
 } from "./types";
 
-import type { PropertyInput, PropertyListing, PropertyPage } from "./property-types";
+import type { PropertyInput, PropertyListing, PropertyPage, PropertyPhoto } from "./property-types";
 import type { RentalInquiry, RentalInquiryInput, RentalInquiryPage, RentalUpdate, RentalMessage, RentalMessagePage } from "./rental-types";
 import type { Stay, StayCalendar, StayCreate, StayDates, StayPage, StayQuote } from "./stay-types";
 
@@ -62,6 +62,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  propertyPhotoUrl: (propertyId: number, photoId: number, thumbnail = false) => `${API_URL}/properties/${propertyId}/photos/${photoId}/image?thumbnail=${thumbnail}`,
+  ownerPhotos: (id: number) => request<PropertyPhoto[]>(`/owner/properties/${id}/photos`),
+  uploadPropertyPhoto: (id: number, file: File, requestId: string) => { const body = new FormData(); body.append("file", file); body.append("request_id", requestId); return request<PropertyPhoto>(`/owner/properties/${id}/photos`, { method: "POST", body }); },
+  reorderPropertyPhotos: (id: number, photoIds: number[]) => request<PropertyPhoto[]>(`/owner/properties/${id}/photos/order`, { method: "PUT", body: JSON.stringify({ photo_ids: photoIds }) }),
+  deletePropertyPhoto: (id: number, photoId: number) => request<void>(`/owner/properties/${id}/photos/${photoId}`, { method: "DELETE" }),
+  ownerPhotoBlob: async (id: number, photoId: number, signal: AbortSignal) => {
+    const response = await fetch(`${API_URL}/owner/properties/${id}/photos/${photoId}/image?thumbnail=true`, { signal, headers: { Authorization: `Bearer ${localStorage.getItem("bookica_token") ?? ""}` } });
+    if (!response.ok) throw new ApiError("Photo unavailable", response.status);
+    return response.blob();
+  },
   savedProperties: (offset = 0, signal?: AbortSignal) => request<PropertyPage>(`/favorites/properties?offset=${offset}&limit=12`, { signal }),
   savedPropertyIds: (ids: number[], signal?: AbortSignal) => request<{ property_ids: number[] }>(`/favorites/properties/status?${ids.map(id => `property_ids=${id}`).join("&")}`, { signal }),
   saveProperty: (id: number) => request<{ property_id: number; saved: true }>(`/favorites/properties/${id}`, { method: "PUT" }),

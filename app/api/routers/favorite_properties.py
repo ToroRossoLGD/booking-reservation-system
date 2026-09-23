@@ -9,6 +9,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.property_listing import PropertyListingPage
 from app.services.favorite_property_service import FavoritePropertyService
+from app.services.property_photo_service import PropertyPhotoService
 
 router = APIRouter(prefix="/favorites/properties", tags=["Saved properties"])
 
@@ -29,7 +30,8 @@ async def saved_properties(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    return await FavoritePropertyService(db).list(user, offset, limit)
+    page = await FavoritePropertyService(db).list(user, offset, limit)
+    return await PropertyPhotoService(db).enrich_page(page)
 
 
 @router.get("/status", response_model=FavoritePropertyIds)

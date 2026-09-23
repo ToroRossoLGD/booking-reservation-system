@@ -16,7 +16,8 @@ export type PropertyInput = {
   minimum_nights?: number;
   timezone?: string;
 };
-export type PropertyListing = PropertyInput & { id: number };
+export type PropertyPhoto = { id: number; property_id: number; position: number; width: number; height: number };
+export type PropertyListing = PropertyInput & { id: number; photos?: PropertyPhoto[] };
 export type PropertyPage = { items: PropertyListing[]; total: number; offset: number; limit: number; has_next: boolean };
 export const offerLabels: Record<OfferType, string> = { short_stay: "Stan na dan", long_term: "Dugoročni najam", sale: "Prodaja" };
 export const priceUnits: Record<OfferType, string> = { short_stay: "noć", long_term: "mesec", sale: "ukupno" };
