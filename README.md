@@ -12,17 +12,51 @@ The project started as a general booking platform. It is now being developed aro
 
 <img src="docs/images/property-marketplace.png" alt="Bookica property marketplace with city search, offer filters, an apartment listing and owner contact" width="780" />
 
-*Current interface with a test listing used in browser checks. Property illustrations are placeholders, not photographs of real apartments.*
+*Screenshots show the actual interface with deterministic test data, not live listings or real user conversations. Property illustrations and gallery images are test placeholders, not photographs of real apartments.*
+
+### Advanced property search
+
+Filter by city, offer type, price, floor area and exact room count, then sort by newest, price or largest area. Price comparisons stay within the selected offer type and currency.
+
+<img src="docs/images/advanced-property-search.png" alt="Advanced search for long-term rentals from 500 to 750 EUR, 30 to 60 square metres and two rooms, sorted by ascending price" width="780" />
+
+<details>
+<summary>Saved listings and private rental conversations — mobile</summary>
+
+Save a property to revisit it later, or continue a private conversation with its owner from your rental inquiry.
+
+<img src="docs/images/saved-properties-mobile.png" alt="Mobile saved listings page with an apartment and its long-term rental inquiry form" width="340" />
+<img src="docs/images/rental-conversation-mobile.png" alt="Mobile rental inquiry with private tenant and owner messages about arranging a viewing" width="340" />
+
+</details>
+
+<details>
+<summary>Confirmed property viewing</summary>
+
+Owners propose a viewing time and tenants confirm it from their inquiry. A viewing does not create a reservation or a lease.
+
+<img src="docs/images/rental-viewing-confirmed.png" alt="Tenant rental inquiry showing an accepted viewing proposal" width="780" />
+
+</details>
+
+<details>
+<summary>Full-screen property gallery</summary>
+
+Owners can upload up to 12 images and select their cover. Visitors browse the gallery with thumbnails, navigation buttons or keyboard arrows. The geometric images below are browser-test fixtures.
+
+<img src="docs/images/property-gallery.png" alt="Full-screen property gallery showing a test image, two thumbnails and previous and next navigation controls" width="780" />
+
+</details>
 
 ## What Bookica is being built to do
 
 | Offer | Intended experience | Current implementation |
 | --- | --- | --- |
 | Short stays | Find and reserve an entire apartment for a city break or holiday | Availability calendar, nightly quotes, confirmation and cancellation; payment at the property |
-| Long-term rentals | Find a home, contact the owner and arrange a viewing | Published listings, monthly prices, private inquiries and viewing proposals |
+| Long-term rentals | Find a home, contact the owner and arrange a viewing | Published listings, monthly prices, private conversations, viewing proposals and confirmations |
 | Apartment sales | Explore properties, compare details and contact sellers | Published listings, total asking prices, search and email contact |
 
-The goal is one place for property discovery and owner management, with a reservation flow for short stays. Sales and long-term rentals use an inquiry-based workflow; they are not purchased through the short-stay checkout.
+The goal is one place for property discovery and owner management, with a reservation flow for short stays. Long-term rentals use private inquiries; sales listings currently use email contact. Neither is purchased through the short-stay checkout.
 
 ## What works today
 
@@ -30,7 +64,8 @@ The goal is one place for property discovery and owner management, with a reserv
 
 - Owners can create, edit, publish and withdraw listings, or keep them as private drafts.
 - Listings include city, description, floor area, room count, price, currency and a public contact email.
-- Visitors can search by city and offer type, browse paginated results and open listing details.
+- Visitors can search by city and offer type, filter by price, floor area and exact room count (including studios), and sort by newest, price or largest area.
+- Price filters and sorting require an offer type and currency so nightly, monthly and sale prices are not mixed. Applied filters stay active across result pages and can be cleared together.
 - Signed-in users can save listings of any offer type and revisit them on `/saved`, with current prices and direct access to booking or rental inquiries.
 - Owners can upload up to 12 photos per listing, select a cover, reorder and delete them; visitors can open a full-screen gallery on desktop and mobile.
 - The responsive storefront includes mobile navigation, active filters and loading, empty and error states.
@@ -71,7 +106,9 @@ The next development areas are:
 - [x] Long-term rental inquiries and viewing proposals.
 - [ ] Leases, monthly rental payments and richer sales workflows.
 - [x] Private saved property listings.
-- [ ] Property reviews, map search and additional filters.
+- [x] Private rental conversations, message history and unread indicators.
+- [x] Advanced property filters and sorting.
+- [ ] Property reviews and map search.
 - [ ] Guest notifications, rescheduling and more complete host operations.
 
 These are planned features, not claims about the current release. Bookica is still being built and is not presented as a finished real-estate platform.
@@ -96,7 +133,8 @@ To publish your first property:
 2. Create an object using **Add venue**, then select **Novi oglas** under **Tvoji oglasi**.
 3. Enter the property details and save a draft or check **Objavi oglas** to publish it.
 4. For short stays, set the booking rules and explicitly enable whole-apartment reservations.
-5. Open the listing on `/`, check dates and price, and confirm from a guest account.
+5. Use **Fotografije** on the saved listing to upload images, choose the cover and arrange their order. Configure private photo storage first; see the [photo guide](docs/property-photos.md).
+6. Open the listing on `/`. For a short stay, check dates and price and confirm from a guest account. For a long-term rental, send an inquiry and continue from `/rentals`.
 
 The catalog starts empty; real listings are not automatically seeded. Each bookable venue represents one whole apartment. Multiple ads for that venue share occupancy. Hourly resources and nightly apartments must use separate venues.
 
@@ -212,6 +250,9 @@ alembic/             Versioned database migrations
 frontend/src/
   PropertyHome.tsx   Property storefront
   PropertyManager.tsx  Owner listing editor
+  PropertySearchFilters.tsx  Advanced search and sorting
+  PropertyGallery.tsx  Public listing photo gallery
+  SavedPropertiesPage.tsx  Saved property listings
   StayBooking.tsx    Nightly calendar, quote and confirmation
   StaysPage.tsx      Guest and owner stay views
   App.tsx           Original hourly booking application
@@ -225,6 +266,9 @@ docs/                Feature guides and interface preview
 
 - [Property marketplace](docs/property-marketplace.md): publishing, offer types and listing APIs.
 - [Property photos](docs/property-photos.md): uploads, galleries, private storage and deployment.
+- [Property search](docs/property-search.md): price and area ranges, room counts, sorting and currency rules.
+- [Saved properties](docs/property-marketplace.md#saved-properties): saving, removing and revisiting published listings.
+- [Long-term rentals and conversations](docs/long-term-rentals.md): private inquiries, viewing confirmations, message history and unread indicators.
 - [Nightly stays](docs/nightly-stays.md): activation, date rules, inventory, payment terms and reservation APIs.
 - [Google login setup](GOOGLE_LOGIN_SETUP.md): OAuth configuration.
 - [Analytics pipeline](docs/analytics-data-pipeline.md): existing booking analytics infrastructure.
