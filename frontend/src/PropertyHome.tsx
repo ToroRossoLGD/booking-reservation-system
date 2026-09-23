@@ -1,15 +1,27 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
+import PropertySearchFilters from "./PropertySearchFilters";
 import PropertyCard from "./PropertyCard";
 import SavePropertyButton from "./SavePropertyButton";
 import { offerLabels } from "./property-types";
-import type { OfferType, PropertyPage } from "./property-types";
+import type { OfferType, PropertyPage, PropertySearchFilters as Filters } from "./property-types";
 import "./property-home.css";
 import "./property-refresh.css";
 
 const emptyPage: PropertyPage = { items: [], total: 0, limit: 12, offset: 0, has_next: false };
 
 export default function PropertyHome() {
+  const [filters, setFilters] = useState<Filters>({});
+  const [filterReset, setFilterReset] = useState(0);
+  const hasFilters = Object.entries(filters).some(([key, value]) => value !== undefined && !(key === "sort" && value === "newest"));
+  const filterSummary = [
+    filters.min_price_cents !== undefined ? `Cena od ${filters.min_price_cents / 100} ${filters.currency}` : "",
+    filters.max_price_cents !== undefined ? `Cena do ${filters.max_price_cents / 100} ${filters.currency}` : "",
+    filters.min_area_sqm !== undefined ? `Od ${filters.min_area_sqm} m²` : "",
+    filters.max_area_sqm !== undefined ? `Do ${filters.max_area_sqm} m²` : "",
+    filters.rooms !== undefined ? (filters.rooms === 0 ? "Garsonjera" : `Broj soba: ${filters.rooms}`) : "",
+    filters.sort === "price_asc" ? `Cena rastuće (${filters.currency})` : filters.sort === "price_desc" ? `Cena opadajuće (${filters.currency})` : filters.sort === "area_desc" ? "Najveća kvadratura" : "",
+  ].filter(Boolean).join(" · ");
   const [offer, setOffer] = useState<OfferType | "">("");
   const [location, setLocation] = useState("");
   const [query, setQuery] = useState("");
@@ -23,7 +35,7 @@ export default function PropertyHome() {
 
   useEffect(() => {
     const controller = new AbortController();
-    api.properties(query, offer, offset, controller.signal).then(async result => {
+    api.properties(query, offer, offset, controller.signal, filters).then(async result => {
       if (controller.signal.aborted) return;
       setPage(result); setError(false); setLoading(false); setFavoriteIds(null); setFavoritesError(false);
       if (!localStorage.getItem("bookica_token") || result.items.length === 0) { setFavoriteIds(new Set()); return; }
@@ -37,11 +49,19 @@ export default function PropertyHome() {
       if (!controller.signal.aborted) { setError(true); setLoading(false); }
     });
     return () => controller.abort();
-  }, [query, offer, offset, retry]);
+  }, [query, offer, offset, retry, filters]);
 
   function search(city: string, type: OfferType | "" = offer) {
+    if (type !== offer) {
+      setFilters(current => ({ min_area_sqm: current.min_area_sqm, max_area_sqm: current.max_area_sqm, rooms: current.rooms, sort: current.sort === "area_desc" ? "area_desc" : "newest" }));
+      setFilterReset(value => value + 1);
+    }
     setLocation(city); setQuery(city.trim()); setOffer(type); setOffset(0);
     setLoading(true); setError(false); setRetry(value => value + 1);
+  }
+
+  function clearFilters() {
+    search("", ""); setFilters({}); setFilterReset(value => value + 1);
   }
 
   return <div className="property-home">
@@ -66,15 +86,16 @@ export default function PropertyHome() {
           <div className="ph-search-hint">Od gradskih adresa do mirnih obala.<br /><span>Pronađi mesto po svom ukusu.</span></div>
           <button className="ph-primary" type="submit">Pretraži ponudu <span>↗</span></button>
         </form>
+        <PropertySearchFilters key={`${offer}-${filterReset}`} offer={offer} value={filters} onApply={next => { setFilters(next); search(location); }} />
       </section>
       <section className="ph-listings" id="ponuda" aria-busy={loading}>
         <div className="ph-section-heading"><div><p className="ph-eyebrow">PROSTORI ZA TVOJE PLANOVE</p><h2>Mesto koje ti pristaje.</h2></div><a href="/owner" className="ph-outline">Dodaj svoju nekretninu</a></div>
-        {(query || offer) && <div className="ph-active-filters" aria-label="Aktivni filteri">{query && <button onClick={() => search("", offer)} aria-label={`Ukloni lokaciju ${query}`}>⌖ {query} <span>×</span></button>}{offer && <button onClick={() => search(query, "")} aria-label="Ukloni vrstu ponude">{offerLabels[offer]} <span>×</span></button>}<button className="ph-clear-filters" onClick={() => search("", "")}>Obriši filtere</button></div>}
+        {(query || offer || hasFilters) && <div className="ph-active-filters" aria-label="Aktivni filteri">{query && <button onClick={() => search("", offer)} aria-label={`Ukloni lokaciju ${query}`}>⌖ {query} <span>×</span></button>}{offer && <button onClick={() => search(query, "")} aria-label="Ukloni vrstu ponude">{offerLabels[offer]} <span>×</span></button>}{hasFilters && <span>{filterSummary}</span>}<button className="ph-clear-filters" onClick={clearFilters}>Obriši filtere</button></div>}
         {loading ? <><p role="status" className="ph-demo">Učitavanje oglasa…</p><div className="ph-grid" aria-hidden="true">{[0, 1, 2].map(item => <div className="ph-skeleton" key={item}><div /><span /><span /><span /></div>)}</div></> : error ? <div className="ph-empty" role="alert"><span className="ph-empty-icon" aria-hidden="true">↻</span><h3>Ponuda trenutno nije dostupna.</h3><p>Pokušaj ponovo za nekoliko trenutaka.</p><button className="ph-outline" onClick={() => search(query)}>Pokušaj ponovo</button></div> : <>
           <p className="ph-demo" role="status">Pronađeno oglasa: {page.total}{query ? ` · ${query}` : ""}</p>
           {favoritesError && <div className="property-save-error" role="alert">Status sačuvanih oglasa nije učitan. <button className="ph-outline" onClick={() => search(query)}>Pokušaj ponovo</button><a href="/account">Proveri prijavu</a></div>}
           <div className="ph-grid">{page.items.map(p => <PropertyCard key={p.id} property={p} saveAction={<SavePropertyButton propertyId={p.id} title={p.title} saved={favoriteIds === null ? null : favoriteIds.has(p.id)} onChange={saved => setFavoriteIds(current => { const next = new Set(current); if (saved) next.add(p.id); else next.delete(p.id); return next; })} />} />)}</div>
-          {page.items.length === 0 && <div className="ph-empty"><span className="ph-empty-icon" aria-hidden="true">⌂</span><h3>Nema oglasa za ovaj izbor.</h3><p>{query || offer ? "Probaj drugu destinaciju ili ukloni filtere da proširiš pretragu." : "Ponuda tek počinje da raste. Tvoja nekretnina može biti prva."}</p>{query || offer ? <button className="ph-outline" onClick={() => search("", "")}>Prikaži sve oglase</button> : <a className="ph-primary" href="/owner">Objavi prvi oglas ↗</a>}</div>}
+          {page.items.length === 0 && <div className="ph-empty"><span className="ph-empty-icon" aria-hidden="true">⌂</span><h3>Nema oglasa za ovaj izbor.</h3><p>{query || offer || hasFilters ? "Probaj drugu destinaciju ili ukloni filtere da proširiš pretragu." : "Ponuda tek počinje da raste. Tvoja nekretnina može biti prva."}</p>{query || offer || hasFilters ? <button className="ph-outline" onClick={clearFilters}>Prikaži sve oglase</button> : <a className="ph-primary" href="/owner">Objavi prvi oglas ↗</a>}</div>}
           {(offset > 0 || page.has_next) && <nav className="ph-pagination" aria-label="Stranice oglasa"><button className="ph-outline" disabled={offset === 0} onClick={() => { setOffset(Math.max(0, offset - 12)); setLoading(true); }}>Prethodna</button><span>Stranica {Math.floor(offset / 12) + 1}</span><button className="ph-outline" disabled={!page.has_next} onClick={() => { setOffset(offset + 12); setLoading(true); }}>Sledeća</button></nav>}
         </>}
       </section>

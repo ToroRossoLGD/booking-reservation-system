@@ -15,7 +15,7 @@ it("loads real listings, filters by city and offer, and exposes the owner's cont
   await user.click(screen.getByRole("button", { name: "Prodaja" }));
   await user.type(screen.getByPlaceholderText("Grad ili destinacija"), "Novi Sad");
   await user.click(screen.getByRole("button", { name: /Pretraži ponudu/ }));
-  await waitFor(() => expect(api.properties).toHaveBeenLastCalledWith("Novi Sad", "sale", 0, expect.any(AbortSignal)));
+  await waitFor(() => expect(api.properties).toHaveBeenLastCalledWith("Novi Sad", "sale", 0, expect.any(AbortSignal), expect.objectContaining({ sort: "newest" })));
   await user.click(await screen.findByRole("button", { name: `Detalji: ${listing.title}` }));
   expect(screen.getByText(listing.description)).toBeVisible();
   expect(screen.getByRole("link", { name: /Kontaktiraj vlasnika/ })).toHaveAttribute("href", expect.stringContaining("mailto:owner%40example.com"));

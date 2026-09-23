@@ -65,9 +65,10 @@ class PropertyListingService:
         return listing
 
     async def search(
-        self, *, city="", offer_type=None, owner_id=None, limit=20, offset=0
+        self, *, city="", offer_type=None, owner_id=None, limit=20, offset=0, **filters
     ):
         items, total = await self.repository.search(
+            **filters,
             city=city.strip(),
             offer_type=offer_type,
             owner_id=owner_id,
