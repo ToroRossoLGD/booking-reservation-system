@@ -1,0 +1,15 @@
+.property-detail-page main { padding: 28px 0 60px; }
+.property-detail-heading { margin: 32px 0; overflow-wrap: anywhere; }
+.property-detail-heading h1 { font: 400 clamp(32px, 5vw, 52px) Georgia, serif; margin: 16px 0; }
+.property-detail-layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+.property-detail-layout > * { min-width: 0; overflow-wrap: anywhere; }
+.property-detail-layout .property-photo-cover { height: 420px; border-radius: 12px; }
+.property-detail-layout .ph-description { line-height: 1.8; }
+.property-detail-no-photo { display: grid; place-items: center; min-height: 240px; background: #eeeee5; border-radius: 12px; }
+.property-detail-actions { padding: 24px; border: 1px solid #d9dfd1; border-radius: 12px; background: white; }
+.property-detail-price { font-size: 16px; margin: 0 0 20px; }
+.property-detail-price strong { font-size: 28px; }
+.property-share { margin: 20px 0; }
+.property-share label { display: grid; gap: 8px; margin-top: 12px; }
+.property-share input { width: 100%; min-width: 0; box-sizing: border-box; padding: 10px; }
+@media(max-width:750px) { .property-detail-layout { grid-template-columns: 1fr; gap: 20px; } .property-detail-layout .property-photo-cover { height: 280px; } .property-detail-actions { padding: 18px; } .property-detail-page .ph-header nav { display: flex; gap: 12px; font-size: 12px; } }

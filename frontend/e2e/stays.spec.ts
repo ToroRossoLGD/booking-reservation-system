@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { propertyToday, shiftDate } from "../src/stay-types";
 
-test("guest quotes, reserves, views and cancels a whole-apartment stay", async ({ page }, testInfo) => {
+for (const detailPage of [false, true]) {
+test(`guest quotes, reserves, views and cancels from ${detailPage ? "listing page" : "catalog"}`, async ({ page }, testInfo) => {
   const today = propertyToday();
   const arrival = shiftDate(today, 3);
   const departure = shiftDate(today, 6);
@@ -25,8 +26,9 @@ test("guest quotes, reserves, views and cancels a whole-apartment stay", async (
   });
   await page.route("**/api/stays/mine?*", route => route.fulfill({ json: { items: confirmed ? [reservation()] : [], total: confirmed ? 1 : 0, has_next: false } }));
   await page.route("**/api/stays/9/cancel", route => { cancelled = true; return route.fulfill({ json: reservation() }); });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Detalji: Apartman na planini" }).click();
+  await page.route("**/api/properties/4", route => route.fulfill({ json: property }));
+  await page.goto(detailPage ? "/properties/4" : "/");
+  if (!detailPage) await page.getByRole("button", { name: "Detalji: Apartman na planini" }).click();
   await page.getByLabel("Dolazak", { exact: true }).fill(arrival);
   await page.getByLabel("Odlazak", { exact: true }).fill(departure);
   await page.getByLabel("Broj gostiju", { exact: true }).fill("2");
@@ -44,3 +46,5 @@ test("guest quotes, reserves, views and cancels a whole-apartment stay", async (
   await expect(page.getByText("#9 · Otkazano")).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("nightly-stay-cancelled.png"), fullPage: true });
 });
+
+}

@@ -66,6 +66,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - Listings include city, description, floor area, room count, price, currency and a public contact email.
 - Visitors can search by city and offer type, filter by price, floor area and exact room count (including studios), and sort by newest, price or largest area.
 - Price filters and sorting require an offer type and currency so nightly, monthly and sale prices are not mixed. Applied filters stay active across result pages and can be cleared together.
+- Each listing has a shareable `/properties/{id}` page with photos, description, saving, owner contact and the relevant booking or inquiry form. Click its title in the catalog or saved listings to open it.
 - Signed-in users can save listings of any offer type and revisit them on `/saved`, with current prices and direct access to booking or rental inquiries.
 - Owners can upload up to 12 photos per listing, select a cover, reorder and delete them; visitors can open a full-screen gallery on desktop and mobile.
 - The responsive storefront includes mobile navigation, active filters and loading, empty and error states.
@@ -99,7 +100,7 @@ Email/password login, Google OAuth, customer/owner/admin roles and database migr
 The next development areas are:
 
 - [x] Property photographs, cover selection and galleries.
-- [ ] Dedicated property pages.
+- [x] Dedicated property pages and shareable listing links.
 - [ ] Seasonal nightly pricing and more flexible booking rules.
 - [ ] Owner calendar blocks and synchronization with external booking calendars.
 - [ ] Online payments and deposits for short stays.
@@ -118,6 +119,7 @@ These are planned features, not claims about the current release. Bookica is sti
 | Page | Purpose |
 | --- | --- |
 | `/` | Property search and listing details |
+| `/properties/{id}` | Shareable property page, gallery, booking or rental inquiry |
 | `/saved` | User's saved property listings |
 | `/owner` | Existing owner workspace, property editor and nightly booking settings |
 | `/rentals` | Tenant rental inquiries and viewing confirmations |
@@ -267,6 +269,7 @@ docs/                Feature guides and interface preview
 - [Property marketplace](docs/property-marketplace.md): publishing, offer types and listing APIs.
 - [Property photos](docs/property-photos.md): uploads, galleries, private storage and deployment.
 - [Property search](docs/property-search.md): price and area ranges, room counts, sorting and currency rules.
+- [Property detail pages](docs/property-detail-pages.md): direct links, sharing, deployment and targeted code cleanup.
 - [Saved properties](docs/property-marketplace.md#saved-properties): saving, removing and revisiting published listings.
 - [Long-term rentals and conversations](docs/long-term-rentals.md): private inquiries, viewing confirmations, message history and unread indicators.
 - [Nightly stays](docs/nightly-stays.md): activation, date rules, inventory, payment terms and reservation APIs.
