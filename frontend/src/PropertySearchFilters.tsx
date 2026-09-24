@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { OfferType, PropertySearchFilters as Filters } from "./property-types";
 import { priceUnits } from "./property-types";
+import { parseStayDates } from "./stay-types";
 import "./property-search.css";
 
 export default function PropertySearchFilters({ offer, value, onApply }: {
@@ -14,6 +15,9 @@ export default function PropertySearchFilters({ offer, value, onApply }: {
   const [currency, setCurrency] = useState<"EUR" | "RSD" | "USD">(value.currency ?? "EUR");
   const [sort, setSort] = useState<Filters["sort"]>(value.sort ?? "newest");
   const [error, setError] = useState("");
+  const [arrival, setArrival] = useState(value.check_in ?? "");
+  const [departure, setDeparture] = useState(value.check_out ?? "");
+  const [guests, setGuests] = useState(String(value.guests ?? ""));
 
   return <details className="ph-filter-panel">
     <summary>Napredni filteri i sortiranje</summary>
@@ -25,6 +29,11 @@ export default function PropertySearchFilters({ offer, value, onApply }: {
       }
       setError("");
       const filters: Filters = { sort };
+      if (offer === "short_stay" && (arrival || departure || guests)) {
+        const dates = parseStayDates(new URLSearchParams({ check_in: arrival, check_out: departure, guests }));
+        if (!dates) { setError("Unesi dolazak, odlazak i broj gostiju. Boravak može trajati od 1 do 90 noći."); return; }
+        Object.assign(filters, dates);
+      }
       if (minArea !== "") filters.min_area_sqm = Number(minArea);
       if (maxArea !== "") filters.max_area_sqm = Number(maxArea);
       if (rooms !== "") filters.rooms = Number(rooms);
@@ -35,6 +44,12 @@ export default function PropertySearchFilters({ offer, value, onApply }: {
       }
       onApply(filters);
     }}>
+      {offer === "short_stay" && <>
+        <p className="ph-filter-help">Pronađi slobodan stan za svoj boravak. Prikazujemo smeštaje sa uključenim rezervacijama; dostupnost se ponovo proverava pri potvrdi.</p>
+        <label>Dolazak u pretrazi<input type="date" value={arrival} onChange={e => setArrival(e.target.value)} /></label>
+        <label>Odlazak u pretrazi<input type="date" value={departure} onChange={e => setDeparture(e.target.value)} /></label>
+        <label>Broj gostiju u pretrazi<input type="number" min="1" max="100" step="1" value={guests} onChange={e => setGuests(e.target.value)} /></label>
+      </>}
       <p className="ph-filter-help">{offer ? `Cena po jedinici: ${priceUnits[offer]}.` : "Za pretragu po ceni prvo izaberi vrstu ponude iznad."}</p>
       <label>Cena od<input type="number" min="0" max="10000000000" step="0.01" disabled={!offer} value={minPrice} onChange={e => setMinPrice(e.target.value)} /></label>
       <label>Cena do<input type="number" min="0" max="10000000000" step="0.01" disabled={!offer} value={maxPrice} onChange={e => setMaxPrice(e.target.value)} /></label>

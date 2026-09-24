@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -24,12 +25,27 @@ class PropertySearch(BaseModel):
     min_area_sqm: int | None = Field(default=None, ge=1, le=100000)
     max_area_sqm: int | None = Field(default=None, ge=1, le=100000)
     rooms: int | None = Field(default=None, ge=0, le=100)
+    check_in: date | None = None
+    check_out: date | None = None
+    guests: int | None = Field(default=None, ge=1, le=100)
     sort: Literal["newest", "price_asc", "price_desc", "area_desc"] = "newest"
     limit: int = Field(default=20, ge=1, le=100)
     offset: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")
     def valid_ranges(self):
+        if any(
+            value is not None for value in (self.check_in, self.check_out, self.guests)
+        ):
+            if self.offer_type != "short_stay" or any(
+                value is None for value in (self.check_in, self.check_out, self.guests)
+            ):
+                raise ValueError(
+                    "Availability search requires short_stay, "
+                    "check_in, check_out and guests"
+                )
+            if not 1 <= (self.check_out - self.check_in).days <= 90:
+                raise ValueError("Choose a stay of 1 to 90 nights")
         for lower, upper in (
             (self.min_price_cents, self.max_price_cents),
             (self.min_area_sqm, self.max_area_sqm),

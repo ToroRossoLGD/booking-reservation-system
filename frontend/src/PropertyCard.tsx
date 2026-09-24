@@ -1,3 +1,4 @@
+import type { StayDates } from "./stay-types";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import PropertyActions from "./PropertyActions";
@@ -5,7 +6,7 @@ import PropertyGallery from "./PropertyGallery";
 import { offerLabels, priceUnits, propertyPrice } from "./property-types";
 import type { PropertyListing } from "./property-types";
 
-export default function PropertyCard({ property: p, saveAction }: { property: PropertyListing; saveAction?: ReactNode }) {
+export default function PropertyCard({ property: p, saveAction, stayDates }: { property: PropertyListing; saveAction?: ReactNode; stayDates?: StayDates }) {
   const [expanded, setExpanded] = useState(false);
   return <article className="ph-card">
     {p.photos?.length ? <div className="property-photo-card"><PropertyGallery key={p.photos.map(photo => photo.id).join(",")} photos={p.photos} title={p.title} /><span className="ph-tag">{offerLabels[p.offer_type]}</span></div> : <div className={`ph-card-art ph-scene-${p.offer_type === "short_stay" ? "sea" : "city"}`}>
@@ -15,7 +16,7 @@ export default function PropertyCard({ property: p, saveAction }: { property: Pr
     </div>}
     <div className="ph-card-body">
       {saveAction}
-      <p className="ph-location"><span aria-hidden="true">⌖</span> {p.city}</p><h3><a href={`/properties/${p.id}`}>{p.title}</a></h3>
+      <p className="ph-location"><span aria-hidden="true">⌖</span> {p.city}</p><h3><a href={`/properties/${p.id}${stayDates ? `?${new URLSearchParams({ ...stayDates, guests: String(stayDates.guests) })}` : ""}`}>{p.title}</a></h3>
       {!expanded && <p className="ph-card-preview">{p.description}</p>}
       <p className="ph-facts">{p.area_sqm} m² <span>·</span> {p.rooms === 0 ? "Garsonjera" : `Broj soba: ${p.rooms}`}</p>
       <div className="ph-card-bottom"><p><strong>{propertyPrice(p)}</strong> / {priceUnits[p.offer_type]}</p>
@@ -23,7 +24,7 @@ export default function PropertyCard({ property: p, saveAction }: { property: Pr
       </div>
       <div id={`property-${p.id}`} className="ph-detail" hidden={!expanded}>
         <p className="ph-description">{p.description}</p>
-        {expanded && <PropertyActions property={p} />}
+        {expanded && <PropertyActions property={p} stayDates={stayDates} />}
       </div>
     </div>
   </article>;

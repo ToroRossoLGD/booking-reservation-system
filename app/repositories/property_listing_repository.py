@@ -1,8 +1,12 @@
+from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.property_listing import PropertyListing
 from app.models.resource import Resource
+from app.models.stay import Stay
 from app.models.venue import Venue
 
 
@@ -48,6 +52,9 @@ class PropertyListingRepository:
         max_area_sqm=None,
         rooms=None,
         sort="newest",
+        check_in=None,
+        check_out=None,
+        guests=None,
     ):
         filters = []
         if owner_id is None:
@@ -62,6 +69,37 @@ class PropertyListingRepository:
             filters.append(PropertyListing.currency == currency)
         if rooms is not None:
             filters.append(PropertyListing.rooms == rooms)
+        if check_in is not None:
+            filters.extend(
+                [
+                    PropertyListing.offer_type == "short_stay",
+                    PropertyListing.booking_enabled.is_(True),
+                    PropertyListing.max_guests >= guests,
+                    PropertyListing.minimum_nights <= (check_out - check_in).days,
+                    ~select(Stay.id)
+                    .where(
+                        Stay.venue_id == PropertyListing.venue_id,
+                        Stay.status == "confirmed",
+                        Stay.check_in < check_out,
+                        Stay.check_out > check_in,
+                    )
+                    .exists(),
+                ]
+            )
+            # Filter before counting/pagination, using each property's local date.
+            # One timezone query, never one availability query per listing.
+            timezones = await self.db.scalars(
+                select(PropertyListing.timezone).join(Venue).where(*filters).distinct()
+            )
+            now = datetime.now(UTC)
+            eligible = []
+            for timezone in timezones:
+                today = now.astimezone(ZoneInfo(timezone)).date()
+                if today + timedelta(
+                    days=1
+                ) <= check_in and check_out <= today + timedelta(days=365):
+                    eligible.append(timezone)
+            filters.append(PropertyListing.timezone.in_(eligible))
         for column, lower, upper in (
             (PropertyListing.price_cents, min_price_cents, max_price_cents),
             (PropertyListing.area_sqm, min_area_sqm, max_area_sqm),

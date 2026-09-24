@@ -11,7 +11,8 @@ beforeEach(() => { vi.resetAllMocks(); localStorage.clear(); vi.mocked(api.prope
 it("loads a public listing without login and offers a shareable URL", async () => {
   const user = userEvent.setup(); render(<PropertyDetailPage id="7" />);
   expect(await screen.findByRole("heading", { name: listing.title })).toBeVisible();
-  expect(document.title).toBe(`${listing.title} | Bookica`);
+  // The heading can render before the passive effect updates the browser title.
+  await waitFor(() => expect(document.title).toBe(`${listing.title} | Bookica`));
   expect(screen.getByText(/Garsonjera/)).toBeVisible();
   expect(screen.getByText(listing.description)).toBeVisible();
   expect(screen.getByRole("link", { name: /Kontaktiraj vlasnika/ })).toHaveAttribute("href", expect.stringContaining("mailto:owner%40example.com"));
