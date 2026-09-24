@@ -62,6 +62,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  property: (id: number, signal?: AbortSignal) => request<PropertyListing>(`/properties/${id}`, { signal }),
   propertyPhotoUrl: (propertyId: number, photoId: number, thumbnail = false) => `${API_URL}/properties/${propertyId}/photos/${photoId}/image?thumbnail=${thumbnail}`,
   ownerPhotos: (id: number) => request<PropertyPhoto[]>(`/owner/properties/${id}/photos`),
   uploadPropertyPhoto: (id: number, file: File, requestId: string) => { const body = new FormData(); body.append("file", file); body.append("request_id", requestId); return request<PropertyPhoto>(`/owner/properties/${id}/photos`, { method: "POST", body }); },
