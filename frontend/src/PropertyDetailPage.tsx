@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { parseStayDates } from "./stay-types";
 import { api, ApiError } from "./api";
 import PropertyGallery from "./PropertyGallery";
 import PropertyActions from "./PropertyActions";
@@ -17,6 +18,7 @@ export default function PropertyDetailPage({ id }: { id: string }) {
   const [saveError, setSaveError] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
+  const stayDates = parseStayDates(new URLSearchParams(window.location.search));
   const validId = /^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id));
   const url = `${window.location.origin}/properties/${id}`;
 
@@ -68,7 +70,7 @@ export default function PropertyDetailPage({ id }: { id: string }) {
             <SavePropertyButton propertyId={property.id} title={property.title} saved={saved} onChange={setSaved} />
             {saveError && <p role="alert">Status sačuvanog oglasa nije učitan. <button onClick={reload}>Pokušaj ponovo</button></p>}
             <div className="property-share"><button className="ph-outline" onClick={() => void copyLink()}>Kopiraj link oglasa</button>{copied && <p role="status">Link je kopiran.</p>}{copyError && <label>Kopiraj adresu ručno<input readOnly value={url} onFocus={event => event.target.select()} /></label>}</div>
-            <PropertyActions property={property} />
+            <PropertyActions property={property} stayDates={stayDates} />
           </aside>
         </div>
       </>}

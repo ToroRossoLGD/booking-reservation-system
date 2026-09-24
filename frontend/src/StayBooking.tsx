@@ -1,18 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "./api";
 import type { PropertyListing } from "./property-types";
-import type { Stay, StayCalendar, StayQuote } from "./stay-types";
+import type { Stay, StayCalendar, StayQuote, StayDates } from "./stay-types";
 import { displayDate, propertyToday, shiftDate, stayMoney } from "./stay-types";
 import "./stays.css";
 
-export default function StayBooking({ property }: { property: PropertyListing }) {
+export default function StayBooking({ property, initialDates }: { property: PropertyListing; initialDates?: StayDates }) {
   const timezone = property.timezone ?? "Europe/Belgrade";
   const today = propertyToday(timezone);
   const minimum = property.minimum_nights ?? 1;
-  const [arrival, setArrival] = useState(shiftDate(today, 1));
-  const [departure, setDeparture] = useState(shiftDate(today, 1 + minimum));
-  const [guests, setGuests] = useState(1);
-  const [month, setMonth] = useState(today.slice(0, 7));
+  const [arrival, setArrival] = useState(initialDates?.check_in ?? shiftDate(today, 1));
+  const [departure, setDeparture] = useState(initialDates?.check_out ?? shiftDate(today, 1 + minimum));
+  const [guests, setGuests] = useState(initialDates?.guests ?? 1);
+  const [month, setMonth] = useState((initialDates?.check_in ?? today).slice(0, 7));
   const [calendar, setCalendar] = useState<StayCalendar | null>(null);
   const [calendarError, setCalendarError] = useState(false);
   const [calendarVersion, setCalendarVersion] = useState(0);

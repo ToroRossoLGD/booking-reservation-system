@@ -1,6 +1,9 @@
 export type OfferType = "short_stay" | "long_term" | "sale";
 
 export type PropertySearchFilters = {
+  check_in?: string;
+  check_out?: string;
+  guests?: number;
   currency?: "EUR" | "RSD" | "USD";
   min_price_cents?: number;
   max_price_cents?: number;

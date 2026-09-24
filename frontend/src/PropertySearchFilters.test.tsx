@@ -3,11 +3,40 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 import PropertyHome from "./PropertyHome";
 import { api } from "./api";
+import { parseStayDates } from "./stay-types";
 
 vi.mock("./api", () => ({ api: { properties: vi.fn() } }));
 beforeEach(() => {
   vi.resetAllMocks(); localStorage.clear();
   vi.mocked(api.properties).mockResolvedValue({ items: [], total: 0, limit: 12, offset: 0, has_next: false });
+});
+
+it("requires complete stay dates and clears availability when switching offer types", async () => {
+  const user = userEvent.setup(); render(<PropertyHome />);
+  await user.click(screen.getByRole("button", { name: "Stan na dan" }));
+  await user.click(screen.getByText("Napredni filteri i sortiranje"));
+  await user.type(screen.getByLabelText("Broj gostiju u pretrazi"), "3");
+  const count = vi.mocked(api.properties).mock.calls.length;
+  await user.click(screen.getByRole("button", { name: "Primeni filtere" }));
+  expect(screen.getByRole("alert")).toHaveTextContent("Unesi dolazak");
+  expect(api.properties).toHaveBeenCalledTimes(count);
+  await user.type(screen.getByLabelText("Dolazak u pretrazi"), "2030-10-04");
+  await user.type(screen.getByLabelText("Odlazak u pretrazi"), "2030-10-07");
+  await user.click(screen.getByRole("button", { name: "Primeni filtere" }));
+  await waitFor(() => expect(api.properties).toHaveBeenLastCalledWith("", "short_stay", 0, expect.anything(), expect.objectContaining({ check_in: "2030-10-04", check_out: "2030-10-07", guests: 3 })));
+  await user.click(screen.getByRole("button", { name: "Dugoročni najam" }));
+  expect(vi.mocked(api.properties).mock.lastCall?.[4]?.check_in).toBeUndefined();
+});
+
+it.each([
+  "check_in=2030-02-30&check_out=2030-03-05&guests=2",
+  "check_in=2030-10-04&check_out=2030-10-04&guests=2",
+  "check_in=2030-10-04&check_out=2031-10-07&guests=2",
+  "check_in=2030-10-04&check_out=2030-10-07&guests=0",
+  "check_in=2030-10-04&check_out=2030-10-07&guests=1.5",
+  "check_in=2030-10-04&guests=2",
+])("ignores invalid booking prefills: %s", query => {
+  expect(parseStayDates(new URLSearchParams(query))).toBeUndefined();
 });
 
 it("applies price in cents and studio zero, then resets price on offer changes", async () => {

@@ -76,6 +76,7 @@ The goal is one place for property discovery and owner management, with a reserv
 
 - Owners explicitly enable booking and set the maximum number of guests, minimum nights and property timezone.
 - Guests choose arrival, departure and guest count, view occupied nights and request a server-calculated quote.
+- Visitors can filter short-stay search results by arrival, departure and guest count. Matching listings respect confirmed stays, capacity, minimum nights and the property's local booking window; the selection prefills booking forms.
 - Confirmation rechecks price and availability. A reservation occupies the entire apartment, regardless of guest count.
 - PostgreSQL transaction locks protect against simultaneous overlapping reservations. Repeated requests return the existing reservation.
 - Guests can view their stays and cancel for free before the arrival date in the property's timezone.
@@ -109,6 +110,7 @@ The next development areas are:
 - [x] Private saved property listings.
 - [x] Private rental conversations, message history and unread indicators.
 - [x] Advanced property filters and sorting.
+- [x] Short-stay availability search by dates and guest count.
 - [ ] Property reviews and map search.
 - [ ] Guest notifications, rescheduling and more complete host operations.
 

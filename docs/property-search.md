@@ -13,6 +13,7 @@ Changing filters restarts pagination. The owner catalog keeps its existing behav
 | `currency` | EUR, RSD or USD |
 | `min_area_sqm`, `max_area_sqm` | Integers from 1 to 100,000 |
 | `rooms` | Exact integer count from 0 to 100 |
+| `check_in`, `check_out`, `guests` | Optional availability group: ISO dates and 1–100 guests; requires `offer_type=short_stay` |
 | `sort` | `newest` (default), `price_asc`, `price_desc`, `area_desc` |
 
 Price ranges and price sorting require both `offer_type` and `currency`. There is
@@ -28,5 +29,36 @@ In the UI, enter prices in whole currency units with up to two decimal places.
 Apply advanced filters explicitly. Switching offer type clears the price range
 and price sort; area and rooms remain applied. Clear filters restores the catalog.
 Filters are local to the page and are not persisted across a reload.
+
+## Short-stay availability
+
+Select **Stan na dan**, open **Napredni filteri i sortiranje**, and enter arrival,
+departure and guest count. Supply all three fields together. A stay must be
+1–90 nights; partial/invalid groups or other offer types return HTTP 422.
+Clearing filters or switching offer type removes the availability selection.
+
+Results include only published listings with online booking enabled, enough
+guest capacity and a minimum-night rule satisfied by the requested stay.
+Arrival must be tomorrow or later and departure within 365 days, in each
+property's own timezone. Dates outside that window yield no matching listings.
+Timezone eligibility and availability are applied before counting and pagination.
+
+Confirmed stays block the whole venue, including its other listing aliases.
+Cancelled stays do not block availability. Checkout is exclusive, so a new
+guest can arrive on the previous guest's departure date. Filtering uses a
+correlated SQL existence check and one timezone query, not a request per listing.
+
+Example: `/properties?offer_type=short_stay&check_in=2030-10-04&check_out=2030-10-07&guests=3`
+(Use future dates within the booking window when trying this example.)
+
+Selected dates and guests prefill inline booking and are carried into the
+listing-title link's query parameters. Reloading that link preserves the prefill.
+Malformed query parameters are ignored. The page's copy-link button still
+copies the property URL without dates. Prices and price filters remain per night,
+not a total for the requested stay; request a quote to see the total.
+
+Search is a snapshot, not a reservation or hold. The existing quote and
+confirmation flow rechecks availability, price and booking rules; transaction
+locks still protect against simultaneous overlapping reservations.
 
 No migration or new environment variables are required.
