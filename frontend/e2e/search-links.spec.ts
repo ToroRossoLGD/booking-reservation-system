@@ -1,0 +1,42 @@
+import { expect, test } from "@playwright/test";
+
+test("search links restore filters, pagination, reload and browser history", async ({ page }) => {
+  const listing = { id: 7, venue_id: 1, title: "Stan za najam", city: "Novi Sad", description: "Svetao stan u mirnom delu grada.", offer_type: "long_term", area_sqm: 30, rooms: 0, price_cents: 60000, currency: "EUR", contact_email: "owner@example.com", is_published: true };
+  const requests: URLSearchParams[] = [];
+  await page.route("**/api/properties?*", route => {
+    const params = new URL(route.request().url()).searchParams;
+    requests.push(params);
+    const offset = Number(params.get("offset"));
+    return route.fulfill({ json: { items: [listing], total: 25, limit: 12, offset, has_next: offset < 24 } });
+  });
+  const link = "/?city=Novi+Sad&offer_type=long_term&currency=EUR&max_price_cents=75000&rooms=0&sort=price_asc&offset=12";
+  await page.goto(link);
+  await expect(page.getByText("Stranica 2")).toBeVisible();
+  await expect(page.getByPlaceholder("Grad ili destinacija")).toHaveValue("Novi Sad");
+  await page.getByText("Napredni filteri i sortiranje").click();
+  await expect(page.getByLabel("Cena do", { exact: true })).toHaveValue("750");
+  await expect(page.getByLabel("Broj soba")).toHaveValue("0");
+  expect(requests.at(-1)?.get("rooms")).toBe("0");
+  await page.getByRole("button", { name: "Sledeća" }).click();
+  await expect(page).toHaveURL(/offset=24/);
+  await page.reload();
+  await expect(page.getByText("Stranica 3")).toBeVisible();
+  await page.goBack();
+  await expect(page.getByText("Stranica 2")).toBeVisible();
+  await page.goForward();
+  await expect(page.getByText("Stranica 3")).toBeVisible();
+  await page.getByRole("button", { name: "Obriši filtere" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByText("Stranica 1")).toBeVisible();
+  await page.goBack();
+  await expect(page.getByText("Stranica 3")).toBeVisible();
+  await expect(page.getByPlaceholder("Grad ili destinacija")).toHaveValue("Novi Sad");
+  await page.getByRole("button", { name: "Kopiraj link pretrage" }).click();
+  await expect(page.getByText("Link pretrage je kopiran.").or(page.getByLabel("Kopiraj link pretrage ručno"))).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.goto("/?offer_type=invalid&rooms=-1&check_in=bad&offset=Infinity&token=secret");
+  await expect(page.getByText("Stranica 1")).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  expect(requests.at(-1)?.has("check_in")).toBe(false);
+});

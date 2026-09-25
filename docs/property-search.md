@@ -28,7 +28,25 @@ Example: `/properties?offer_type=long_term&currency=EUR&min_price_cents=50000&ma
 In the UI, enter prices in whole currency units with up to two decimal places.
 Apply advanced filters explicitly. Switching offer type clears the price range
 and price sort; area and rooms remain applied. Clear filters restores the catalog.
-Filters are local to the page and are not persisted across a reload.
+Applied filters and pagination are stored in the browser URL and restored on reload.
+
+## Shareable searches
+
+**Kopiraj link pretrage** copies the current applied search, including city,
+offer type, currency, price/area ranges, room count, sorting, stay dates, guest
+count and page offset. Unsaved input edits are not included until submitted.
+If clipboard access fails, the page displays a selectable link instead.
+
+Opening the URL restores the controls and requests fresh results. Back and
+Forward restore previous searches and pages. Clearing filters restores `/`;
+Back can recover the previous selection. Links do not store a snapshot of
+listings or hold availability, and require no account.
+
+Only supported query parameters are retained. Invalid values, reversed ranges,
+unsupported enums and incomplete stay-date groups are ignored. Price filters
+still require an offer type and currency. Offset is normalized to a 12-item
+page boundary; unknown parameters and fragments are excluded from copied links.
+The initial URL is normalized without adding a browser-history entry.
 
 ## Short-stay availability
 
