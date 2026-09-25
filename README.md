@@ -82,6 +82,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - PostgreSQL transaction locks protect against simultaneous overlapping reservations. Repeated requests return the existing reservation.
 - Guests can view their stays and cancel for free before the arrival date in the property's timezone.
 - Owners can view reservations and guest contact details.
+- Guests and owners can download confirmed stays as `.ics` calendar events. The export is a one-time copy; changes and cancellations must also be updated in the external calendar.
 
 **Short-stay reservations currently use payment at the property.** There is no online charge, deposit or payment hold for these stays. The existing hourly booking payment integration has not yet been connected to nightly reservations.
 
@@ -89,6 +90,7 @@ The goal is one place for property discovery and owner management, with a reserv
 
 - Signed-in tenants send private inquiries with a move-in date, duration and message.
 - Owners reply and propose viewing times; tenants accept, decline or withdraw.
+- Both participants can download a confirmed viewing as an `.ics` calendar event with its agreed time.
 - Tenants and owners exchange private messages, retain conversation and viewing history, and track unread messages.
 - Both sides track inquiries in their own inbox, with protection against duplicate submissions and stale updates.
 - Inquiries do not reserve apartments or create leases or payments. See the [long-term rental guide](docs/long-term-rentals.md).
@@ -113,6 +115,7 @@ The next development areas are:
 - [x] Advanced property filters and sorting.
 - [x] Short-stay availability search by dates and guest count.
 - [x] Shareable searches with URL filters and browser-history navigation.
+- [x] Calendar downloads for confirmed stays and viewings.
 - [ ] Property reviews and map search.
 - [ ] Guest notifications, rescheduling and more complete host operations.
 
@@ -274,6 +277,7 @@ docs/                Feature guides and interface preview
 - [Property photos](docs/property-photos.md): uploads, galleries, private storage and deployment.
 - [Property search](docs/property-search.md): price and area ranges, room counts, sorting and currency rules.
 - [Property detail pages](docs/property-detail-pages.md): direct links, sharing, deployment and targeted code cleanup.
+- [Calendar downloads](docs/calendar-downloads.md): exporting confirmed stays and viewings, time handling and import limitations.
 - [Saved properties](docs/property-marketplace.md#saved-properties): saving, removing and revisiting published listings.
 - [Long-term rentals and conversations](docs/long-term-rentals.md): private inquiries, viewing confirmations, message history and unread indicators.
 - [Nightly stays](docs/nightly-stays.md): activation, date rules, inventory, payment terms and reservation APIs.

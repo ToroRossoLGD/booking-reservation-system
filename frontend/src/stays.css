@@ -29,3 +29,6 @@
 .stay-page button:disabled, .stay-booking button:disabled { opacity: .5; cursor: default; }
 .stay-page :focus-visible, .stay-booking :focus-visible { outline: 3px solid #a96037; outline-offset: 3px; }
 @media (max-width: 650px) { .stay-list { grid-template-columns: 1fr; } .stay-page { padding: 20px; } .stay-page header { flex-wrap: wrap; } }
+
+.calendar-download { margin: 18px 0; }
+.calendar-download p { font-size: 12px; line-height: 1.6; color: #52644f; }
