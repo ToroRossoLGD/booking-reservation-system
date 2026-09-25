@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import CalendarDownloadButton from "./CalendarDownloadButton";
+import { viewingCalendar } from "./calendar-export";
 import { api, ApiError } from "./api";
 import type { RentalInquiry, RentalInquiryPage, RentalUpdate } from "./rental-types";
 import { rentalStatus } from "./rental-types";
@@ -27,6 +29,7 @@ function InquiryCard({ inquiry, owner, reload }: { inquiry: RentalInquiry; owner
     <h3>Poruka zakupca</h3><p className="rental-message">{inquiry.message}</p>
     {inquiry.owner_reply && <><h3>Odgovor vlasnika</h3><p className="rental-message">{inquiry.owner_reply}</p></>}
     {inquiry.viewing_at && <p><strong>Razgledanje: {new Intl.DateTimeFormat("sr-Latn", { dateStyle: "medium", timeStyle: "short" }).format(new Date(inquiry.viewing_at))}</strong><br />Vremenska zona: {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>}
+    {inquiry.status === "viewing_confirmed" && inquiry.viewing_at && <CalendarDownloadButton create={() => viewingCalendar(inquiry, window.location.origin, owner)} />}
     {active && <fieldset disabled={busy}>
       {owner ? <form onSubmit={event => { event.preventDefault(); void update(viewing ? { action: "propose", owner_reply: reply.trim(), viewing_at: new Date(viewing).toISOString() } : { action: "reply", owner_reply: reply.trim() }); }}>
         <label>Odgovor zakupcu<textarea required maxLength={3000} rows={3} value={reply} onChange={event => setReply(event.target.value)} /></label>
