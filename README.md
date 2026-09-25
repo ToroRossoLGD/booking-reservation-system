@@ -66,6 +66,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - Listings include city, description, floor area, room count, price, currency and a public contact email.
 - Visitors can search by city and offer type, filter by price, floor area and exact room count (including studios), and sort by newest, price or largest area.
 - Price filters and sorting require an offer type and currency so nightly, monthly and sale prices are not mixed. Applied filters stay active across result pages and can be cleared together.
+- Search filters and pagination persist in the URL, survive reload and browser Back/Forward, and can be shared using **Kopiraj link pretrage**.
 - Each listing has a shareable `/properties/{id}` page with photos, description, saving, owner contact and the relevant booking or inquiry form. Click its title in the catalog or saved listings to open it.
 - Signed-in users can save listings of any offer type and revisit them on `/saved`, with current prices and direct access to booking or rental inquiries.
 - Owners can upload up to 12 photos per listing, select a cover, reorder and delete them; visitors can open a full-screen gallery on desktop and mobile.
@@ -111,6 +112,7 @@ The next development areas are:
 - [x] Private rental conversations, message history and unread indicators.
 - [x] Advanced property filters and sorting.
 - [x] Short-stay availability search by dates and guest count.
+- [x] Shareable searches with URL filters and browser-history navigation.
 - [ ] Property reviews and map search.
 - [ ] Guest notifications, rescheduling and more complete host operations.
 

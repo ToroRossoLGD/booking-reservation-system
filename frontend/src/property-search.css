@@ -1,4 +1,7 @@
 .ph-filter-panel { margin-top: 22px; border-top: 1px solid #e3e5dc; padding-top: 18px; }
+.ph-share-search { margin-top: 20px; font-size: 13px; }
+.ph-share-search label { display: grid; gap: 8px; margin-top: 12px; }
+.ph-share-search input { width: 100%; box-sizing: border-box; min-width: 0; padding: 12px; }
 .ph-filter-panel summary { cursor: pointer; font-size: 14px; padding: 8px 0; }
 .ph-search .ph-filter-panel form { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
 .ph-filter-panel label { min-width: 0; letter-spacing: normal; font-size: 12px; }
