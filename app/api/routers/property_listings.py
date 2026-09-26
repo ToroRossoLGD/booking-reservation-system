@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import require_roles
@@ -44,6 +44,20 @@ async def owner_properties(
 async def get_property(listing_id: int, db: AsyncSession = Depends(get_db)):
     listing = await PropertyListingService(db).get_public(listing_id)
     return await PropertyPhotoService(db).enrich_one(listing)
+
+
+@router.get("/owner/properties/{listing_id}", response_model=PropertyListingRead)
+async def owner_property(
+    listing_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles("owner", "admin")),
+):
+    service = PropertyListingService(db)
+    listing = await service.repository.get(listing_id)
+    if listing is None:
+        raise HTTPException(404, "Listing not found")
+    await service.authorize_venue(listing.venue_id, user)
+    return listing
 
 
 @router.post("/properties", response_model=PropertyListingRead, status_code=201)

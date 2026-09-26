@@ -16,11 +16,25 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
   const [editing, setEditing] = useState<PropertyListing | "new" | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => {
+    const id = new URLSearchParams(window.location.search).get("blocks");
+    return id && (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) ? "Link do blokada nije ispravan." : "";
+  });
   const [message, setMessage] = useState("");
   const [type, setType] = useState<OfferType>("short_stay");
   const [blockListing, setBlockListing] = useState<PropertyListing | null>(null);
   const [photoListing, setPhotoListing] = useState<PropertyListing | null>(null);
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("blocks");
+    if (!id) return;
+    if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) return;
+    const controller = new AbortController();
+    api.ownerProperty(Number(id), controller.signal).then(listing => {
+      if (!controller.signal.aborted) setBlockListing(listing);
+    }).catch(() => { if (!controller.signal.aborted) setError("Blokade nisu otvorene. Proveri da li imaš pristup oglasu i osveži stranicu."); });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

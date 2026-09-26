@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import and_, false, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.property_listing import PropertyListing
@@ -89,3 +89,70 @@ class StayRepository:
             select(User.id, User.email).where(User.id.in_(user_ids))
         )
         return dict(result.all())
+
+    async def owner_overview(
+        self,
+        user_id,
+        today,
+        property_id=None,
+        status=None,
+        day=None,
+        offset=0,
+        limit=20,
+    ):
+        owned = select(Stay).join(Venue).where(Venue.owner_id == user_id)
+        options = await self.db.execute(
+            select(PropertyListing.id, PropertyListing.title)
+            .join(Stay, Stay.property_id == PropertyListing.id)
+            .join(Venue, Stay.venue_id == Venue.id)
+            .where(Venue.owner_id == user_id)
+            .distinct()
+            .order_by(PropertyListing.title, PropertyListing.id)
+        )
+        if property_id is not None:
+            owned = owned.where(Stay.property_id == property_id)
+        zones = await self.db.scalars(owned.with_only_columns(Stay.timezone).distinct())
+        dates = {zone: today(zone) for zone in zones.all()}
+
+        def today_filter(column):
+            return or_(
+                false(),
+                *(
+                    and_(Stay.timezone == zone, column == date)
+                    for zone, date in dates.items()
+                ),
+            )
+
+        async def count(query):
+            return (
+                await self.db.scalar(select(func.count()).select_from(query.subquery()))
+                or 0
+            )
+
+        confirmed = owned.where(Stay.status == "confirmed")
+        arrivals = await count(confirmed.where(today_filter(Stay.check_in)))
+        departures = await count(confirmed.where(today_filter(Stay.check_out)))
+        filtered = owned
+        if status:
+            filtered = filtered.where(Stay.status == status)
+        if day:
+            filtered = filtered.where(
+                Stay.status == "confirmed",
+                today_filter(Stay.check_in if day == "arrivals" else Stay.check_out),
+            )
+        total = await count(filtered)
+        ordering = (Stay.check_in.desc(), Stay.id.desc())
+        if day:
+            clock = Stay.check_in_time if day == "arrivals" else Stay.check_out_time
+            ordering = (clock.asc().nulls_last(), Stay.id.asc())
+        items = await self.db.scalars(
+            filtered.order_by(*ordering).offset(offset).limit(limit)
+        )
+        return dict(
+            items=list(items.all()),
+            total=total,
+            has_next=offset + limit < total,
+            arrivals_today=arrivals,
+            departures_today=departures,
+            properties=[dict(id=id, title=title) for id, title in options.all()],
+        )

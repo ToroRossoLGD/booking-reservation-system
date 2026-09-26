@@ -32,3 +32,19 @@
 
 .calendar-download { margin: 18px 0; }
 .calendar-download p { font-size: 12px; line-height: 1.6; color: #52644f; }
+.owner-stay-tools { margin: 28px 0; }
+.owner-stay-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.owner-stay-summary button { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px; background: #edf2e6; color: #253e35; border: 1px solid #d8e2cd; border-radius: 14px; font: inherit; text-align: left; }
+.owner-stay-summary button[aria-pressed="true"] { border: 2px solid #305b46; background: #dce9cf; }
+.owner-stay-summary strong { font-size: 32px; }
+.owner-stay-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; }
+.owner-stay-filters label { display: grid; gap: 8px; flex: 1 1 180px; min-width: 0; font-size: 13px; }
+.owner-stay-filters select { width: 100%; padding: 12px; border: 1px solid #cdd7c5; border-radius: 8px; background: white; color: #253e35; font: inherit; }
+.stay-block-link { display: inline-block; padding: 8px 0; }
+.stay-row { flex-wrap: wrap; }
+.stay-status { padding: 4px 10px; border-radius: 20px; background: #edf2e6; }
+.stay-status.cancelled { background: #f4e9e3; color: #78422c; }
+.stay-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+.stay-dates dt { color: #62745f; font-size: 12px; margin-bottom: 5px; }
+.stay-dates dd { margin: 0; font-size: 14px; font-weight: 600; }
+@media(max-width:650px) { .owner-stay-summary { gap: 10px; } .owner-stay-summary button { padding: 16px; flex-direction: column; align-items: flex-start; } .owner-stay-filters>button { flex: 1 1 auto; } }

@@ -5,7 +5,7 @@ from fastapi import HTTPException
 
 from app.models.stay import Stay
 from app.repositories.stay_repository import StayRepository
-from app.schemas.stay import StayCalendar, StayPage, StayQuote, StayRead
+from app.schemas.stay import OwnerStayPage, StayCalendar, StayPage, StayQuote, StayRead
 
 
 class StayService:
@@ -170,3 +170,18 @@ class StayService:
             )
         stay.status = "cancelled"
         return await self.repository.save(stay)
+
+    async def owner_overview(self, user, **filters):
+        result = await self.repository.owner_overview(user.id, self.today, **filters)
+        items = result["items"]
+        if items:
+            emails = await self.repository.guest_emails(
+                {item.user_id for item in items}
+            )
+            result["items"] = [
+                StayRead.model_validate(item).model_copy(
+                    update={"guest_email": emails[item.user_id]}
+                )
+                for item in items
+            ]
+        return OwnerStayPage(**result)
