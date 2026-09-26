@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.property_listing import PropertyListing
 from app.models.resource import Resource
 from app.models.stay import Stay
+from app.models.stay_block import StayBlock
 from app.models.venue import Venue
 
 
@@ -74,6 +75,14 @@ class PropertyListingRepository:
                 [
                     PropertyListing.offer_type == "short_stay",
                     PropertyListing.booking_enabled.is_(True),
+                    ~select(StayBlock.id)
+                    .where(
+                        StayBlock.venue_id == PropertyListing.venue_id,
+                        StayBlock.active.is_(True),
+                        StayBlock.check_in < check_out,
+                        StayBlock.check_out > check_in,
+                    )
+                    .exists(),
                     PropertyListing.max_guests >= guests,
                     PropertyListing.minimum_nights <= (check_out - check_in).days,
                     ~select(Stay.id)

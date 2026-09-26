@@ -6,6 +6,7 @@ import type { OfferType, PropertyInput, PropertyListing, PropertyPage } from "./
 import type { OwnerVenue } from "./types";
 import "./property-home.css";
 
+const StayBlockManager = lazy(() => import("./StayBlockManager"));
 const PropertyPhotoManager = lazy(() => import("./PropertyPhotoManager"));
 
 export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
@@ -18,6 +19,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [type, setType] = useState<OfferType>("short_stay");
+  const [blockListing, setBlockListing] = useState<PropertyListing | null>(null);
   const [photoListing, setPhotoListing] = useState<PropertyListing | null>(null);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
       else await api.createProperty(data);
       setEditing(null); setMessage(data.is_published ? "Oglas je objavljen na naslovnoj strani." : "Nacrt je sačuvan. Nije vidljiv posetiocima."); refresh(0);
     } catch (err) {
-      setError(err instanceof ApiError && err.status === 422 ? "Proveri sva polja, vremensku zonu i pravila boravka. Opis mora imati najmanje 20 znakova, a kontakt ispravnu email adresu." : err instanceof ApiError && err.status === 409 ? "Objekat ima satne resurse ili oglas već ima rezervacije. Za noćenja koristi zaseban objekat bez satnih resursa; oglas sa istorijom ne može promeniti objekat." : "Čuvanje nije uspelo. Proveri prijavu i pokušaj ponovo.");
+      setError(err instanceof ApiError && err.status === 422 ? "Proveri sva polja, vremensku zonu i pravila boravka. Opis mora imati najmanje 20 znakova, a kontakt ispravnu email adresu." : err instanceof ApiError && err.status === 409 ? "Objekat ima satne resurse ili oglas ima rezervacije ili aktivne blokade. Za noćenja koristi objekat bez satnih resursa. Pre promene objekta ukloni blokade; oglas sa istorijom rezervacija ne može promeniti objekat." : "Čuvanje nije uspelo. Proveri prijavu i pokušaj ponovo.");
     } finally { setBusy(false); }
   }
 
@@ -67,6 +69,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
     {!venues.length && <p>Prvo dodaj objekat preko dugmeta „Add venue“, pa kreiraj oglas.</p>}
     {error && <p role="alert" className="error-message">{error}</p>}
     {message && <p role="status">{message}</p>}
+    {blockListing && <><Suspense fallback={<p role="status">Učitavanje...</p>}><StayBlockManager key={blockListing.id} property={blockListing} /></Suspense><button className="ph-outline" onClick={() => setBlockListing(null)}>Zatvori blokade</button></>}
     {photoListing && <><Suspense fallback={<p role="status">Učitavanje fotografija…</p>}><PropertyPhotoManager key={photoListing.id} propertyId={photoListing.id} title={photoListing.title} /></Suspense><button className="ph-outline" type="button" onClick={() => setPhotoListing(null)}>Zatvori fotografije</button></>}
     {editing && <form key={current?.id ?? "new"} className="ph-property-form" onSubmit={save}>
       <h3>{current ? "Izmeni oglas" : "Nova nekretnina"}</h3>
@@ -93,7 +96,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
       <div className="ph-form-actions"><button className="button primary" disabled={busy}>{busy ? "Čuvanje…" : "Sačuvaj oglas"}</button><button className="ph-outline" type="button" disabled={busy} onClick={() => setEditing(null)}>Odustani</button></div>
     </form>}
     {loading ? <p role="status">Učitavanje oglasa…</p> : <>
-      {page?.items.map(p => <article key={p.id} className="ph-owner-listing"><div><strong>{p.title}</strong><p>{p.city} · {offerLabels[p.offer_type]} · {propertyPrice(p)} / {priceUnits[p.offer_type]}</p><small>{p.is_published ? "Objavljen" : "Nacrt"}</small></div><button className="ph-outline" disabled={busy} aria-label={`Fotografije: ${p.title}`} onClick={() => setPhotoListing(p)}>Fotografije</button><button className="ph-outline" disabled={busy} onClick={() => { setEditing(p); setType(p.offer_type); setError(""); setMessage(""); }} aria-label={`Izmeni: ${p.title}`}>Izmeni</button></article>)}
+      {page?.items.map(p => <article key={p.id} className="ph-owner-listing"><div><strong>{p.title}</strong><p>{p.city} · {offerLabels[p.offer_type]} · {propertyPrice(p)} / {priceUnits[p.offer_type]}</p><small>{p.is_published ? "Objavljen" : "Nacrt"}</small></div><button className="ph-outline" disabled={busy} aria-label={`Blokade: ${p.title}`} onClick={() => setBlockListing(p)}>Zauzetost</button><button className="ph-outline" disabled={busy} aria-label={`Fotografije: ${p.title}`} onClick={() => setPhotoListing(p)}>Fotografije</button><button className="ph-outline" disabled={busy} onClick={() => { setEditing(p); setType(p.offer_type); setError(""); setMessage(""); }} aria-label={`Izmeni: ${p.title}`}>Izmeni</button></article>)}
       {page?.total === 0 && <p>Još nemaš oglase. Kreiraj prvi i sačuvaj ga kao nacrt ili objavi.</p>}
       <div className="ph-pagination"><button className="ph-outline" disabled={offset === 0 || busy} onClick={() => refresh(Math.max(0, offset - 20))}>Prethodna</button><button className="ph-outline" disabled={busy} onClick={() => refresh()}>Osveži oglase</button><button className="ph-outline" disabled={!page?.has_next || busy} onClick={() => refresh(offset + 20)}>Sledeća</button></div>
     </>}

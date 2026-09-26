@@ -12,6 +12,7 @@ from app.db.session import get_db
 from app.main import app
 from app.models.property_listing import PropertyListing
 from app.models.stay import Stay
+from app.models.stay_block import StayBlock
 from app.models.user import User
 from app.models.venue import Venue
 from app.repositories import property_listing_repository as module
@@ -39,6 +40,7 @@ def catalog(monkeypatch):
             Venue.__table__,
             PropertyListing.__table__,
             Stay.__table__,
+            StayBlock.__table__,
         ],
     )
     with Session(engine) as session:
