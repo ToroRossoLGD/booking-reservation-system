@@ -6,3 +6,4 @@
 @media(max-width:650px){.ph-tabs{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;overflow:visible}.ph-tabs button{white-space:normal;text-align:left;min-height:48px}.ph-hero-art .ph-sun{right:30px;top:20px}}
 
 .ph-card h3 a { text-decoration: underline; text-underline-offset: 3px; }
+@media(max-width:650px){.ph-manager .ph-owner-listing{flex-wrap:wrap}.ph-manager .ph-owner-listing>div:first-child,.ph-manager .ph-owner-listing>p{flex:1 1 100%}.ph-manager .ph-owner-listing>button{flex:1 1 auto;white-space:nowrap}}

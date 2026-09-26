@@ -18,6 +18,7 @@ from app.db.base import Base
 from app.models.property_listing import PropertyListing
 from app.models.resource import Resource
 from app.models.stay import Stay
+from app.models.stay_block import StayBlock
 from app.models.user import User
 from app.models.venue import Venue
 from app.repositories.resource_repository import (
@@ -110,6 +111,7 @@ def service(monkeypatch):
             PropertyListing.__table__,
             Resource.__table__,
             Stay.__table__,
+            StayBlock.__table__,
         ],
     )
     with Session(engine, expire_on_commit=False) as session:
@@ -317,6 +319,7 @@ async def test_postgres_concurrent_overlap_and_retries(monkeypatch):
         PropertyListing.__table__,
         Resource.__table__,
         Stay.__table__,
+        StayBlock.__table__,
     ]
     try:
         async with engine.begin() as connection:
@@ -353,6 +356,48 @@ async def test_postgres_concurrent_overlap_and_retries(monkeypatch):
         assert isinstance(retries[0], int) and retries[0] == retries[1]
         async with sessions() as db:
             assert await db.scalar(select(func.count(Stay.id))) == 2
+        from app.schemas.stay_block import StayBlockCreate
+        from app.services.stay_block_service import StayBlockService
+
+        async def block_attempt(data):
+            async with sessions() as db:
+                try:
+                    block = await StayBlockService(db).create(2, data, OWNER)
+                    return block.id
+                except HTTPException as error:
+                    await db.rollback()
+                    return error
+
+        block_data = StayBlockCreate(
+            check_in=TODAY + timedelta(days=20),
+            check_out=TODAY + timedelta(days=23),
+            request_id=uuid4(),
+            reason="Maintenance",
+        )
+        race = await asyncio.gather(
+            attempt(
+                1,
+                booking(check_in=block_data.check_in, check_out=block_data.check_out),
+                GUEST,
+            ),
+            block_attempt(block_data),
+        )
+        assert sum(isinstance(result, int) for result in race) == 1
+        assert [
+            result.status_code for result in race if isinstance(result, HTTPException)
+        ] == [409]
+        retry_data = block_data.model_copy(
+            update={
+                "check_in": TODAY + timedelta(days=30),
+                "check_out": TODAY + timedelta(days=33),
+                "request_id": uuid4(),
+            }
+        )
+        retries = await asyncio.gather(
+            block_attempt(retry_data), block_attempt(retry_data)
+        )
+        assert isinstance(retries[0], int) and retries[0] == retries[1]
+
     finally:
         async with engine.begin() as connection:
             await connection.execute(DropSchema(schema, cascade=True, if_exists=True))

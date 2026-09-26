@@ -82,6 +82,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - PostgreSQL transaction locks protect against simultaneous overlapping reservations. Repeated requests return the existing reservation.
 - Guests can view their stays and cancel for free before the arrival date in the property's timezone.
 - Owners can view reservations and guest contact details.
+- Owners can block dates for maintenance, personal use or off-platform bookings from **Zauzetost** in the listing manager. Blocks affect all listings for the same apartment, availability search and booking confirmation.
 - Guests and owners can download confirmed stays as `.ics` calendar events. The export is a one-time copy; changes and cancellations must also be updated in the external calendar.
 
 **Short-stay reservations currently use payment at the property.** There is no online charge, deposit or payment hold for these stays. The existing hourly booking payment integration has not yet been connected to nightly reservations.
@@ -106,7 +107,8 @@ The next development areas are:
 - [x] Property photographs, cover selection and galleries.
 - [x] Dedicated property pages and shareable listing links.
 - [ ] Seasonal nightly pricing and more flexible booking rules.
-- [ ] Owner calendar blocks and synchronization with external booking calendars.
+- [x] Owner calendar blocks for whole-apartment stays.
+- [ ] Synchronization with external booking calendars.
 - [ ] Online payments and deposits for short stays.
 - [x] Long-term rental inquiries and viewing proposals.
 - [ ] Leases, monthly rental payments and richer sales workflows.
@@ -278,6 +280,7 @@ docs/                Feature guides and interface preview
 - [Property search](docs/property-search.md): price and area ranges, room counts, sorting and currency rules.
 - [Property detail pages](docs/property-detail-pages.md): direct links, sharing, deployment and targeted code cleanup.
 - [Calendar downloads](docs/calendar-downloads.md): exporting confirmed stays and viewings, time handling and import limitations.
+- [Owner calendar blocks](docs/owner-stay-blocks.md): private unavailability, shared inventory, conflict handling and deployment.
 - [Saved properties](docs/property-marketplace.md#saved-properties): saving, removing and revisiting published listings.
 - [Long-term rentals and conversations](docs/long-term-rentals.md): private inquiries, viewing confirmations, message history and unread indicators.
 - [Nightly stays](docs/nightly-stays.md): activation, date rules, inventory, payment terms and reservation APIs.

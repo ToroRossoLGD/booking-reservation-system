@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.property_listing import PropertyListing
 from app.models.stay import Stay
+from app.models.stay_block import StayBlock
 from app.models.user import User
 from app.models.venue import Venue
 
@@ -45,7 +46,17 @@ class StayRepository:
             )
             .order_by(Stay.check_in)
         )
-        return list(result.all())
+        blocks = await self.db.scalars(
+            select(StayBlock)
+            .where(
+                StayBlock.venue_id == venue_id,
+                StayBlock.active.is_(True),
+                StayBlock.check_in < end,
+                StayBlock.check_out > start,
+            )
+            .order_by(StayBlock.check_in)
+        )
+        return sorted([*result.all(), *blocks.all()], key=lambda item: item.check_in)
 
     async def save(self, stay):
         self.db.add(stay)

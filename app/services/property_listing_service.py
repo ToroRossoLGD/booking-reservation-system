@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.property_listing import PropertyListing
 from app.models.stay import Stay
+from app.models.stay_block import StayBlock
 from app.models.user import User
 from app.repositories.property_listing_repository import PropertyListingRepository
 from app.repositories.venue_repository import VenueRepository
@@ -47,6 +48,18 @@ class PropertyListingService:
                 "Nightly stays require a venue without hourly resources",
             )
         if listing.venue_id != data.venue_id:
+            blocked = await self.repository.db.scalar(
+                select(StayBlock.id)
+                .where(
+                    StayBlock.venue_id == listing.venue_id,
+                    StayBlock.active.is_(True),
+                )
+                .limit(1)
+            )
+            if blocked is not None:
+                raise HTTPException(
+                    409, "Remove active calendar blocks before changing venue"
+                )
             existing = await self.repository.db.scalar(
                 select(Stay.id).where(Stay.property_id == listing.id).limit(1)
             )

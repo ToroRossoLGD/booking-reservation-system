@@ -25,7 +25,7 @@ import type {
 
 import type { PropertyInput, PropertyListing, PropertyPage, PropertyPhoto, PropertySearchFilters } from "./property-types";
 import type { RentalInquiry, RentalInquiryInput, RentalInquiryPage, RentalUpdate, RentalMessage, RentalMessagePage } from "./rental-types";
-import type { Stay, StayCalendar, StayCreate, StayDates, StayPage, StayQuote } from "./stay-types";
+import type { StayBlock, StayBlockPage, StayBlockCreate, Stay, StayCalendar, StayCreate, StayDates, StayPage, StayQuote } from "./stay-types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 
@@ -62,6 +62,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  stayBlocks: (id: number, offset = 0, signal?: AbortSignal) => request<StayBlockPage>(`/owner/properties/${id}/stay-blocks?offset=${offset}&limit=20`, { signal }),
+  createStayBlock: (id: number, data: StayBlockCreate) => request<StayBlock>(`/owner/properties/${id}/stay-blocks`, { method: "POST", body: JSON.stringify(data) }),
+  removeStayBlock: (id: number, blockId: number) => request<void>(`/owner/properties/${id}/stay-blocks/${blockId}`, { method: "DELETE" }),
   property: (id: number, signal?: AbortSignal) => request<PropertyListing>(`/properties/${id}`, { signal }),
   propertyPhotoUrl: (propertyId: number, photoId: number, thumbnail = false) => `${API_URL}/properties/${propertyId}/photos/${photoId}/image?thumbnail=${thumbnail}`,
   ownerPhotos: (id: number) => request<PropertyPhoto[]>(`/owner/properties/${id}/photos`),

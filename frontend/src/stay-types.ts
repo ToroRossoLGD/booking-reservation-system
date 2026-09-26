@@ -31,3 +31,7 @@ export function shiftDate(value: string, days: number) {
 export function displayDate(value: string) {
   return new Intl.DateTimeFormat("sr-Latn", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`));
 }
+
+export type StayBlock = { id: number; venue_id: number; check_in: string; check_out: string; reason: string; active: boolean; created_at: string };
+export type StayBlockPage = { items: StayBlock[]; total: number; has_next: boolean };
+export type StayBlockCreate = { check_in: string; check_out: string; reason: string; request_id: string };
