@@ -10,11 +10,12 @@ export function parseStayDates(params: URLSearchParams): StayDates | undefined {
   if (nights < 1 || nights > 90) return;
   return { check_in, check_out, guests };
 }
-export type StayQuote = { nights: number; nightly_rate_cents: number; total_cents: number; currency: string; timezone: string; payment_method: "pay_on_arrival" };
-export type Stay = StayDates & { id: number; property_id: number; status: "confirmed" | "cancelled"; title: string; city: string; timezone: string; contact_email: string; guest_email?: string | null; nightly_rate_cents: number; total_cents: number; currency: string; created_at: string; payment_method: "pay_on_arrival" };
+export type StayTimes = { check_in_time?: string | null; check_out_time?: string | null };
+export type StayQuote = StayTimes & { nights: number; nightly_rate_cents: number; total_cents: number; currency: string; timezone: string; payment_method: "pay_on_arrival" };
+export type Stay = StayDates & StayTimes & { id: number; property_id: number; status: "confirmed" | "cancelled"; title: string; city: string; timezone: string; contact_email: string; guest_email?: string | null; nightly_rate_cents: number; total_cents: number; currency: string; created_at: string; payment_method: "pay_on_arrival" };
 export type StayPage = { items: Stay[]; total: number; has_next: boolean };
 export type StayCalendar = { start: string; end: string; occupied: { check_in: string; check_out: string }[] };
-export type StayCreate = StayDates & { request_id: string; expected_total_cents: number; expected_currency: string };
+export type StayCreate = StayDates & { request_id: string; expected_total_cents: number; expected_currency: string; expected_check_in_time?: string | null; expected_check_out_time?: string | null; expected_timezone?: string };
 
 export function stayMoney(cents: number, currency: string) {
   return new Intl.NumberFormat("sr-Latn", { style: "currency", currency }).format(cents / 100);

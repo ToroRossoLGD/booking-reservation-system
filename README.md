@@ -107,6 +107,7 @@ The next development areas are:
 - [x] Property photographs, cover selection and galleries.
 - [x] Dedicated property pages and shareable listing links.
 - [ ] Seasonal nightly pricing and more flexible booking rules.
+- [x] Local check-in/check-out times for nightly stays, preserved on reservations.
 - [x] Owner calendar blocks for whole-apartment stays.
 - [ ] Synchronization with external booking calendars.
 - [ ] Online payments and deposits for short stays.
@@ -281,6 +282,7 @@ docs/                Feature guides and interface preview
 - [Property detail pages](docs/property-detail-pages.md): direct links, sharing, deployment and targeted code cleanup.
 - [Calendar downloads](docs/calendar-downloads.md): exporting confirmed stays and viewings, time handling and import limitations.
 - [Owner calendar blocks](docs/owner-stay-blocks.md): private unavailability, shared inventory, conflict handling and deployment.
+- [Arrival and departure times](docs/stay-times.md): nightly-only rules, reservation snapshots and deployment.
 - [Saved properties](docs/property-marketplace.md#saved-properties): saving, removing and revisiting published listings.
 - [Long-term rentals and conversations](docs/long-term-rentals.md): private inquiries, viewing confirmations, message history and unread indicators.
 - [Nightly stays](docs/nightly-stays.md): activation, date rules, inventory, payment terms and reservation APIs.

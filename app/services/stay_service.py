@@ -47,6 +47,8 @@ class StayService:
             total_cents=nights * listing.price_cents,
             currency=listing.currency,
             timezone=listing.timezone,
+            check_in_time=listing.check_in_time,
+            check_out_time=listing.check_out_time,
         )
 
     async def assert_available(self, listing, data):
@@ -67,6 +69,7 @@ class StayService:
         await self.repository.lock_user(user.id)
         previous = await self.repository.previous_request(user.id, data.request_id)
         if previous:
+            self.validate_expected_times(previous, data)
             if (
                 previous.property_id,
                 previous.check_in,
@@ -89,6 +92,7 @@ class StayService:
         if venue.owner_id == user.id:
             raise HTTPException(400, "You cannot reserve your own property")
         quote = self.validate_dates(listing, data)
+        self.validate_expected_times(quote, data)
         if (data.expected_total_cents, data.expected_currency) != (
             quote.total_cents,
             quote.currency,
@@ -106,6 +110,8 @@ class StayService:
             title=listing.title,
             city=listing.city,
             timezone=listing.timezone,
+            check_in_time=listing.check_in_time,
+            check_out_time=listing.check_out_time,
             contact_email=listing.contact_email,
             nightly_rate_cents=quote.nightly_rate_cents,
             total_cents=quote.total_cents,
@@ -113,6 +119,15 @@ class StayService:
             status="confirmed",
         )
         return await self.repository.save(stay)
+
+    @staticmethod
+    def validate_expected_times(terms, data):
+        for field in ("check_in_time", "check_out_time", "timezone"):
+            expected = f"expected_{field}"
+            if expected in data.model_fields_set and getattr(data, expected) != getattr(
+                terms, field
+            ):
+                raise HTTPException(409, "Stay rules changed. Request a new quote")
 
     async def calendar(self, property_id, start, end):
         if not 1 <= (end - start).days <= 93:

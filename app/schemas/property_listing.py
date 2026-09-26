@@ -12,6 +12,7 @@ from pydantic import (
 )
 
 from app.schemas.property_photo import PropertyPhotoRead
+from app.schemas.stay_times import StayTime
 
 OfferType = Literal["short_stay", "long_term", "sale"]
 
@@ -81,6 +82,8 @@ class PropertyListingWrite(BaseModel):
     max_guests: int = Field(default=2, ge=1, le=100)
     minimum_nights: int = Field(default=1, ge=1, le=30)
     timezone: str = Field(default="Europe/Belgrade", max_length=64)
+    check_in_time: StayTime | None = None
+    check_out_time: StayTime | None = None
 
     @field_validator("timezone")
     @classmethod
@@ -93,6 +96,10 @@ class PropertyListingWrite(BaseModel):
 
     @model_validator(mode="after")
     def booking_only_for_short_stays(self):
+        if (self.check_in_time is None) != (self.check_out_time is None):
+            raise ValueError("Provide both arrival and departure times, or neither")
+        if self.offer_type != "short_stay" and self.check_in_time is not None:
+            raise ValueError("Arrival and departure times apply only to short stays")
         if self.booking_enabled and self.offer_type != "short_stay":
             raise ValueError("Online reservations are only available for short stays")
         return self

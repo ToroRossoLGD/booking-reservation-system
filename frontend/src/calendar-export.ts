@@ -36,10 +36,11 @@ export function stayCalendar(stay: Stay, origin: string, owner = false, now = ne
   const host = new URL(origin).host;
   const start = day(stay.check_in); const end = day(stay.check_out);
   if (end <= start) throw new Error("Invalid stay dates");
+  const times = stay.check_in_time && stay.check_out_time ? `Prijava od ${stay.check_in_time}. Odjava do ${stay.check_out_time} (${stay.timezone}).` : "Tačno vreme dogovori sa domaćinom.";
   return { filename: `bookica-boravak-${stay.id}.ics`, contents: calendar(`stay-${stay.id}@${host}`, [
     `DTSTART;VALUE=DATE:${start}`, `DTEND;VALUE=DATE:${end}`,
     `SUMMARY:${text(`Boravak: ${stay.title}`)}`, `LOCATION:${text(stay.city)}`,
-    `DESCRIPTION:${text(`Bookica boravak #${stay.id}. Dolazak: ${stay.check_in}. Odlazak: ${stay.check_out}. Tačno vreme dogovori sa domaćinom. Ovo je kopija termina; izmene i otkazivanje proveri u Bookici.`)}`,
+    `DESCRIPTION:${text(`Bookica boravak #${stay.id}. Dolazak: ${stay.check_in}. Odlazak: ${stay.check_out}. ${times} Ovo je kopija termina; izmene i otkazivanje proveri u Bookici.`)}`,
     `URL:${new URL(owner ? "/owner/stays" : "/stays", origin).href}`,
   ], now) };
 }

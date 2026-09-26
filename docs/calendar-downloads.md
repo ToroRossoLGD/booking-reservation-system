@@ -5,8 +5,9 @@ Confirmed stays on `/stays` and `/owner/stays`, and confirmed viewings on
 file and import it into your calendar application. Proposed, closed or withdrawn
 inquiries and cancelled stays do not offer an export.
 
-- Stays use all-day dates from arrival up to, but excluding, checkout. Exact
-  check-in/out times are not stored in Bookica and are not invented for export.
+- Stays use all-day dates from arrival up to, but excluding, checkout. Stored
+  check-in/out rules appear in the description with the property's timezone.
+  Historical stays without times ask the guest to arrange them with the host.
 - Viewings use the confirmed instant converted to UTC, so the calendar can
   display it in the user's local timezone. No end time is included because the
   viewing workflow does not collect duration.

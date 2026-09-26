@@ -10,13 +10,14 @@ const property: PropertyListing = { id: 1, venue_id: 1, title: "Stan", city: "Be
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(api.stayCalendar).mockResolvedValue({ start: "2026-10-01", end: "2026-11-01", occupied: [] });
-  vi.mocked(api.stayQuote).mockResolvedValue({ nights: 2, nightly_rate_cents: 6500, total_cents: 13000, currency: "EUR", timezone: "Europe/Belgrade", payment_method: "pay_on_arrival" });
+  vi.mocked(api.stayQuote).mockResolvedValue({ nights: 2, nightly_rate_cents: 6500, total_cents: 13000, currency: "EUR", timezone: "Europe/Belgrade", check_in_time: "15:00", check_out_time: "10:30", payment_method: "pay_on_arrival" });
 });
 
 it("uses the server quote, retries with the same request ID, and invalidates a quote when guests change", async () => {
   const user = userEvent.setup(); render(<StayBooking property={property} />);
   await user.click(screen.getByRole("button", { name: "Proveri dostupnost i cenu" }));
   await screen.findByRole("button", { name: "Potvrdi rezervaciju" });
+  expect(screen.getByText(/Prijava od 15:00 · Odjava do 10:30/)).toBeVisible();
   await user.clear(screen.getByLabelText("Broj gostiju"));
   await user.type(screen.getByLabelText("Broj gostiju"), "2");
   expect(screen.queryByRole("button", { name: "Potvrdi rezervaciju" })).not.toBeInTheDocument();
@@ -25,7 +26,7 @@ it("uses the server quote, retries with the same request ID, and invalidates a q
   await user.click(await screen.findByRole("button", { name: "Potvrdi rezervaciju" }));
   await screen.findByRole("alert");
   const request = vi.mocked(api.createStay).mock.calls[0][1];
-  expect(request).toMatchObject({ guests: 2, expected_total_cents: 13000, expected_currency: "EUR" });
+  expect(request).toMatchObject({ guests: 2, expected_total_cents: 13000, expected_currency: "EUR", expected_check_in_time: "15:00", expected_check_out_time: "10:30", expected_timezone: "Europe/Belgrade" });
   vi.mocked(api.createStay).mockResolvedValue({ ...request, id: 8, status: "confirmed", total_cents: 13000, currency: "EUR", property_id: 1, title: property.title, city: property.city, timezone: "Europe/Belgrade", contact_email: property.contact_email, nightly_rate_cents: 6500, created_at: new Date().toISOString(), payment_method: "pay_on_arrival" });
   await user.click(screen.getByRole("button", { name: "Potvrdi rezervaciju" }));
   await waitFor(() => expect(api.createStay).toHaveBeenLastCalledWith(1, request));

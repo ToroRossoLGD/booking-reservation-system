@@ -30,14 +30,14 @@ working as before.
 
 Reservations are confirmed immediately with **payment at the property**. There
 is no online charge, deposit, refund transaction or pending-payment hold in this
-release. The UI explicitly displays these terms before confirmation. Guests
-and owners arrange arrival/check-in time directly; this release books dates,
-not check-in/check-out clock times.
+release. The UI explicitly displays these terms before confirmation. Owners can
+set local arrival/departure times for nightly listings. See [stay times](stay-times.md)
+for validation, quote checks, reservation snapshots and migration instructions.
 
 Owners view reservations and guest contact emails at `/owner/stays`. Guests can
 only list/cancel their own stays. Public calendars expose occupied dates only,
 never guest identities or reservation IDs. Host contact and property title,
-city, timezone, nightly price and total are snapshotted at booking.
+city, timezone, arrival/departure times, nightly price and total are snapshotted at booking.
 
 ## Dates, price and concurrency
 
@@ -83,8 +83,8 @@ this test. Migration tests check old listing preservation and disabled defaults.
 Browser tests cover quote → confirmation → account view → cancellation, with
 deterministic API fixtures; component tests cover stale quotes and safe retries.
 
-Seasonal prices, owner calendar blocks/imports, online payments, automated guest
-emails, check-in clock times, owner cancellation, rescheduling, photos and
+Seasonal prices, external calendar imports, online payments, automated guest
+emails, owner cancellation, rescheduling and
 long-term lease workflows remain separate work. Do not enable booking for a
 property also advertised elsewhere until its external reservations can be
 accounted for operationally; external calendar sync is not implemented.

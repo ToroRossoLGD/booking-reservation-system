@@ -28,6 +28,8 @@ export type PropertyInput = {
   max_guests?: number;
   minimum_nights?: number;
   timezone?: string;
+  check_in_time?: string | null;
+  check_out_time?: string | null;
 };
 export type PropertyPhoto = { id: number; property_id: number; position: number; width: number; height: number };
 export type PropertyListing = PropertyInput & { id: number; photos?: PropertyPhoto[] };

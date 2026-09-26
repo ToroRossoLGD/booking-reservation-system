@@ -9,6 +9,12 @@ const stay: Stay = { id: 7, property_id: 3, status: "confirmed", title: "Stan po
 const inquiry: RentalInquiry = { id: 9, property_id: 3, title: "Stan za najam", monthly_price_cents: 60000, currency: "EUR", move_in: "2030-10-01", duration_months: 12, message: "Private tenant message", owner_reply: "Private reply", viewing_at: "2030-09-25T14:00:00+02:00", status: "viewing_confirmed", version: 3, created_at: "2030-09-01T00:00:00Z" };
 const unfold = (value: string) => value.replace(/\r\n /g, "");
 
+it("includes snapshotted local times in the calendar description", () => {
+  const file = stayCalendar({ ...stay, check_in_time: "14:00", check_out_time: "11:00" }, origin)!;
+  expect(unfold(file.contents)).toContain("Prijava od 14:00. Odjava do 11:00 (Europe/Belgrade).");
+  expect(file.contents).toContain("DTSTART;VALUE=DATE:");
+});
+
 it("exports all-day stay dates with exclusive checkout and required calendar fields", () => {
   const file = stayCalendar(stay, origin, false, now)!;
   expect(file.filename).toBe("bookica-boravak-7.ics");
