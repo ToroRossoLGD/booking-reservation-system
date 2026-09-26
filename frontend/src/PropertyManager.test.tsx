@@ -27,9 +27,9 @@ it("publishes a property with the selected price unit and can withdraw it", asyn
   await user.click(screen.getByRole("checkbox"));
   await user.click(screen.getByRole("button", { name: "Sačuvaj oglas" }));
   const { id, ...input } = listing;
-  await waitFor(() => expect(api.createProperty).toHaveBeenCalledWith({ ...input, booking_enabled: false, max_guests: 2, minimum_nights: 1, timezone: "Europe/Belgrade" }));
+  await waitFor(() => expect(api.createProperty).toHaveBeenCalledWith({ ...input, check_in_time: null, check_out_time: null, booking_enabled: false, max_guests: 2, minimum_nights: 1, timezone: "Europe/Belgrade" }));
   await user.click(await screen.findByRole("button", { name: `Izmeni: ${listing.title}` }));
   await user.click(screen.getByRole("checkbox"));
   await user.click(screen.getByRole("button", { name: "Sačuvaj oglas" }));
-  await waitFor(() => expect(api.updateProperty).toHaveBeenCalledWith(id, { ...input, is_published: false, booking_enabled: false, max_guests: 2, minimum_nights: 1, timezone: "Europe/Belgrade" }));
+  await waitFor(() => expect(api.updateProperty).toHaveBeenCalledWith(id, { ...input, is_published: false, check_in_time: null, check_out_time: null, booking_enabled: false, max_guests: 2, minimum_nights: 1, timezone: "Europe/Belgrade" }));
 });

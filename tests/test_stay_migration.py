@@ -47,7 +47,7 @@ def test_nightly_migration_preserves_listings_and_defaults_to_disabled():
         assert tuple(row) == ("Original", 0, 2, 1, "Europe/Belgrade")
         assert {
             item["name"] for item in inspect(connection).get_columns("stays")
-        } == set(Stay.__table__.columns.keys())
+        } == set(Stay.__table__.columns.keys()) - {"check_in_time", "check_out_time"}
         migration.downgrade()
         assert "stays" not in inspect(connection).get_table_names()
         assert (

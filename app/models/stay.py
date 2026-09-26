@@ -41,6 +41,8 @@ class Stay(Base):
     title: Mapped[str] = mapped_column(String(160))
     city: Mapped[str] = mapped_column(String(100))
     timezone: Mapped[str] = mapped_column(String(64))
+    check_in_time: Mapped[str | None] = mapped_column(String(5))
+    check_out_time: Mapped[str | None] = mapped_column(String(5))
     contact_email: Mapped[str] = mapped_column(String(254))
     nightly_rate_cents: Mapped[int] = mapped_column(BigInteger)
     total_cents: Mapped[int] = mapped_column(BigInteger)

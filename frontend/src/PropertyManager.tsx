@@ -50,6 +50,8 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
       max_guests: Number(fields.get("max_guests") ?? current?.max_guests ?? 2),
       minimum_nights: Number(fields.get("minimum_nights") ?? current?.minimum_nights ?? 1),
       timezone: String(fields.get("timezone") ?? current?.timezone ?? "Europe/Belgrade"),
+      check_in_time: type === "short_stay" ? String(fields.get("check_in_time") ?? "") || null : null,
+      check_out_time: type === "short_stay" ? String(fields.get("check_out_time") ?? "") || null : null,
     };
     setBusy(true); setError(""); setMessage("");
     try {
@@ -86,6 +88,9 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
         <label className="ph-form-wide">Javna kontakt email adresa<input name="contact_email" type="email" maxLength={254} required defaultValue={current?.contact_email} /><small>Ova adresa će biti dostupna posetiocima kada objaviš oglas.</small></label>
         <label className="ph-publish ph-form-wide"><input name="is_published" type="checkbox" defaultChecked={current?.is_published ?? false} />Objavi oglas (isključi da ga povučeš iz javne ponude)</label>
         {type === "short_stay" && <>
+          <label>Prijava od<input name="check_in_time" type="time" step="60" defaultValue={current ? current.check_in_time ?? "" : "14:00"} /></label>
+          <label>Odjava do<input name="check_out_time" type="time" step="60" defaultValue={current ? current.check_out_time ?? "" : "11:00"} /></label>
+          <small className="ph-form-wide">Unesi oba vremena ili ostavi oba prazna za dogovor sa gostom. Važe u vremenskoj zoni smeštaja. Izmene važe samo za nove rezervacije.</small>
           <label>Maksimalan broj gostiju<input name="max_guests" type="number" min={1} max={100} required defaultValue={current?.max_guests ?? 2} /></label>
           <label>Minimalan broj noćenja<input name="minimum_nights" type="number" min={1} max={30} required defaultValue={current?.minimum_nights ?? 1} /></label>
           <label className="ph-form-wide">Vremenska zona<input name="timezone" required defaultValue={current?.timezone ?? "Europe/Belgrade"} maxLength={64} /><small>Na primer Europe/Belgrade, Europe/Podgorica ili Europe/Athens.</small></label>

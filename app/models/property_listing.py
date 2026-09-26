@@ -44,3 +44,5 @@ class PropertyListing(Base):
     max_guests: Mapped[int] = mapped_column(Integer, default=2)
     minimum_nights: Mapped[int] = mapped_column(Integer, default=1)
     timezone: Mapped[str] = mapped_column(String(64), default="Europe/Belgrade")
+    check_in_time: Mapped[str | None] = mapped_column(String(5))
+    check_out_time: Mapped[str | None] = mapped_column(String(5))

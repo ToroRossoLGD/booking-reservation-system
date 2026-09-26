@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.schemas.stay_times import StayTime
+
 
 class StayDates(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -19,12 +21,17 @@ class StayDates(BaseModel):
 
 
 class StayCreate(StayDates):
+    expected_check_in_time: StayTime | None = None
+    expected_check_out_time: StayTime | None = None
+    expected_timezone: str | None = Field(default=None, max_length=64)
     request_id: UUID
     expected_total_cents: int = Field(gt=0, le=90000000000000)
     expected_currency: Literal["EUR", "RSD", "USD"]
 
 
 class StayQuote(BaseModel):
+    check_in_time: StayTime | None = None
+    check_out_time: StayTime | None = None
     nights: int
     nightly_rate_cents: int
     total_cents: int
@@ -34,6 +41,8 @@ class StayQuote(BaseModel):
 
 
 class StayRead(BaseModel):
+    check_in_time: StayTime | None = None
+    check_out_time: StayTime | None = None
     model_config = ConfigDict(from_attributes=True)
     id: int
     property_id: int

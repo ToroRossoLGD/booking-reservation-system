@@ -1,3 +1,4 @@
+import StayTimes from "./StayTimes";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "./api";
 import type { PropertyListing } from "./property-types";
@@ -56,7 +57,7 @@ export default function StayBooking({ property, initialDates }: { property: Prop
     if (!quote || busy) return;
     setBusy(true); setError("");
     try {
-      setReservation(await api.createStay(property.id, { check_in: arrival, check_out: departure, guests, request_id: requestId.current, expected_total_cents: quote.total_cents, expected_currency: quote.currency }));
+      setReservation(await api.createStay(property.id, { check_in: arrival, check_out: departure, guests, request_id: requestId.current, expected_total_cents: quote.total_cents, expected_currency: quote.currency, expected_check_in_time: quote.check_in_time ?? null, expected_check_out_time: quote.check_out_time ?? null, expected_timezone: quote.timezone }));
       reloadCalendar();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) { setNeedsLogin(true); setError("Prijavi se na svoj nalog da potvrdiš rezervaciju."); }
@@ -65,7 +66,7 @@ export default function StayBooking({ property, initialDates }: { property: Prop
     } finally { setBusy(false); }
   }
 
-  if (reservation) return <section className="stay-success" role="status"><h4>{reservation.status === "cancelled" ? "Rezervacija je otkazana" : "Rezervacija je potvrđena"} · #{reservation.id}</h4><p>{displayDate(reservation.check_in)} — {displayDate(reservation.check_out)}</p><p>{stayMoney(reservation.total_cents, reservation.currency)} · Plaćanje kod domaćina</p><a href="/stays">Pregledaj svoje boravke ↗</a></section>;
+  if (reservation) return <section className="stay-success" role="status"><h4>{reservation.status === "cancelled" ? "Rezervacija je otkazana" : "Rezervacija je potvrđena"} · #{reservation.id}</h4><p>{displayDate(reservation.check_in)} — {displayDate(reservation.check_out)}</p><p>{stayMoney(reservation.total_cents, reservation.currency)} · Plaćanje kod domaćina</p><StayTimes {...reservation} /><a href="/stays">Pregledaj svoje boravke ↗</a></section>;
 
   const days = Array.from({ length: Math.round((Date.parse(end) - Date.parse(start)) / 86400000) }, (_, i) => shiftDate(start, i));
   const weekday = (new Date(`${start}T12:00:00Z`).getUTCDay() + 6) % 7;
@@ -88,6 +89,6 @@ export default function StayBooking({ property, initialDates }: { property: Prop
     </form>
     <p className="stay-legend">Datumi važe u zoni {timezone}. Dolazak je moguć od sutra, a boravak traje do 90 noći.</p>
     {error && <p role="alert">{error} {needsLogin && <a href="/account">Prijavi se ↗</a>}</p>}
-    {quote && <div className="stay-quote"><p>{quote.nights} noćenja × {stayMoney(quote.nightly_rate_cents, quote.currency)}</p><strong>Ukupno {stayMoney(quote.total_cents, quote.currency)}</strong><p>Plaćanje kod domaćina. Sada ništa ne naplaćujemo. Besplatno otkazivanje pre dana dolaska.</p><button className="ph-primary" type="button" disabled={busy} onClick={reserve}>{busy ? "Potvrđivanje…" : "Potvrdi rezervaciju"}</button></div>}
+    {quote && <div className="stay-quote"><StayTimes {...quote} /><p>{quote.nights} noćenja × {stayMoney(quote.nightly_rate_cents, quote.currency)}</p><strong>Ukupno {stayMoney(quote.total_cents, quote.currency)}</strong><p>Plaćanje kod domaćina. Sada ništa ne naplaćujemo. Besplatno otkazivanje pre dana dolaska.</p><button className="ph-primary" type="button" disabled={busy} onClick={reserve}>{busy ? "Potvrđivanje…" : "Potvrdi rezervaciju"}</button></div>}
   </section>;
 }
