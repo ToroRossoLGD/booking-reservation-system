@@ -68,6 +68,17 @@ class StayPage(BaseModel):
     has_next: bool
 
 
+class OwnerStayProperty(BaseModel):
+    id: int
+    title: str
+
+
+class OwnerStayPage(StayPage):
+    arrivals_today: int
+    departures_today: int
+    properties: list[OwnerStayProperty]
+
+
 class OccupiedDates(BaseModel):
     check_in: date
     check_out: date

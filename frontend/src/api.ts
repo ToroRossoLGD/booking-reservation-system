@@ -1,3 +1,4 @@
+import type { OwnerStayFilters } from "./stay-types";
 import type {
   AvailableResource,
   AvailableSlot,
@@ -89,7 +90,11 @@ export const api = {
   stayQuote: (id: number, dates: StayDates) => request<StayQuote>(`/properties/${id}/stay-quote`, { method: "POST", body: JSON.stringify(dates) }),
   createStay: (id: number, data: StayCreate) => request<Stay>(`/properties/${id}/stays`, { method: "POST", body: JSON.stringify(data) }),
   stayCalendar: (id: number, start: string, end: string, signal?: AbortSignal) => request<StayCalendar>(`/properties/${id}/calendar?${new URLSearchParams({ start, end })}`, { signal }),
-  myStays: (owner = false, offset = 0) => request<StayPage>(`${owner ? "/owner/stays" : "/stays/mine"}?offset=${offset}&limit=20`),
+  myStays: (owner = false, offset = 0, filters: OwnerStayFilters = {}, signal?: AbortSignal) => {
+    const params = new URLSearchParams({ offset: String(offset), limit: "20" });
+    if (owner) Object.entries(filters).forEach(([key, value]) => { if (value !== undefined) params.set(key, String(value)); });
+    return request<StayPage>(`${owner ? "/owner/stays" : "/stays/mine"}?${params}`, { signal });
+  },
   cancelStay: (id: number) => request<Stay>(`/stays/${id}/cancel`, { method: "POST" }),
   properties: (city: string, offerType: string, offset = 0, signal?: AbortSignal, filters: PropertySearchFilters = {}) => {
     const params = new URLSearchParams({ city, offset: String(offset), limit: "12" });
@@ -97,6 +102,7 @@ export const api = {
     Object.entries(filters).forEach(([key, value]) => { if (value !== undefined) params.set(key, String(value)); });
     return request<PropertyPage>(`/properties?${params}`, { signal });
   },
+  ownerProperty: (id: number, signal?: AbortSignal) => request<PropertyListing>(`/owner/properties/${id}`, { signal }),
   ownerProperties: (offset = 0) => request<PropertyPage>(`/owner/properties?offset=${offset}&limit=20`),
   createProperty: (data: PropertyInput) => request<PropertyListing>("/properties", { method: "POST", body: JSON.stringify(data) }),
   updateProperty: (id: number, data: PropertyInput) => request<PropertyListing>(`/properties/${id}`, { method: "PUT", body: JSON.stringify(data) }),

@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +8,7 @@ from app.core.dependencies import get_current_user, require_roles
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.stay import (
+    OwnerStayPage,
     StayCalendar,
     StayCreate,
     StayDates,
@@ -53,14 +55,24 @@ async def mine(
     return await StayService(db).list(user, offset=offset, limit=limit)
 
 
-@router.get("/owner/stays", response_model=StayPage)
+@router.get("/owner/stays", response_model=OwnerStayPage)
 async def owner_stays(
     offset: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
+    property_id: int | None = Query(None, gt=0),
+    status: Literal["confirmed", "cancelled"] | None = None,
+    day: Literal["arrivals", "departures"] | None = None,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_roles("owner", "admin")),
 ):
-    return await StayService(db).list(user, owner=True, offset=offset, limit=limit)
+    return await StayService(db).owner_overview(
+        user,
+        offset=offset,
+        limit=limit,
+        property_id=property_id,
+        status=status,
+        day=day,
+    )
 
 
 @router.post("/stays/{stay_id}/cancel", response_model=StayRead)
