@@ -83,6 +83,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - PostgreSQL transaction locks protect against simultaneous overlapping reservations. Repeated requests return the existing reservation.
 - Guests can view their stays and cancel for free before the arrival date in the property's timezone.
 - Owners can view reservations and guest contact details.
+- Guests can rate and review confirmed stays after checkout day. Published nightly listings show paginated reviews and an overall average without exposing guest identity or stay dates.
 - Owners can block dates for maintenance, personal use or off-platform bookings from **Zauzetost** in the listing manager. Blocks affect all listings for the same apartment, availability search and booking confirmation.
 - Guests and owners can download confirmed stays as `.ics` calendar events. The export is a one-time copy; changes and cancellations must also be updated in the external calendar.
 
@@ -122,7 +123,8 @@ The next development areas are:
 - [x] Short-stay availability search by dates and guest count.
 - [x] Shareable searches with URL filters and browser-history navigation.
 - [x] Calendar downloads for confirmed stays and viewings.
-- [ ] Property reviews and map search.
+- [x] Verified nightly property reviews and average ratings.
+- [ ] Property map search.
 - [ ] Guest notifications, rescheduling and more complete host operations.
 
 These are planned features, not claims about the current release. Bookica is still being built and is not presented as a finished real-estate platform.
@@ -281,6 +283,7 @@ docs/                Feature guides and interface preview
 
 - [Property marketplace](docs/property-marketplace.md): publishing, offer types and listing APIs.
 - [Property details](docs/property-details.md): optional characteristics, filtering, unknown values and deployment.
+- [Property reviews](docs/property-reviews.md): eligibility, public privacy, safe retries and deployment.
 - [Property photos](docs/property-photos.md): uploads, galleries, private storage and deployment.
 - [Property search](docs/property-search.md): price and area ranges, room counts, sorting and currency rules.
 - [Property detail pages](docs/property-detail-pages.md): direct links, sharing, deployment and targeted code cleanup.

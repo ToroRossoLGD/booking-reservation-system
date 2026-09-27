@@ -30,6 +30,7 @@ from app.api.routers.payments import router as payments_router
 from app.api.routers.promotions import router as promotions_router
 from app.api.routers.property_listings import router as property_listings_router
 from app.api.routers.property_photos import router as property_photos_router
+from app.api.routers.property_reviews import router as property_reviews_router
 from app.api.routers.rental_inquiries import router as rental_inquiries_router
 from app.api.routers.reservation_guests import router as reservation_guests_router
 from app.api.routers.reservation_transfers import router as reservation_transfers_router
@@ -110,6 +111,7 @@ app.include_router(venue_staff_router)
 app.include_router(venue_customer_blocks_router)
 app.include_router(resources_router)
 app.include_router(support_router)
+app.include_router(property_reviews_router)
 app.include_router(stays_router)
 app.include_router(stay_blocks_router)
 app.include_router(rental_inquiries_router)
