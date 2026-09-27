@@ -6,4 +6,5 @@
 @media(max-width:650px){.ph-tabs{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;overflow:visible}.ph-tabs button{white-space:normal;text-align:left;min-height:48px}.ph-hero-art .ph-sun{right:30px;top:20px}}
 
 .ph-card h3 a { text-decoration: underline; text-underline-offset: 3px; }
+.property-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0}.property-facts>div{padding:12px;background:#f2f5ed;border-radius:8px;overflow-wrap:anywhere}.property-facts dt{font-size:12px;color:#62745f}.property-facts dd{margin:5px 0 0;font-size:14px;font-weight:600}
 @media(max-width:650px){.ph-manager .ph-owner-listing{flex-wrap:wrap}.ph-manager .ph-owner-listing>div:first-child,.ph-manager .ph-owner-listing>p{flex:1 1 100%}.ph-manager .ph-owner-listing>button{flex:1 1 auto;white-space:nowrap}}

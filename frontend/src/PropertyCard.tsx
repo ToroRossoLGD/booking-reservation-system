@@ -2,6 +2,7 @@ import type { StayDates } from "./stay-types";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import PropertyActions from "./PropertyActions";
+import PropertyFacts from "./PropertyFacts";
 import PropertyGallery from "./PropertyGallery";
 import { offerLabels, priceUnits, propertyPrice } from "./property-types";
 import type { PropertyListing } from "./property-types";
@@ -23,6 +24,7 @@ export default function PropertyCard({ property: p, saveAction, stayDates }: { p
         <button aria-expanded={expanded} aria-controls={`property-${p.id}`} onClick={() => setExpanded(!expanded)} aria-label={`Detalji: ${p.title}`}>{expanded ? "Zatvori −" : "Detalji ↗"}</button>
       </div>
       <div id={`property-${p.id}`} className="ph-detail" hidden={!expanded}>
+        <PropertyFacts property={p} />
         <p className="ph-description">{p.description}</p>
         {expanded && <PropertyActions property={p} stayDates={stayDates} />}
       </div>

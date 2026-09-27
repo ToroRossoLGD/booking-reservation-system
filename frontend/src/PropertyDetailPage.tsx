@@ -3,6 +3,7 @@ import { parseStayDates } from "./stay-types";
 import { api, ApiError } from "./api";
 import PropertyGallery from "./PropertyGallery";
 import PropertyActions from "./PropertyActions";
+import PropertyFacts from "./PropertyFacts";
 import SavePropertyButton from "./SavePropertyButton";
 import { offerLabels, priceUnits, propertyPrice } from "./property-types";
 import type { PropertyListing } from "./property-types";
@@ -64,6 +65,7 @@ export default function PropertyDetailPage({ id }: { id: string }) {
           <section aria-label="Opis i fotografije">
             {property.photos?.length ? <PropertyGallery photos={property.photos} title={property.title} /> : <div className="property-detail-no-photo">Fotografije još nisu dodate.</div>}
             <h2>O nekretnini</h2><p className="ph-description">{property.description}</p>
+            <PropertyFacts property={property} />
           </section>
           <aside className="property-detail-actions" aria-label="Cena i kontakt">
             <p className="property-detail-price"><strong>{propertyPrice(property)}</strong> / {priceUnits[property.offer_type]}</p>

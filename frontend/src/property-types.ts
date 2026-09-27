@@ -1,6 +1,7 @@
+import type { PropertyDetails } from "./property-details";
 export type OfferType = "short_stay" | "long_term" | "sale";
 
-export type PropertySearchFilters = {
+export type PropertySearchFilters = { [K in keyof PropertyDetails]?: NonNullable<PropertyDetails[K]> } & {
   check_in?: string;
   check_out?: string;
   guests?: number;
@@ -12,7 +13,7 @@ export type PropertySearchFilters = {
   rooms?: number;
   sort?: "newest" | "price_asc" | "price_desc" | "area_desc";
 };
-export type PropertyInput = {
+export type PropertyInput = PropertyDetails & {
   venue_id: number;
   title: string;
   description: string;

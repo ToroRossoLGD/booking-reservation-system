@@ -1,3 +1,4 @@
+import { detailEntries, detailKeys } from "./property-details";
 import { useEffect, useState } from "react";
 import { propertySearchPath, readPropertySearch } from "./property-search-url";
 import type { PropertySearchState } from "./property-search-url";
@@ -19,6 +20,7 @@ export default function PropertyHome() {
   const [filterReset, setFilterReset] = useState(0);
   const hasFilters = Object.entries(filters).some(([key, value]) => value !== undefined && !(key === "sort" && value === "newest"));
   const filterSummary = [
+    ...detailEntries(filters).map(([label, value]) => `${label}: ${value}`),
     filters.check_in ? `${filters.check_in} / ${filters.check_out} (${filters.guests})` : "",
     filters.min_price_cents !== undefined ? `Cena od ${filters.min_price_cents / 100} ${filters.currency}` : "",
     filters.max_price_cents !== undefined ? `Cena do ${filters.max_price_cents / 100} ${filters.currency}` : "",
@@ -80,7 +82,7 @@ export default function PropertyHome() {
 
   function search(city: string, type: OfferType | "" = offer, nextFilters = filters) {
     if (type !== offer) {
-      nextFilters = { min_area_sqm: filters.min_area_sqm, max_area_sqm: filters.max_area_sqm, rooms: filters.rooms, sort: filters.sort === "area_desc" ? "area_desc" : "newest" };
+      nextFilters = { ...Object.fromEntries(detailKeys.map(key => [key, filters[key]])), min_area_sqm: filters.min_area_sqm, max_area_sqm: filters.max_area_sqm, rooms: filters.rooms, sort: filters.sort === "area_desc" ? "area_desc" : "newest" };
       setFilterReset(value => value + 1);
     }
     apply({ city: city.trim(), offer: type, offset: 0, filters: nextFilters });

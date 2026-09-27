@@ -67,6 +67,11 @@ test("owner can publish a property from the existing dashboard", async ({ page }
   await page.goto("/owner");
   await page.getByRole("button", { name: "Novi oglas" }).click();
   await page.getByLabel("Vrsta ponude").selectOption("long_term");
+  await page.getByRole("combobox", { name: "Tip nekretnine", exact: true }).selectOption("apartment");
+  await page.getByLabel("Naselje", { exact: true }).fill("Dorćol");
+  await page.getByRole("spinbutton", { name: /Sprat/ }).fill("0");
+  await page.getByRole("combobox", { name: "Parking", exact: true }).selectOption("false");
+  await page.getByRole("combobox", { name: "Grejanje", exact: true }).selectOption("district");
   await page.getByLabel("Naslov oglasa").fill("Stan za najam");
   await page.getByLabel("Grad ili destinacija").fill("Beograd");
   await page.getByLabel("Površina (m²)").fill("60");
@@ -81,5 +86,6 @@ test("owner can publish a property from the existing dashboard", async ({ page }
   await page.getByRole("button", { name: "Sačuvaj oglas" }).click();
   await expect(page.getByText("Oglas je objavljen na naslovnoj strani.")).toBeVisible();
   expect(listings[0]).toMatchObject({ price_cents: 85000, offer_type: "long_term", is_published: true });
+  expect(listings[0]).toMatchObject({ property_type: "apartment", neighborhood: "Dorćol", floor: 0, has_parking: false, heating: "district", has_elevator: null });
   await expect(page.getByRole("button", { name: "Izmeni: Stan za najam" })).toBeVisible();
 });

@@ -11,13 +11,14 @@ from pydantic import (
     model_validator,
 )
 
+from app.schemas.property_details import PropertyDetails
 from app.schemas.property_photo import PropertyPhotoRead
 from app.schemas.stay_times import StayTime
 
 OfferType = Literal["short_stay", "long_term", "sale"]
 
 
-class PropertySearch(BaseModel):
+class PropertySearch(PropertyDetails):
     city: str = Field(default="", max_length=100)
     offer_type: OfferType | None = None
     currency: Literal["EUR", "RSD", "USD"] | None = None
@@ -64,7 +65,7 @@ class PropertySearch(BaseModel):
         return self
 
 
-class PropertyListingWrite(BaseModel):
+class PropertyListingWrite(PropertyDetails):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     venue_id: int = Field(gt=0)
