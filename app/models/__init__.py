@@ -18,6 +18,7 @@ from app.models.promotion import Promotion
 from app.models.property_listing import PropertyListing
 from app.models.property_photo import PropertyPhoto
 from app.models.property_review import PropertyReview
+from app.models.property_view import PropertyView
 from app.models.rental_inquiry import RentalInquiry
 from app.models.rental_message import RentalMessage
 from app.models.reservation import Reservation
@@ -40,6 +41,7 @@ from app.models.waiver import WaiverAcceptance, WaiverTemplate, WaiverVersion
 from app.models.webhook import WebhookDelivery, WebhookSubscription
 
 __all__ = [
+    "PropertyView",
     "PropertyReview",
     "StayBlock",
     "PropertyPhoto",

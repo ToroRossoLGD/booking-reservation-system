@@ -1,4 +1,5 @@
 import PropertyReviews from "./PropertyReviews";
+import PropertyViewTracker from "./PropertyViewTracker";
 import StayTimes from "./StayTimes";
 import type { StayDates } from "./stay-types";
 import StayBooking from "./StayBooking";
@@ -7,6 +8,7 @@ import type { PropertyListing } from "./property-types";
 
 export default function PropertyActions({ property, stayDates }: { property: PropertyListing; stayDates?: StayDates }) {
   return <>
+    <PropertyViewTracker propertyId={property.id} />
     {property.offer_type === "short_stay" && <StayTimes {...property} />}
     {property.offer_type === "long_term" && <RentalInquiryForm property={property} />}
     {property.offer_type === "short_stay" && (property.booking_enabled ? <StayBooking property={property} initialDates={stayDates} /> : <p>Za dostupnost i cenu kontaktiraj domaćina. Online rezervacije za ovaj smeštaj nisu uključene.</p>)}
