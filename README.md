@@ -64,6 +64,7 @@ The goal is one place for property discovery and owner management, with a reserv
 
 - Owners can create, edit, publish and withdraw listings, or keep them as private drafts.
 - Listings include city, description, floor area, room count, price, currency and a public contact email.
+- Optional property details include apartment/house type, neighborhood, floor, heating, furnishing, elevator, parking and terrace. Visitors can view and filter by these details; unspecified values stay unknown.
 - Visitors can search by city and offer type, filter by price, floor area and exact room count (including studios), and sort by newest, price or largest area.
 - Price filters and sorting require an offer type and currency so nightly, monthly and sale prices are not mixed. Applied filters stay active across result pages and can be cleared together.
 - Search filters and pagination persist in the URL, survive reload and browser Back/Forward, and can be shared using **Kopiraj link pretrage**.
@@ -105,6 +106,7 @@ Email/password login, Google OAuth, customer/owner/admin roles and database migr
 The next development areas are:
 
 - [x] Property photographs, cover selection and galleries.
+- [x] Structured property details and matching shareable search filters.
 - [x] Dedicated property pages and shareable listing links.
 - [ ] Seasonal nightly pricing and more flexible booking rules.
 - [x] Local check-in/check-out times for nightly stays, preserved on reservations.
@@ -278,6 +280,7 @@ docs/                Feature guides and interface preview
 ## Documentation
 
 - [Property marketplace](docs/property-marketplace.md): publishing, offer types and listing APIs.
+- [Property details](docs/property-details.md): optional characteristics, filtering, unknown values and deployment.
 - [Property photos](docs/property-photos.md): uploads, galleries, private storage and deployment.
 - [Property search](docs/property-search.md): price and area ranges, room counts, sorting and currency rules.
 - [Property detail pages](docs/property-detail-pages.md): direct links, sharing, deployment and targeted code cleanup.

@@ -1,3 +1,4 @@
+import { detailKeys, detailOptions } from "./property-details";
 import type { OfferType, PropertySearchFilters } from "./property-types";
 import { parseStayDates } from "./stay-types";
 
@@ -16,6 +17,18 @@ export function readPropertySearch(search: string): PropertySearchState {
   const offset = number("offset", 0, 2147483647);
   state.offset = offset === undefined ? 0 : Math.floor(offset / 12) * 12;
   const { filters } = state;
+  for (const key of ["property_type", "heating", "furnishing"] as const) {
+    const value = params.get(key);
+    if (value && Object.hasOwn(detailOptions[key], value)) Object.assign(filters, { [key]: value });
+  }
+  const neighborhood = params.get("neighborhood")?.trim().slice(0, 100);
+  if (neighborhood) filters.neighborhood = neighborhood;
+  const floor = params.get("floor");
+  if (floor !== null && /^-?\d+$/.test(floor) && Number(floor) >= -2 && Number(floor) <= 200) filters.floor = Number(floor);
+  for (const key of ["has_elevator", "has_parking", "has_terrace"] as const) {
+    if (params.get(key) === "true") filters[key] = true;
+    if (params.get(key) === "false") filters[key] = false;
+  }
   for (const [lower, upper, min, max] of [
     ["min_area_sqm", "max_area_sqm", 1, 100000],
     ["min_price_cents", "max_price_cents", 0, 1000000000000],
@@ -44,7 +57,7 @@ export function propertySearchPath(state: PropertySearchState): string {
   const params = new URLSearchParams();
   if (state.city) params.set("city", state.city);
   if (state.offer) params.set("offer_type", state.offer);
-  for (const key of ["currency", "min_price_cents", "max_price_cents", "min_area_sqm", "max_area_sqm", "rooms", "sort", "check_in", "check_out", "guests"] as const) {
+  for (const key of [...detailKeys, "currency", "min_price_cents", "max_price_cents", "min_area_sqm", "max_area_sqm", "rooms", "sort", "check_in", "check_out", "guests"] as const) {
     const value = state.filters[key];
     if (value !== undefined && value !== "newest") params.set(key, String(value));
   }

@@ -5,6 +5,8 @@ import { offerLabels, priceUnits, propertyPrice } from "./property-types";
 import type { OfferType, PropertyInput, PropertyListing, PropertyPage } from "./property-types";
 import type { OwnerVenue } from "./types";
 import "./property-home.css";
+import PropertyDetailFields from "./PropertyDetailFields";
+import { readDetails } from "./property-details";
 
 const StayBlockManager = lazy(() => import("./StayBlockManager"));
 const PropertyPhotoManager = lazy(() => import("./PropertyPhotoManager"));
@@ -54,6 +56,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
     const data: PropertyInput = {
+      ...readDetails(fields),
       venue_id: Number(fields.get("venue_id")), title: String(fields.get("title")),
       description: String(fields.get("description")), city: String(fields.get("city")),
       offer_type: type, area_sqm: Number(fields.get("area_sqm")), rooms: Number(fields.get("rooms")),
@@ -101,6 +104,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
         <label className="ph-form-wide">Opis<textarea name="description" minLength={20} maxLength={5000} rows={4} required defaultValue={current?.description} /></label>
         <label className="ph-form-wide">Javna kontakt email adresa<input name="contact_email" type="email" maxLength={254} required defaultValue={current?.contact_email} /><small>Ova adresa će biti dostupna posetiocima kada objaviš oglas.</small></label>
         <label className="ph-publish ph-form-wide"><input name="is_published" type="checkbox" defaultChecked={current?.is_published ?? false} />Objavi oglas (isključi da ga povučeš iz javne ponude)</label>
+        <PropertyDetailFields value={current ?? {}} />
         {type === "short_stay" && <>
           <label>Prijava od<input name="check_in_time" type="time" step="60" defaultValue={current ? current.check_in_time ?? "" : "14:00"} /></label>
           <label>Odjava do<input name="check_out_time" type="time" step="60" defaultValue={current ? current.check_out_time ?? "" : "11:00"} /></label>

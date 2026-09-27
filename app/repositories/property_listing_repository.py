@@ -56,8 +56,33 @@ class PropertyListingRepository:
         check_in=None,
         check_out=None,
         guests=None,
+        property_type=None,
+        neighborhood=None,
+        floor=None,
+        heating=None,
+        furnishing=None,
+        has_elevator=None,
+        has_parking=None,
+        has_terrace=None,
     ):
         filters = []
+        for field, value in (
+            ("property_type", property_type),
+            ("floor", floor),
+            ("heating", heating),
+            ("furnishing", furnishing),
+            ("has_elevator", has_elevator),
+            ("has_parking", has_parking),
+            ("has_terrace", has_terrace),
+        ):
+            if value is not None:
+                filters.append(getattr(PropertyListing, field) == value)
+        if neighborhood and neighborhood.strip():
+            filters.append(
+                PropertyListing.neighborhood.icontains(
+                    neighborhood.strip(), autoescape=True
+                )
+            )
         if owner_id is None:
             filters.append(PropertyListing.is_published.is_(True))
         else:

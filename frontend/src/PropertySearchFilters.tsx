@@ -3,6 +3,8 @@ import type { OfferType, PropertySearchFilters as Filters } from "./property-typ
 import { priceUnits } from "./property-types";
 import { parseStayDates } from "./stay-types";
 import "./property-search.css";
+import PropertyDetailFields from "./PropertyDetailFields";
+import { readDetails } from "./property-details";
 
 export default function PropertySearchFilters({ offer, value, onApply }: {
   offer: OfferType | ""; value: Filters; onApply: (filters: Filters) => void;
@@ -29,6 +31,7 @@ export default function PropertySearchFilters({ offer, value, onApply }: {
       }
       setError("");
       const filters: Filters = { sort };
+      Object.assign(filters, Object.fromEntries(Object.entries(readDetails(new FormData(event.currentTarget))).filter(([, value]) => value !== null)));
       if (offer === "short_stay" && (arrival || departure || guests)) {
         const dates = parseStayDates(new URLSearchParams({ check_in: arrival, check_out: departure, guests }));
         if (!dates) { setError("Unesi dolazak, odlazak i broj gostiju. Boravak može trajati od 1 do 90 noći."); return; }
@@ -44,6 +47,7 @@ export default function PropertySearchFilters({ offer, value, onApply }: {
       }
       onApply(filters);
     }}>
+      <PropertyDetailFields value={value} search />
       {offer === "short_stay" && <>
         <p className="ph-filter-help">Pronađi slobodan stan za svoj boravak. Prikazujemo smeštaje sa uključenim rezervacijama; dostupnost se ponovo proverava pri potvrdi.</p>
         <label>Dolazak u pretrazi<input type="date" value={arrival} onChange={e => setArrival(e.target.value)} /></label>
