@@ -1,4 +1,5 @@
 import type { PropertyReview, PropertyReviewInput, PropertyReviewPage } from "./property-review-types";
+import type { PropertyAnalytics } from "./property-analytics-types";
 import type { OwnerStayFilters } from "./stay-types";
 import type {
   AvailableResource,
@@ -91,6 +92,8 @@ export const api = {
   stayQuote: (id: number, dates: StayDates) => request<StayQuote>(`/properties/${id}/stay-quote`, { method: "POST", body: JSON.stringify(dates) }),
   createStay: (id: number, data: StayCreate) => request<Stay>(`/properties/${id}/stays`, { method: "POST", body: JSON.stringify(data) }),
   stayCalendar: (id: number, start: string, end: string, signal?: AbortSignal) => request<StayCalendar>(`/properties/${id}/calendar?${new URLSearchParams({ start, end })}`, { signal }),
+  recordPropertyView: (id: number, visitorId: string) => request<void>(`/properties/${id}/views`, { method: "POST", body: JSON.stringify({ visitor_id: visitorId }) }),
+  propertyAnalytics: (year: number, propertyId?: number, signal?: AbortSignal) => request<PropertyAnalytics>(`/owner/property-analytics?year=${year}${propertyId === undefined ? "" : `&property_id=${propertyId}`}`, { signal }),
   propertyReviews: (id: number, offset = 0, signal?: AbortSignal) => request<PropertyReviewPage>(`/properties/${id}/reviews?offset=${offset}&limit=10`, { signal }),
   stayReview: (id: number, signal?: AbortSignal) => request<PropertyReview | null>(`/stays/${id}/review`, { signal }),
   createPropertyReview: (id: number, data: PropertyReviewInput) => request<PropertyReview>(`/stays/${id}/review`, { method: "POST", body: JSON.stringify(data) }),

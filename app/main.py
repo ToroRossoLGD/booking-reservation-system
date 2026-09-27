@@ -28,6 +28,7 @@ from app.api.routers.notifications import router as notifications_router
 from app.api.routers.owner import router as owner_router
 from app.api.routers.payments import router as payments_router
 from app.api.routers.promotions import router as promotions_router
+from app.api.routers.property_analytics import router as property_analytics_router
 from app.api.routers.property_listings import router as property_listings_router
 from app.api.routers.property_photos import router as property_photos_router
 from app.api.routers.property_reviews import router as property_reviews_router
@@ -111,6 +112,7 @@ app.include_router(venue_staff_router)
 app.include_router(venue_customer_blocks_router)
 app.include_router(resources_router)
 app.include_router(support_router)
+app.include_router(property_analytics_router)
 app.include_router(property_reviews_router)
 app.include_router(stays_router)
 app.include_router(stay_blocks_router)

@@ -7,9 +7,11 @@ import RentalInquiriesPage from "./RentalInquiriesPage";
 import SavedPropertiesPage from "./SavedPropertiesPage";
 
 const PropertyDetailPage = lazy(() => import("./PropertyDetailPage"));
+const OwnerPropertyAnalytics = lazy(() => import("./OwnerPropertyAnalytics"));
 
 export default function RootPage() {
   const { pathname } = useLocation();
+  if (pathname === "/owner/analytics") return <Suspense fallback={<p role="status">Učitavanje analitike…</p>}><OwnerPropertyAnalytics /></Suspense>;
   if (pathname.startsWith("/properties/")) {
     const id = pathname.slice("/properties/".length).replace(/\/$/, "");
     return <Suspense fallback={<p role="status">Učitavanje oglasa…</p>}><PropertyDetailPage key={id} id={id} /></Suspense>;
