@@ -616,7 +616,7 @@ export default function App() {
   const [showPageGuide, setShowPageGuide] = useState(
     () => !hasDismissedPageGuide(),
   );
-  const { page, reservationId, ownerVenueId } = parseApplicationRoute(
+  const { page, reservationId, ownerVenueId, accountTab } = parseApplicationRoute(
     location.pathname,
   );
   const [toast, setToast] = useState("");
@@ -918,6 +918,8 @@ export default function App() {
       </header>
       {page === "account" && user ? (
         <AccountDashboard
+          key={accountTab ?? "reservations"}
+          initialTab={accountTab}
           user={user}
           reservationId={reservationId}
           onExplore={() => goHome("explore")}

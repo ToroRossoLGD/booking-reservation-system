@@ -83,6 +83,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - PostgreSQL transaction locks protect against simultaneous overlapping reservations. Repeated requests return the existing reservation.
 - Guests can view their stays and cancel for free before the arrival date in the property's timezone.
 - Owners can view reservations and guest contact details.
+- Guests and owners receive private in-app notifications for nightly confirmations and cancellations, with links to their reservation lists. The [notification inbox](docs/stay-notifications.md) supports refresh, older pages and read/dismiss actions.
 - Owners can open `/owner/analytics` for listing detail views and monthly confirmed/cancelled reservations, nights and booked value, filtered by year and listing. Currencies remain separate; booked value is not recorded payment income.
 - Guests can rate and review confirmed stays after checkout day. Published nightly listings show paginated reviews and an overall average without exposing guest identity or stay dates.
 - Owners can block dates for maintenance, personal use or off-platform bookings from **Zauzetost** in the listing manager. Blocks affect all listings for the same apartment, availability search and booking confirmation.
@@ -128,7 +129,8 @@ The next development areas are:
 - [x] Calendar downloads for confirmed stays and viewings.
 - [x] Verified nightly property reviews and average ratings.
 - [ ] Property map search.
-- [ ] Guest notifications, rescheduling and more complete host operations.
+- [x] In-app guest and owner notifications for confirmed/cancelled nightly stays.
+- [ ] Email/push notifications, stay reminders, rescheduling and more complete host operations.
 
 These are planned features, not claims about the current release. Bookica is still being built and is not presented as a finished real-estate platform.
 
@@ -143,6 +145,7 @@ These are planned features, not claims about the current release. Bookica is sti
 | `/rentals` | Tenant rental inquiries and viewing confirmations |
 | `/owner/rentals` | Owner replies and viewing proposals |
 | `/stays` | Guest's nightly reservations and cancellation |
+| `/account/notifications` | Private notification inbox, including nightly booking confirmations and cancellations |
 | `/owner/stays` | Owner's apartment reservations and guest contact |
 | `/owner/analytics` | Owner's listing views and monthly nightly-reservation analytics |
 | `/account` | Account access and original booking dashboard |

@@ -27,6 +27,8 @@ class Notification(Base):
         nullable=False,
     )
 
+    action_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     deduplication_key: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,

@@ -85,6 +85,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
 
   const current = editing && editing !== "new" ? editing : null;
   return <section className="ph-manager owner-panel" aria-label="Oglasi za nekretnine">
+    <p><a href="/account/notifications">Obaveštenja o rezervacijama</a></p>
     <p><a href="/owner/analytics">Analitika oglasa i rezervacija ↗</a></p>
     <div className="ph-section-heading"><div><p className="eyebrow">NEKRETNINE</p><h2>Tvoji oglasi</h2></div><button className="button primary" disabled={!venues.length || busy} onClick={() => { setEditing("new"); setType("short_stay"); setError(""); setMessage(""); }}>Novi oglas</button></div>
     <p className="muted-copy">Poveži oglas sa svojim objektom, odredi cenu i objavi ponudu za prodaju ili najam. <a href="/">Pogledaj javnu ponudu ↗</a></p>

@@ -51,7 +51,9 @@ class NotificationRepository:
             query = query.where(Notification.is_read.is_(is_read))
 
         query = (
-            query.order_by(Notification.created_at.desc()).limit(limit).offset(offset)
+            query.order_by(Notification.created_at.desc(), Notification.id.desc())
+            .limit(limit)
+            .offset(offset)
         )
 
         result = await self.db.execute(query)

@@ -8,6 +8,7 @@ class NotificationRead(BaseModel):
     user_id: int
     title: str
     message: str
+    action_path: str | None = None
     is_read: bool
     created_at: datetime
 

@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { parseApplicationRoute } from "./routing";
 
 describe("parseApplicationRoute", () => {
+  it("opens the notification inbox directly", () => {
+    expect(parseApplicationRoute("/account/notifications")).toEqual({ page: "account", accountTab: "notifications" });
+    expect(parseApplicationRoute("/account/notifications/")).toEqual({ page: "account", accountTab: "notifications" });
+  });
   it("extracts a customer reservation route", () => {
     expect(parseApplicationRoute("/account/reservations/42")).toEqual({
       page: "account",

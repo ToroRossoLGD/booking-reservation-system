@@ -52,28 +52,49 @@ export function AccountDashboard({
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notificationOffset, setNotificationOffset] = useState(0);
+  const [notificationHasNext, setNotificationHasNext] = useState(false);
+  const [notificationVersion, setNotificationVersion] = useState(0);
+  const [notificationBusy, setNotificationBusy] = useState(false);
+  const [notificationLoadFailed, setNotificationLoadFailed] = useState(false);
   const [reservationQuery, setReservationQuery] = useState("");
   const [reservationStatus, setReservationStatus] = useState("all");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+    let active = true;
     const task =
       tab === "reservations"
-        ? api.myReservations().then((result) => setReservations(result.items))
+        ? api.myReservations().then((result) => { if (active) setReservations(result.items); })
         : tab === "favorites"
-          ? api.favorites().then(setFavorites)
+          ? api.favorites().then(result => { if (active) setFavorites(result); })
           : api
-              .notifications()
-              .then((result) => setNotifications(result.items));
+              .notifications(notificationOffset)
+              .then((result) => {
+                if (!active) return;
+                setNotifications(result.items);
+                setNotificationHasNext(result.has_next);
+                setNotificationLoadFailed(false);
+              });
     task
-      .catch((error) =>
+      .catch((error) => {
+        if (!active) return;
+        if (tab === "notifications") { setNotifications([]); setNotificationHasNext(false); setNotificationLoadFailed(true); }
         setMessage(
           error instanceof Error ? error.message : "Unable to load this page",
-        ),
-      )
-      .finally(() => setLoading(false));
-  }, [tab]);
+        );
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [tab, notificationOffset, notificationVersion]);
+
+  function refreshNotifications(offset = notificationOffset) {
+    setLoading(true);
+    setMessage("");
+    setNotificationOffset(offset);
+    setNotificationVersion(value => value + 1);
+  }
 
   if (reservationId)
     return (
@@ -84,6 +105,7 @@ export function AccountDashboard({
     );
 
   function chooseTab(nextTab: AccountTab) {
+    if (nextTab === tab) return;
     setLoading(true);
     setMessage("");
     setTab(nextTab);
@@ -136,6 +158,7 @@ export function AccountDashboard({
   }
 
   async function markNotificationRead(id: number) {
+    setNotificationBusy(true);
     try {
       const updated = await api.markNotificationRead(id);
       setNotifications((items) =>
@@ -145,10 +168,11 @@ export function AccountDashboard({
       setMessage(
         error instanceof Error ? error.message : "Unable to update notification",
       );
-    }
+    } finally { setNotificationBusy(false); }
   }
 
   async function markAllNotificationsRead() {
+    setNotificationBusy(true);
     try {
       await api.markAllNotificationsRead();
       setNotifications((items) =>
@@ -159,33 +183,38 @@ export function AccountDashboard({
       setMessage(
         error instanceof Error ? error.message : "Unable to update notifications",
       );
-    }
+    } finally { setNotificationBusy(false); }
   }
 
   async function dismissNotification(id: number) {
+    setNotificationBusy(true);
     try {
       await api.dismissNotification(id);
       setNotifications((items) => items.filter((item) => item.id !== id));
       setMessage("Notification dismissed.");
+      if (notificationHasNext || (notifications.length === 1 && notificationOffset > 0))
+        refreshNotifications(notifications.length === 1 ? Math.max(0, notificationOffset - 50) : notificationOffset);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Unable to dismiss notification",
       );
-    }
+    } finally { setNotificationBusy(false); }
   }
 
   async function clearReadNotifications() {
+    setNotificationBusy(true);
     try {
       const result = await api.dismissReadNotifications();
       setNotifications((items) => items.filter((item) => !item.is_read));
       setMessage(
         `${result.dismissed_count} read notification${result.dismissed_count === 1 ? "" : "s"} cleared.`,
       );
+      if (notificationHasNext || notificationOffset > 0) refreshNotifications(0);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Unable to clear notifications",
       );
-    }
+    } finally { setNotificationBusy(false); }
   }
 
   const normalizedReservationQuery = reservationQuery.trim().replace(/^#/, "");
@@ -392,21 +421,21 @@ export function AccountDashboard({
                   <h2>Notifications</h2>
                 </div>
                 <span>
-                  {notifications.filter((item) => !item.is_read).length} unread
+                  {notifications.filter((item) => !item.is_read).length} unread on this page
                 </span>
               </div>
               {notifications.length > 0 && (
                 <div className="notification-toolbar">
                   <button
                     className="button secondary"
-                    disabled={notifications.every((item) => item.is_read)}
+                    disabled={notificationBusy || notifications.every((item) => item.is_read)}
                     onClick={markAllNotificationsRead}
                   >
                     Mark all read
                   </button>
                   <button
                     className="button secondary"
-                    disabled={notifications.every((item) => !item.is_read)}
+                    disabled={notificationBusy || notifications.every((item) => !item.is_read)}
                     onClick={clearReadNotifications}
                   >
                     Clear read
@@ -425,26 +454,32 @@ export function AccountDashboard({
                         <h3>{item.title}</h3>
                         <p>{item.message}</p>
                         <small>{when(item.created_at)}</small>
+                        {(item.action_path === "/stays" || item.action_path === "/owner/stays") && <p><a href={item.action_path}>{item.action_path === "/owner/stays" ? "Rezervacije tvojih stanova" : "Moji boravci"} ↗</a></p>}
                       </div>
                       <div className="notification-actions">
                         {!item.is_read && (
-                          <button onClick={() => markNotificationRead(item.id)}>
+                          <button disabled={notificationBusy} onClick={() => markNotificationRead(item.id)}>
                             Mark read
                           </button>
                         )}
-                        <button onClick={() => dismissNotification(item.id)}>
+                        <button disabled={notificationBusy} onClick={() => dismissNotification(item.id)}>
                           Dismiss
                         </button>
                       </div>
                     </article>
                   ))}
                 </div>
-              ) : (
+              ) : !notificationLoadFailed && (
                 <Empty
                   title="You’re all caught up"
                   copy="Booking updates and reminders will appear here."
                 />
               )}
+              <nav className="ph-pagination" aria-label="Notification pages">
+                <button className="button secondary" disabled={notificationBusy || notificationOffset === 0} onClick={() => refreshNotifications(Math.max(0, notificationOffset - 50))}>Newer notifications</button>
+                <button className="button secondary" disabled={notificationBusy} onClick={() => refreshNotifications()}>Refresh notifications</button>
+                <button className="button secondary" disabled={notificationBusy || !notificationHasNext} onClick={() => refreshNotifications(notificationOffset + 50)}>Older notifications</button>
+              </nav>
             </>
           )}
         </section>
