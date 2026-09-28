@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
+from app.schemas.rental_terms import RentalTerms
+
 
 class RentalInquiryCreate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
@@ -31,7 +33,7 @@ class RentalInquiryUpdate(BaseModel):
         return self
 
 
-class RentalInquiryRead(BaseModel):
+class RentalInquiryRead(RentalTerms):
     model_config = ConfigDict(from_attributes=True)
     id: int
     property_id: int

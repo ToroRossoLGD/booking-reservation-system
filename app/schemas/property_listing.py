@@ -13,6 +13,7 @@ from pydantic import (
 
 from app.schemas.property_details import PropertyDetails
 from app.schemas.property_photo import PropertyPhotoRead
+from app.schemas.rental_terms import RentalTerms
 from app.schemas.stay_times import StayTime
 
 OfferType = Literal["short_stay", "long_term", "sale"]
@@ -65,7 +66,7 @@ class PropertySearch(PropertyDetails):
         return self
 
 
-class PropertyListingWrite(PropertyDetails):
+class PropertyListingWrite(PropertyDetails, RentalTerms):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     venue_id: int = Field(gt=0)
@@ -97,6 +98,10 @@ class PropertyListingWrite(PropertyDetails):
 
     @model_validator(mode="after")
     def booking_only_for_short_stays(self):
+        if self.offer_type != "long_term" and any(
+            getattr(self, field) is not None for field in RentalTerms.model_fields
+        ):
+            raise ValueError("Rental terms apply only to long-term rentals")
         if (self.check_in_time is None) != (self.check_out_time is None):
             raise ValueError("Provide both arrival and departure times, or neither")
         if self.offer_type != "short_stay" and self.check_in_time is not None:
