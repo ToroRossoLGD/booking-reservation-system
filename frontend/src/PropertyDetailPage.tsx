@@ -19,6 +19,7 @@ export default function PropertyDetailPage({ id }: { id: string }) {
   const [saveError, setSaveError] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const stayDates = parseStayDates(new URLSearchParams(window.location.search));
   const validId = /^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id));
   const url = `${window.location.origin}/properties/${id}`;
@@ -55,6 +56,17 @@ export default function PropertyDetailPage({ id }: { id: string }) {
     catch { setCopyError(true); }
   }
 
+  async function shareListing() {
+    if (!property || sharing) return;
+    setSharing(true); setCopied(false); setCopyError(false);
+    try {
+      await navigator.share({ title: property.title, text: `${offerLabels[property.offer_type]} · ${property.city}`, url });
+    } catch (error) {
+      // Closing the system share sheet is an ordinary cancellation.
+      if (!(typeof error === "object" && error !== null && "name" in error && error.name === "AbortError")) setCopyError(true);
+    } finally { setSharing(false); }
+  }
+
   return <div className="property-home property-detail-page">
     <header className="ph-header"><a className="ph-brand" href="/">bookica.</a><nav aria-label="Navigacija oglasa"><a href="/saved">Sačuvani oglasi</a><a href="/account">Moj nalog</a></nav></header>
     <main>
@@ -71,7 +83,7 @@ export default function PropertyDetailPage({ id }: { id: string }) {
             <p className="property-detail-price"><strong>{propertyPrice(property)}</strong> / {priceUnits[property.offer_type]}</p>
             <SavePropertyButton propertyId={property.id} title={property.title} saved={saved} onChange={setSaved} />
             {saveError && <p role="alert">Status sačuvanog oglasa nije učitan. <button onClick={reload}>Pokušaj ponovo</button></p>}
-            <div className="property-share"><button className="ph-outline" onClick={() => void copyLink()}>Kopiraj link oglasa</button>{copied && <p role="status">Link je kopiran.</p>}{copyError && <label>Kopiraj adresu ručno<input readOnly value={url} onFocus={event => event.target.select()} /></label>}</div>
+            <div className="property-share">{typeof navigator.share === "function" && <button className="ph-outline" disabled={sharing} onClick={() => void shareListing()}>Podeli oglas</button>}<button className="ph-outline" disabled={sharing} onClick={() => void copyLink()}>Kopiraj link oglasa</button>{copied && <p role="status">Link je kopiran.</p>}{copyError && <label>Kopiraj adresu ručno<input readOnly value={url} onFocus={event => event.target.select()} /></label>}</div>
             <PropertyActions property={property} stayDates={stayDates} />
           </aside>
         </div>

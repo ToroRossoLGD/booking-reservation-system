@@ -112,6 +112,7 @@ The next development areas are:
 - [x] Property photographs, cover selection and galleries.
 - [x] Structured property details and matching shareable search filters.
 - [x] Dedicated property pages and shareable listing links.
+- [x] Native listing sharing on supported devices, with copy-link fallback.
 - [ ] Seasonal nightly pricing and more flexible booking rules.
 - [x] Local check-in/check-out times for nightly stays, preserved on reservations.
 - [x] Owner daily arrivals/departures, reservation filters and block-management shortcuts.
