@@ -10,6 +10,7 @@ from app.models.rental_message import RentalMessage
 from app.models.user import User
 from app.models.venue import Venue
 from app.schemas.rental_inquiry import RentalInquiryRead
+from app.schemas.rental_terms import RentalTerms
 from app.services.rental_message_service import append_rental_message
 
 
@@ -55,6 +56,13 @@ class RentalInquiryService:
             raise HTTPException(400, "You cannot inquire about your own property")
         if data.move_in < datetime.now(ZoneInfo(listing.timezone)).date():
             raise HTTPException(400, "Move-in date cannot be in the past")
+        if listing.available_from is not None and data.move_in < listing.available_from:
+            raise HTTPException(400, "Move-in date is before the listing is available")
+        if (
+            listing.minimum_rental_months is not None
+            and data.duration_months < listing.minimum_rental_months
+        ):
+            raise HTTPException(400, "Duration is below the minimum rental term")
         active = await self.db.scalar(
             select(RentalInquiry.id).where(
                 RentalInquiry.user_id == user.id,
@@ -67,6 +75,7 @@ class RentalInquiryService:
                 409, "You already have an active inquiry for this property"
             )
         inquiry = RentalInquiry(
+            **{field: getattr(listing, field) for field in RentalTerms.model_fields},
             property_id=property_id,
             owner_id=owner_id,
             user_id=user.id,

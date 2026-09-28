@@ -1,3 +1,4 @@
+import type { RentalTerms } from "./rental-terms";
 export type RentalAction = "reply" | "propose" | "confirm" | "decline" | "close" | "withdraw";
 export interface RentalInquiryInput {
   request_id: string;
@@ -11,7 +12,7 @@ export interface RentalUpdate {
   owner_reply?: string;
   viewing_at?: string;
 }
-export interface RentalInquiry {
+export interface RentalInquiry extends RentalTerms {
   id: number;
   property_id: number;
   title: string;

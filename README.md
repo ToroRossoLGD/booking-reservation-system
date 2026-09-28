@@ -98,6 +98,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - Tenants and owners exchange private messages, retain conversation and viewing history, and track unread messages.
 - Both sides track inquiries in their own inbox, with protection against duplicate submissions and stale updates.
 - Inquiries do not reserve apartments or create leases or payments. See the [long-term rental guide](docs/long-term-rentals.md).
+- Long-term listings can specify a deposit, estimated monthly bills, availability date, minimum lease duration and pets policy. Inquiries validate the date/duration and retain the original terms for both participants.
 
 ### Existing foundation
 

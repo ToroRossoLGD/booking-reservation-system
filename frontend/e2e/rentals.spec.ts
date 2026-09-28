@@ -4,9 +4,10 @@ import { propertyToday, shiftDate } from "../src/stay-types";
 for (const mobile of [false, true]) {
   test(`rental inquiry and agreed viewing on ${mobile ? "mobile" : "desktop"}`, async ({ page }, testInfo) => {
     if (mobile) await page.setViewportSize({ width: 390, height: 844 });
-    const property = { id: 1, venue_id: 1, title: "Stan za dugoročni najam", description: "Svetao stan sa terasom u centru grada.", city: "Beograd", offer_type: "long_term", area_sqm: 50, rooms: 2, price_cents: 60000, currency: "EUR", contact_email: "owner@example.com", is_published: true };
+    const terms = { deposit_cents: 0, monthly_bills_cents: 15000, available_from: shiftDate(propertyToday(), 20), minimum_rental_months: 6, pets_policy: "by_agreement" };
+    const property = { ...terms, id: 1, venue_id: 1, title: "Stan za dugoročni najam", description: "Svetao stan sa terasom u centru grada.", city: "Beograd", offer_type: "long_term", area_sqm: 50, rooms: 2, price_cents: 60000, currency: "EUR", contact_email: "owner@example.com", is_published: true };
     let created = false;
-    const inquiry = { id: 1, property_id: 1, title: property.title, monthly_price_cents: 60000, currency: "EUR", move_in: shiftDate(propertyToday(), 30), duration_months: 12, message: "Zainteresovan sam za razgledanje stana.", owner_reply: "", viewing_at: null as string | null, status: "open", version: 1, created_at: new Date().toISOString() };
+    const inquiry = { ...terms, id: 1, property_id: 1, title: property.title, monthly_price_cents: 60000, currency: "EUR", move_in: shiftDate(propertyToday(), 30), duration_months: 12, message: "Zainteresovan sam za razgledanje stana.", owner_reply: "", viewing_at: null as string | null, status: "open", version: 1, created_at: new Date().toISOString() };
     await page.route("**/api/properties?*", route => route.fulfill({ json: { items: [property], total: 1, limit: 12, offset: 0, has_next: false } }));
     await page.route("**/api/properties/1/rental-inquiries", route => {
       expect(route.request().postDataJSON()).toMatchObject({ move_in: inquiry.move_in, message: inquiry.message, duration_months: 12 });
@@ -24,6 +25,8 @@ for (const mobile of [false, true]) {
     });
     await page.goto("/");
     await page.getByRole("button", { name: `Detalji: ${property.title}` }).click();
+    await expect(page.getByRole("region", { name: "Uslovi najma", exact: true })).toBeVisible();
+    await expect(page.getByLabel("Trajanje najma (meseci)")).toHaveAttribute("min", "6");
     await page.getByLabel("Željeno useljenje").fill(inquiry.move_in);
     await page.getByLabel("Poruka vlasniku").fill(inquiry.message);
     await page.getByRole("button", { name: "Pošalji upit za najam" }).click();

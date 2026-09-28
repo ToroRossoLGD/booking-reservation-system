@@ -1,7 +1,10 @@
+from datetime import date
+
 from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Date,
     ForeignKey,
     Integer,
     String,
@@ -25,6 +28,12 @@ class PropertyListing(Base):
         CheckConstraint("area_sqm BETWEEN 1 AND 100000", name="ck_property_area"),
         CheckConstraint("rooms BETWEEN 0 AND 100", name="ck_property_rooms"),
     )
+
+    deposit_cents: Mapped[int | None] = mapped_column(BigInteger)
+    monthly_bills_cents: Mapped[int | None] = mapped_column(BigInteger)
+    available_from: Mapped[date | None] = mapped_column(Date)
+    minimum_rental_months: Mapped[int | None]
+    pets_policy: Mapped[str | None] = mapped_column(String(20))
 
     id: Mapped[int] = mapped_column(primary_key=True)
     venue_id: Mapped[int] = mapped_column(

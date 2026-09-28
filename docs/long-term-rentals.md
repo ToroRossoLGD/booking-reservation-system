@@ -5,6 +5,24 @@ The existing owner listing editor sets the monthly asking price. Open a listing'
 details on `/` to send a desired move-in date, rental duration (1–120 months), and
 message. The move-in date cannot precede today in the property's timezone.
 
+## Advertised rental terms
+
+Owners can optionally set a deposit, estimated monthly bills (both in the listing
+currency), earliest move-in date, minimum rental duration (1–120 months), and a
+pets policy: allowed, not allowed, or by agreement. These fields appear only for
+long-term rentals. An empty amount means unspecified; zero explicitly means no
+deposit or no additional estimated bills. Switching to sale or short stay clears
+the terms when saved.
+
+The inquiry form and API enforce the advertised availability date and minimum
+duration. Each new inquiry keeps a snapshot of all five terms, visible to both
+participants even after the listing changes. Retrying the same request preserves
+that snapshot. Existing listings and inquiries retain unspecified terms.
+
+Run `alembic upgrade head` before deploying the updated application (migration
+`da502e657918`). These terms are informational: Bookica does not collect deposits,
+create leases, or charge monthly rent.
+
 ## Workflow
 
 - `/rentals`: the tenant's inquiries, owner replies, and viewing proposals.

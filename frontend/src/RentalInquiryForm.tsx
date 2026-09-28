@@ -1,19 +1,23 @@
 import { useRef, useState } from "react";
 import { api, ApiError } from "./api";
 import type { PropertyListing } from "./property-types";
+import RentalTermsDisplay from "./RentalTermsDisplay";
 import { propertyToday } from "./stay-types";
 import "./stays.css";
 import "./rentals.css";
 
 export default function RentalInquiryForm({ property }: { property: PropertyListing }) {
   const [moveIn, setMoveIn] = useState("");
-  const [months, setMonths] = useState(12);
+  const [months, setMonths] = useState(Math.max(12, property.minimum_rental_months ?? 1));
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [login, setLogin] = useState(false);
   const request = useRef<{ body: string; id: string } | null>(null);
+
+  const today = propertyToday(property.timezone ?? "Europe/Belgrade");
+  const earliest = property.available_from && property.available_from > today ? property.available_from : today;
 
   async function submit() {
     if (busy) return;
@@ -27,7 +31,7 @@ export default function RentalInquiryForm({ property }: { property: PropertyList
     } catch (err) {
       const status = err instanceof ApiError ? err.status : 0;
       setLogin(status === 401);
-      setError(status === 401 ? "Prijavi se da pošalješ upit." : status === 409 ? "Već imaš aktivan upit za ovaj stan. Proveri svoje upite." : status === 400 ? "Proveri datum useljenja. Upit za sopstveni oglas nije dozvoljen." : "Upit nije poslat. Pokušaj ponovo; uneti podaci su sačuvani u formi.");
+      setError(status === 401 ? "Prijavi se da pošalješ upit." : status === 409 ? "Već imaš aktivan upit za ovaj stan. Proveri svoje upite." : status === 400 ? "Proveri dostupnost i minimalno trajanje najma. Osveži oglas ako su uslovi promenjeni. Upit za sopstveni oglas nije dozvoljen." : "Upit nije poslat. Pokušaj ponovo; uneti podaci su sačuvani u formi.");
     } finally { setBusy(false); }
   }
 
@@ -35,9 +39,10 @@ export default function RentalInquiryForm({ property }: { property: PropertyList
   return <section className="stay-booking rental-form" aria-label={`Upit za najam: ${property.title}`}>
     <h4>Zainteresovan/a za dugoročni najam?</h4>
     <p>Pošalji upit i dogovori razgledanje. Slanje upita ne rezerviše stan i ništa se ne naplaćuje.</p>
+    <RentalTermsDisplay terms={property} currency={property.currency} />
     <form onSubmit={event => { event.preventDefault(); void submit(); }}><fieldset disabled={busy}>
-      <label>Željeno useljenje<input type="date" required min={propertyToday(property.timezone ?? "Europe/Belgrade")} value={moveIn} onChange={event => setMoveIn(event.target.value)} /></label>
-      <label>Trajanje najma (meseci)<input type="number" required min={1} max={120} value={months} onChange={event => setMonths(Number(event.target.value))} /></label>
+      <label>Željeno useljenje<input type="date" required min={earliest} value={moveIn} onChange={event => setMoveIn(event.target.value)} /></label>
+      <label>Trajanje najma (meseci)<input type="number" required min={property.minimum_rental_months ?? 1} max={120} value={months} onChange={event => setMonths(Number(event.target.value))} /></label>
       <label>Poruka vlasniku<textarea required minLength={10} maxLength={3000} rows={4} value={message} onChange={event => setMessage(event.target.value)} placeholder="Predstavi se i napiši kada ti odgovara razgledanje." /></label>
       <button type="submit" className="ph-primary">{busy ? "Slanje…" : "Pošalji upit za najam"}</button>
     </fieldset></form>

@@ -290,7 +290,13 @@ def test_migration_round_trip_preserves_existing_tables():
         inspector = inspect(connection)
         assert {
             column["name"] for column in inspector.get_columns("rental_inquiries")
-        } == set(RentalInquiry.__table__.columns.keys())
+        } == set(RentalInquiry.__table__.columns.keys()) - {
+            "deposit_cents",
+            "monthly_bills_cents",
+            "available_from",
+            "minimum_rental_months",
+            "pets_policy",
+        }
         assert len(inspector.get_indexes("rental_inquiries")) == 3
         assert len(inspector.get_unique_constraints("rental_inquiries")) == 1
         migration.downgrade()

@@ -5,6 +5,7 @@ import { api, ApiError } from "./api";
 import type { RentalInquiry, RentalInquiryPage, RentalUpdate } from "./rental-types";
 import { rentalStatus } from "./rental-types";
 import { displayDate, stayMoney } from "./stay-types";
+import RentalTermsDisplay from "./RentalTermsDisplay";
 import RentalConversation from "./RentalConversation";
 import "./stays.css";
 import "./rentals.css";
@@ -26,6 +27,7 @@ function InquiryCard({ inquiry, owner, reload }: { inquiry: RentalInquiry; owner
     <div className="stay-row"><span>{rentalStatus[inquiry.status]}</span><span>Upit #{inquiry.id}</span></div>
     <h2>{inquiry.title}</h2><p><strong>{stayMoney(inquiry.monthly_price_cents, inquiry.currency)} / mesec</strong><br />Cena iz oglasa u trenutku slanja upita.</p>
     <p>Željeno useljenje: {displayDate(inquiry.move_in)} · {inquiry.duration_months} meseci</p>
+    <RentalTermsDisplay terms={inquiry} currency={inquiry.currency} snapshot />
     <h3>Poruka zakupca</h3><p className="rental-message">{inquiry.message}</p>
     {inquiry.owner_reply && <><h3>Odgovor vlasnika</h3><p className="rental-message">{inquiry.owner_reply}</p></>}
     {inquiry.viewing_at && <p><strong>Razgledanje: {new Intl.DateTimeFormat("sr-Latn", { dateStyle: "medium", timeStyle: "short" }).format(new Date(inquiry.viewing_at))}</strong><br />Vremenska zona: {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>}
