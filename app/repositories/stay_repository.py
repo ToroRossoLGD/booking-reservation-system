@@ -67,8 +67,11 @@ class StayRepository:
     async def get(self, stay_id, lock=False):
         query = select(Stay).where(Stay.id == stay_id)
         if lock:
-            query = query.with_for_update()
+            query = query.with_for_update().execution_options(populate_existing=True)
         return await self.db.scalar(query)
+
+    async def venue_owner_id(self, venue_id):
+        return await self.db.scalar(select(Venue.owner_id).where(Venue.id == venue_id))
 
     async def list_for_user(self, user_id, owner=False, offset=0, limit=20):
         query = select(Stay)

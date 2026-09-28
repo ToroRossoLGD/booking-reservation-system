@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from app.models.stay import Stay
 from app.repositories.stay_repository import StayRepository
 from app.schemas.stay import OwnerStayPage, StayCalendar, StayPage, StayQuote, StayRead
+from app.services.stay_notification_service import add_stay_notifications
 
 
 class StayService:
@@ -118,6 +119,13 @@ class StayService:
             currency=quote.currency,
             status="confirmed",
         )
+        return await self.save_with_notifications(stay, venue.owner_id)
+
+    async def save_with_notifications(self, stay, owner_id):
+        # Booking/status and both notifications succeed or roll back together.
+        self.repository.db.add(stay)
+        await self.repository.db.flush()
+        add_stay_notifications(self.repository.db, stay, owner_id)
         return await self.repository.save(stay)
 
     @staticmethod
@@ -169,7 +177,8 @@ class StayService:
                 400, "Online cancellation is only available before arrival day"
             )
         stay.status = "cancelled"
-        return await self.repository.save(stay)
+        owner_id = await self.repository.venue_owner_id(stay.venue_id)
+        return await self.save_with_notifications(stay, owner_id)
 
     async def owner_overview(self, user, **filters):
         result = await self.repository.owner_overview(user.id, self.today, **filters)

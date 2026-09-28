@@ -15,6 +15,7 @@ from sqlalchemy.schema import CreateSchema, DropSchema
 
 from app.core.config import settings
 from app.db.base import Base
+from app.models.notification import Notification
 from app.models.property_listing import PropertyListing
 from app.models.resource import Resource
 from app.models.stay import Stay
@@ -112,6 +113,7 @@ def service(monkeypatch):
             Resource.__table__,
             Stay.__table__,
             StayBlock.__table__,
+            Notification.__table__,
         ],
     )
     with Session(engine, expire_on_commit=False) as session:
@@ -119,6 +121,7 @@ def service(monkeypatch):
         db = MagicMock()
         db.add = session.add
         for method in (
+            "flush",
             "get",
             "commit",
             "refresh",
@@ -320,6 +323,7 @@ async def test_postgres_concurrent_overlap_and_retries(monkeypatch):
         Resource.__table__,
         Stay.__table__,
         StayBlock.__table__,
+        Notification.__table__,
     ]
     try:
         async with engine.begin() as connection:
@@ -356,6 +360,21 @@ async def test_postgres_concurrent_overlap_and_retries(monkeypatch):
         assert isinstance(retries[0], int) and retries[0] == retries[1]
         async with sessions() as db:
             assert await db.scalar(select(func.count(Stay.id))) == 2
+            assert await db.scalar(select(func.count(Notification.id))) == 4
+
+        async def cancel_attempt():
+            async with sessions() as db:
+                # Keep a cached confirmed object while another request may cancel it.
+                cached = await db.get(Stay, retries[0])
+                result = await StayService(db).cancel(cached.id, GUEST)
+                return result.status
+
+        assert await asyncio.gather(cancel_attempt(), cancel_attempt()) == [
+            "cancelled",
+            "cancelled",
+        ]
+        async with sessions() as db:
+            assert await db.scalar(select(func.count(Notification.id))) == 6
         from app.schemas.stay_block import StayBlockCreate
         from app.services.stay_block_service import StayBlockService
 

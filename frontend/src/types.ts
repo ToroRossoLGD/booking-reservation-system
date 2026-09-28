@@ -108,6 +108,7 @@ export type Notification = {
   id: number;
   title: string;
   message: string;
+  action_path?: string | null;
   is_read: boolean;
   created_at: string;
 };

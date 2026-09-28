@@ -179,6 +179,7 @@ async def test_postgres_concurrent_review_retries(monkeypatch):
         test_stays.PropertyListing.__table__,
         test_stays.Stay.__table__,
         test_stays.StayBlock.__table__,
+        test_stays.Notification.__table__,
         PropertyReview.__table__,
     ]
     try:

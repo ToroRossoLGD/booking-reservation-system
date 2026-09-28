@@ -219,8 +219,8 @@ export const api = {
     request(`/favorites/resources/${resourceId}`, { method: "POST" }),
   removeFavorite: (resourceId: number) =>
     request(`/favorites/resources/${resourceId}`, { method: "DELETE" }),
-  notifications: () =>
-    request<PageResult<Notification>>("/notifications/my?limit=50"),
+  notifications: (offset = 0) =>
+    request<PageResult<Notification>>(`/notifications/my?limit=50&offset=${offset}`),
   markNotificationRead: (notificationId: number) =>
     request<Notification>(`/notifications/${notificationId}/read`, {
       method: "PATCH",

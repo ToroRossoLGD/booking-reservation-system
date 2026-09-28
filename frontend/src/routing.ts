@@ -2,9 +2,12 @@ export type ApplicationRoute = {
   page: "home" | "account" | "owner";
   reservationId?: number;
   ownerVenueId?: number;
+  accountTab?: "notifications";
 };
 
 export function parseApplicationRoute(pathname: string): ApplicationRoute {
+  if (/^\/account\/notifications\/?$/.test(pathname))
+    return { page: "account", accountTab: "notifications" };
   const reservation = pathname.match(/^\/account\/reservations\/(\d+)\/?$/);
   if (reservation)
     return { page: "account", reservationId: Number(reservation[1]) };

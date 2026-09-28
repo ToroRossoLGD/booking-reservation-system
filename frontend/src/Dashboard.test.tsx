@@ -81,18 +81,62 @@ describe("AccountDashboard notification inbox", () => {
     });
   });
 
+  it("links stay notifications to the recipient's reservations and ignores unsafe targets", async () => {
+    apiMock.notifications.mockResolvedValue({ items: [
+      { ...unread, action_path: "/stays" },
+      { ...read, action_path: "/owner/stays" },
+      { ...unread, id: 13, title: "Unknown target", action_path: "https://example.com" },
+    ], has_next: false });
+    renderNotifications();
+    expect(await screen.findByRole("link", { name: "Moji boravci ↗" })).toHaveAttribute("href", "/stays");
+    expect(screen.getByRole("link", { name: "Rezervacije tvojih stanova ↗" })).toHaveAttribute("href", "/owner/stays");
+    expect(within(screen.getByText("Unknown target").closest("article")!).queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("loads older notifications and returns after dismissing the last item there", async () => {
+    apiMock.notifications.mockResolvedValueOnce({ items: [unread], has_next: true })
+      .mockResolvedValueOnce({ items: [read], has_next: false })
+      .mockResolvedValue({ items: [unread], has_next: false });
+    apiMock.dismissNotification.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderNotifications();
+    await user.click(await screen.findByRole("button", { name: "Older notifications" }));
+    await screen.findByText("Payment received");
+    expect(apiMock.notifications).toHaveBeenLastCalledWith(50);
+    await user.click(screen.getByRole("button", { name: "Dismiss" }));
+    await screen.findByText("Booking confirmed");
+    expect(apiMock.notifications).toHaveBeenLastCalledWith(0);
+    expect(screen.getByRole("button", { name: "Newer notifications" })).toBeDisabled();
+  });
+
+  it("refreshes after an inbox failure and keeps a notification when marking fails", async () => {
+    apiMock.notifications.mockRejectedValueOnce(new Error("Inbox unavailable"))
+      .mockResolvedValue({ items: [unread], has_next: false });
+    apiMock.markNotificationRead.mockRejectedValue(new Error("Update unavailable"));
+    const user = userEvent.setup();
+    renderNotifications();
+    await screen.findByText("Inbox unavailable");
+    expect(screen.queryByText("You’re all caught up")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Refresh notifications" }));
+    await screen.findByText("Booking confirmed");
+    await user.click(screen.getByRole("button", { name: "Mark read" }));
+    await screen.findByText("Update unavailable");
+    expect(screen.getByText("1 unread on this page")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Mark read" })).toBeEnabled();
+  });
+
   it("marks an individual notification as read and updates the unread count", async () => {
     apiMock.markNotificationRead.mockResolvedValue({ ...unread, is_read: true });
     const user = userEvent.setup();
     renderNotifications();
 
     await screen.findByText("Booking confirmed");
-    expect(screen.getByText("1 unread")).toBeInTheDocument();
+    expect(screen.getByText("1 unread on this page")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Mark read" }));
 
     await waitFor(() => expect(apiMock.markNotificationRead).toHaveBeenCalledWith(11));
-    expect(screen.getByText("0 unread")).toBeInTheDocument();
+    expect(screen.getByText("0 unread on this page")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Mark read" })).not.toBeInTheDocument();
   });
 
@@ -127,7 +171,7 @@ describe("AccountDashboard notification inbox", () => {
     await user.click(screen.getByRole("button", { name: "Mark all read" }));
 
     await waitFor(() => expect(apiMock.markAllNotificationsRead).toHaveBeenCalledOnce());
-    expect(screen.getByText("0 unread")).toBeInTheDocument();
+    expect(screen.getByText("0 unread on this page")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Clear read" }));
 
