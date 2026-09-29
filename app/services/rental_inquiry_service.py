@@ -12,6 +12,7 @@ from app.models.venue import Venue
 from app.schemas.rental_inquiry import RentalInquiryRead
 from app.schemas.rental_terms import RentalTerms
 from app.services.rental_message_service import append_rental_message
+from app.services.rental_notification_service import add_rental_notification
 
 
 class RentalInquiryService:
@@ -90,6 +91,7 @@ class RentalInquiryService:
         self.db.add(inquiry)
         await self.db.flush()
         append_rental_message(self.db, inquiry, user.id, data.message)
+        add_rental_notification(self.db, inquiry, user.id, "created")
         await self.db.commit()
         await self.db.refresh(inquiry)
         return inquiry
@@ -175,6 +177,8 @@ class RentalInquiryService:
             viewing_at=data.viewing_at,
         )
         inquiry.version += 1
+        if data.action != "reply":
+            add_rental_notification(self.db, inquiry, user.id, data.action)
         await self.db.commit()
         await self.db.refresh(inquiry)
         return inquiry
