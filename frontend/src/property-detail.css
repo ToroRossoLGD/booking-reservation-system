@@ -14,4 +14,8 @@
 .property-share button { flex: 1 1 160px; min-height: 44px; }
 .property-share label { display: grid; gap: 8px; margin-top: 12px; }
 .property-share input { width: 100%; min-width: 0; box-sizing: border-box; padding: 10px; }
+.owner-preview-photos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; }
+.owner-preview-photos figure { margin: 0; min-width: 0; }
+.owner-preview-photos img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; }
+.owner-preview-photos figcaption { margin-top: 6px; font-size: 12px; }
 @media(max-width:750px) { .property-detail-layout { grid-template-columns: 1fr; gap: 20px; } .property-detail-layout .property-photo-cover { height: 280px; } .property-detail-actions { padding: 18px; } .property-detail-page .ph-header nav { display: flex; gap: 12px; font-size: 12px; } }

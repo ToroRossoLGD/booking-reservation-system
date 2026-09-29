@@ -7,10 +7,13 @@ import RentalInquiriesPage from "./RentalInquiriesPage";
 import SavedPropertiesPage from "./SavedPropertiesPage";
 
 const PropertyDetailPage = lazy(() => import("./PropertyDetailPage"));
+const OwnerPropertyPreview = lazy(() => import("./OwnerPropertyPreview"));
 const OwnerPropertyAnalytics = lazy(() => import("./OwnerPropertyAnalytics"));
 
 export default function RootPage() {
   const { pathname } = useLocation();
+  const preview = pathname.match(/^\/owner\/properties\/([^/]+)\/preview\/?$/);
+  if (preview) return <Suspense fallback={<p role="status">Učitavanje pregleda…</p>}><OwnerPropertyPreview key={preview[1]} id={preview[1]} /></Suspense>;
   if (pathname === "/owner/analytics") return <Suspense fallback={<p role="status">Učitavanje analitike…</p>}><OwnerPropertyAnalytics /></Suspense>;
   if (pathname.startsWith("/properties/")) {
     const id = pathname.slice("/properties/".length).replace(/\/$/, "");

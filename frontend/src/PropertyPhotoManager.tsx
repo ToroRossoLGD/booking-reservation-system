@@ -3,7 +3,7 @@ import { api, ApiError } from "./api";
 import type { PropertyPhoto } from "./property-types";
 import "./property-photos.css";
 
-function OwnerPhoto({ photo }: { photo: PropertyPhoto }) {
+export function OwnerPhoto({ photo }: { photo: PropertyPhoto }) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState(false);
   useEffect(() => {
