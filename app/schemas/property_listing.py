@@ -83,6 +83,7 @@ class PropertyListingWrite(PropertyDetails, RentalTerms):
     booking_enabled: bool = False
     max_guests: int = Field(default=2, ge=1, le=100)
     minimum_nights: int = Field(default=1, ge=1, le=30)
+    maximum_nights: int = Field(default=90, ge=1, le=90)
     timezone: str = Field(default="Europe/Belgrade", max_length=64)
     check_in_time: StayTime | None = None
     check_out_time: StayTime | None = None
@@ -98,6 +99,8 @@ class PropertyListingWrite(PropertyDetails, RentalTerms):
 
     @model_validator(mode="after")
     def booking_only_for_short_stays(self):
+        if self.maximum_nights < self.minimum_nights:
+            raise ValueError("Maximum nights must not be below minimum nights")
         if self.offer_type != "long_term" and any(
             getattr(self, field) is not None for field in RentalTerms.model_fields
         ):

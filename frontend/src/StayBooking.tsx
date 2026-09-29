@@ -10,6 +10,8 @@ export default function StayBooking({ property, initialDates }: { property: Prop
   const timezone = property.timezone ?? "Europe/Belgrade";
   const today = propertyToday(timezone);
   const minimum = property.minimum_nights ?? 1;
+  const maximum = property.maximum_nights ?? 90;
+  const bookingEnd = shiftDate(today, 365);
   const [arrival, setArrival] = useState(initialDates?.check_in ?? shiftDate(today, 1));
   const [departure, setDeparture] = useState(initialDates?.check_out ?? shiftDate(today, 1 + minimum));
   const [guests, setGuests] = useState(initialDates?.guests ?? 1);
@@ -72,7 +74,7 @@ export default function StayBooking({ property, initialDates }: { property: Prop
   const weekday = (new Date(`${start}T12:00:00Z`).getUTCDay() + 6) % 7;
   return <section className="stay-booking" aria-label={`Rezervacija: ${property.title}`}>
     <h4>Rezerviši ceo stan</h4>
-    <p>Do {property.max_guests ?? 2} gostiju · Najmanje {minimum} noćenja</p>
+    <p>Do {property.max_guests ?? 2} gostiju · Najmanje {minimum} noćenja · Najviše {maximum} noćenja</p>
     <div className="stay-month"><button type="button" aria-label="Prethodni mesec" disabled={month <= today.slice(0, 7)} onClick={() => moveMonth(-1)}>‹</button><strong>{new Intl.DateTimeFormat("sr-Latn", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${start}T12:00:00Z`))}</strong><button type="button" aria-label="Sledeći mesec" disabled={month >= shiftDate(today, 365).slice(0, 7)} onClick={() => moveMonth(1)}>›</button></div>
     {calendarError ? <p role="alert">Kalendar nije dostupan. <button type="button" onClick={reloadCalendar}>Pokušaj ponovo</button></p> : !calendar ? <p role="status">Učitavanje kalendara…</p> : <><div className="stay-calendar" aria-label="Kalendar zauzetih noći">{["P", "U", "S", "Č", "P", "S", "N"].map((day, i) => <small key={i} aria-hidden="true">{day}</small>)}{Array.from({ length: weekday }, (_, i) => <span key={`blank-${i}`} />)}{days.map(day => {
       const occupied = calendar.occupied.some(range => range.check_in <= day && day < range.check_out);
@@ -82,12 +84,12 @@ export default function StayBooking({ property, initialDates }: { property: Prop
     <form onSubmit={event => { event.preventDefault(); checkPrice(); }}>
       <fieldset disabled={busy}>
         <label>Dolazak<input type="date" required value={arrival} min={shiftDate(today, 1)} max={shiftDate(today, 364)} onChange={event => { setArrival(event.target.value); invalidate(); }} /></label>
-        <label>Odlazak<input type="date" required value={departure} min={arrival ? shiftDate(arrival, minimum) : shiftDate(today, 2)} max={shiftDate(today, 365)} onChange={event => { setDeparture(event.target.value); invalidate(); }} /></label>
+        <label>Odlazak<input type="date" required value={departure} min={arrival ? shiftDate(arrival, minimum) : shiftDate(today, 2)} max={arrival && shiftDate(arrival, maximum) < bookingEnd ? shiftDate(arrival, maximum) : bookingEnd} onChange={event => { setDeparture(event.target.value); invalidate(); }} /></label>
         <label>Broj gostiju<input type="number" required min={1} max={property.max_guests ?? 2} value={guests} onChange={event => { setGuests(Number(event.target.value)); invalidate(); }} /></label>
         <button className="ph-outline" type="submit">{busy ? "Provera…" : "Proveri dostupnost i cenu"}</button>
       </fieldset>
     </form>
-    <p className="stay-legend">Datumi važe u zoni {timezone}. Dolazak je moguć od sutra, a boravak traje do 90 noći.</p>
+    <p className="stay-legend">Datumi važe u zoni {timezone}. Dolazak je moguć od sutra, a boravak traje do {maximum} noći.</p>
     {error && <p role="alert">{error} {needsLogin && <a href="/account">Prijavi se ↗</a>}</p>}
     {quote && <div className="stay-quote"><StayTimes {...quote} /><p>{quote.nights} noćenja × {stayMoney(quote.nightly_rate_cents, quote.currency)}</p><strong>Ukupno {stayMoney(quote.total_cents, quote.currency)}</strong><p>Plaćanje kod domaćina. Sada ništa ne naplaćujemo. Besplatno otkazivanje pre dana dolaska.</p><button className="ph-primary" type="button" disabled={busy} onClick={reserve}>{busy ? "Potvrđivanje…" : "Potvrdi rezervaciju"}</button></div>}
   </section>;

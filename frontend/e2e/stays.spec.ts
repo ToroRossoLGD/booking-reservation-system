@@ -6,7 +6,7 @@ test(`guest quotes, reserves, views and cancels from ${detailPage ? "listing pag
   const today = propertyToday();
   const arrival = shiftDate(today, 3);
   const departure = shiftDate(today, 6);
-  const property = { id: 4, venue_id: 1, title: "Apartman na planini", city: "Zlatibor", description: "Ceo apartman za odmor sa porodicom.", offer_type: "short_stay", area_sqm: 50, rooms: 2, price_cents: 6500, currency: "EUR", contact_email: "host@example.com", is_published: true, booking_enabled: true, max_guests: 4, minimum_nights: 2, check_in_time: "15:00", check_out_time: "10:30", timezone: "Europe/Belgrade" };
+  const property = { maximum_nights: 3, id: 4, venue_id: 1, title: "Apartman na planini", city: "Zlatibor", description: "Ceo apartman za odmor sa porodicom.", offer_type: "short_stay", area_sqm: 50, rooms: 2, price_cents: 6500, currency: "EUR", contact_email: "host@example.com", is_published: true, booking_enabled: true, max_guests: 4, minimum_nights: 2, check_in_time: "15:00", check_out_time: "10:30", timezone: "Europe/Belgrade" };
   let confirmed = false;
   let cancelled = false;
   const reservation = () => ({ id: 9, property_id: 4, title: property.title, city: property.city, contact_email: property.contact_email, timezone: property.timezone, check_in_time: property.check_in_time, check_out_time: property.check_out_time, check_in: arrival, check_out: departure, guests: 2, status: cancelled ? "cancelled" : "confirmed", nightly_rate_cents: 6500, total_cents: 19500, currency: "EUR", payment_method: "pay_on_arrival", created_at: new Date().toISOString() });
@@ -30,6 +30,7 @@ test(`guest quotes, reserves, views and cancels from ${detailPage ? "listing pag
   await page.goto(detailPage ? "/properties/4" : "/");
   if (!detailPage) await page.getByRole("button", { name: "Detalji: Apartman na planini" }).click();
   await page.getByLabel("Dolazak", { exact: true }).fill(arrival);
+  await expect(page.getByLabel("Odlazak", { exact: true })).toHaveAttribute("max", departure);
   await page.getByLabel("Odlazak", { exact: true }).fill(departure);
   await page.getByLabel("Broj gostiju", { exact: true }).fill("2");
   await expect(page.getByText(/Prijava od 15:00/)).toBeVisible();

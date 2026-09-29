@@ -52,6 +52,9 @@ class PropertyListing(Base):
     booking_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     max_guests: Mapped[int] = mapped_column(Integer, default=2)
     minimum_nights: Mapped[int] = mapped_column(Integer, default=1)
+    maximum_nights: Mapped[int] = mapped_column(
+        Integer, default=90, server_default="90"
+    )
     timezone: Mapped[str] = mapped_column(String(64), default="Europe/Belgrade")
     property_type: Mapped[str | None] = mapped_column(String(20))
     neighborhood: Mapped[str | None] = mapped_column(String(100))
