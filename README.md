@@ -114,6 +114,7 @@ The next development areas are:
 - [x] Dedicated property pages and shareable listing links.
 - [x] Native listing sharing on supported devices, with copy-link fallback.
 - [ ] Seasonal nightly pricing and more flexible booking rules.
+- [x] Owner-defined maximum nightly stay length, enforced in search and booking.
 - [x] Local check-in/check-out times for nightly stays, preserved on reservations.
 - [x] Owner daily arrivals/departures, reservation filters and block-management shortcuts.
 - [x] Owner property analytics: detail views, monthly stays, nights and booked value.

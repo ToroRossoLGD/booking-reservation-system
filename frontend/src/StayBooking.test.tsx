@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 import { api, ApiError } from "./api";
 import StayBooking from "./StayBooking";
 import type { PropertyListing } from "./property-types";
+import { propertyToday, shiftDate } from "./stay-types";
 
 vi.mock("./api", () => ({ api: { stayCalendar: vi.fn(), stayQuote: vi.fn(), createStay: vi.fn() }, ApiError: class extends Error { constructor(message: string, public status: number) { super(message); } } }));
 const property: PropertyListing = { id: 1, venue_id: 1, title: "Stan", city: "Beograd", description: "Udoban stan blizu centra grada.", offer_type: "short_stay", price_cents: 6500, currency: "EUR", rooms: 2, area_sqm: 50, is_published: true, contact_email: "host@example.com", booking_enabled: true, max_guests: 3, minimum_nights: 2, timezone: "Europe/Belgrade" };
@@ -11,6 +12,26 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(api.stayCalendar).mockResolvedValue({ start: "2026-10-01", end: "2026-11-01", occupied: [] });
   vi.mocked(api.stayQuote).mockResolvedValue({ nights: 2, nightly_rate_cents: 6500, total_cents: 13000, currency: "EUR", timezone: "Europe/Belgrade", check_in_time: "15:00", check_out_time: "10:30", payment_method: "pay_on_arrival" });
+});
+
+it("limits departure by owner rules and updates the limit when arrival changes", async () => {
+  const user = userEvent.setup();
+  render(<StayBooking property={{ ...property, maximum_nights: 3 }} />);
+  const today = propertyToday("Europe/Belgrade");
+  const arrival = shiftDate(today, 1);
+  const departure = screen.getByLabelText("Odlazak");
+  expect(screen.getByText(/Najviše 3 noćenja/)).toBeVisible();
+  expect(departure).toHaveAttribute("max", shiftDate(arrival, 3));
+  fireEvent.change(departure, { target: { value: shiftDate(arrival, 4) } });
+  await user.click(screen.getByRole("button", { name: "Proveri dostupnost i cenu" }));
+  expect(api.stayQuote).not.toHaveBeenCalled();
+  fireEvent.change(departure, { target: { value: shiftDate(arrival, 3) } });
+  await user.click(screen.getByRole("button", { name: "Proveri dostupnost i cenu" }));
+  expect(api.stayQuote).toHaveBeenCalledWith(property.id, { check_in: arrival, check_out: shiftDate(arrival, 3), guests: 1 });
+  await screen.findByRole("button", { name: "Potvrdi rezervaciju" });
+  fireEvent.change(screen.getByLabelText("Dolazak"), { target: { value: shiftDate(today, 364) } });
+  expect(departure).toHaveAttribute("max", shiftDate(today, 365));
+  expect(screen.queryByRole("button", { name: "Potvrdi rezervaciju" })).not.toBeInTheDocument();
 });
 
 it("uses the server quote, retries with the same request ID, and invalidates a quote when guests change", async () => {

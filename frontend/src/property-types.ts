@@ -29,6 +29,7 @@ export type PropertyInput = PropertyDetails & RentalTerms & {
   booking_enabled?: boolean;
   max_guests?: number;
   minimum_nights?: number;
+  maximum_nights?: number;
   timezone?: string;
   check_in_time?: string | null;
   check_out_time?: string | null;

@@ -69,6 +69,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
       booking_enabled: type === "short_stay" && fields.get("booking_enabled") === "on",
       max_guests: Number(fields.get("max_guests") ?? current?.max_guests ?? 2),
       minimum_nights: Number(fields.get("minimum_nights") ?? current?.minimum_nights ?? 1),
+      maximum_nights: Number(fields.get("maximum_nights") ?? current?.maximum_nights ?? 90),
       timezone: String(fields.get("timezone") ?? current?.timezone ?? "Europe/Belgrade"),
       check_in_time: type === "short_stay" ? String(fields.get("check_in_time") ?? "") || null : null,
       check_out_time: type === "short_stay" ? String(fields.get("check_out_time") ?? "") || null : null,
@@ -117,6 +118,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
           <small className="ph-form-wide">Unesi oba vremena ili ostavi oba prazna za dogovor sa gostom. Važe u vremenskoj zoni smeštaja. Izmene važe samo za nove rezervacije.</small>
           <label>Maksimalan broj gostiju<input name="max_guests" type="number" min={1} max={100} required defaultValue={current?.max_guests ?? 2} /></label>
           <label>Minimalan broj noćenja<input name="minimum_nights" type="number" min={1} max={30} required defaultValue={current?.minimum_nights ?? 1} /></label>
+          <label>Maksimalan broj noćenja<input name="maximum_nights" type="number" min={1} max={90} required defaultValue={current?.maximum_nights ?? 90} /><small>Od 1 do 90, najmanje koliko i minimalan broj noćenja. Izmene važe za nove rezervacije.</small></label>
           <label className="ph-form-wide">Vremenska zona<input name="timezone" required defaultValue={current?.timezone ?? "Europe/Belgrade"} maxLength={64} /><small>Na primer Europe/Belgrade, Europe/Podgorica ili Europe/Athens.</small></label>
           <label className="ph-publish ph-form-wide"><input name="booking_enabled" type="checkbox" defaultChecked={current?.booking_enabled ?? false} />Uključi rezervacije celog stana sa plaćanjem kod domaćina</label>
         </>}

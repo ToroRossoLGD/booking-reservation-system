@@ -149,6 +149,7 @@ async def test_occupied_venue_does_not_hide_other_apartments(catalog):
     [
         {"max_guests": 1},
         {"minimum_nights": 4},
+        {"maximum_nights": 2},
         {"booking_enabled": False},
         {"is_published": False},
         {"offer_type": "long_term", "booking_enabled": False},

@@ -38,6 +38,8 @@ class StayService:
         nights = (data.check_out - data.check_in).days
         if nights < listing.minimum_nights:
             raise HTTPException(400, f"Minimum stay is {listing.minimum_nights} nights")
+        if nights > listing.maximum_nights:
+            raise HTTPException(400, f"Maximum stay is {listing.maximum_nights} nights")
         if data.guests > listing.max_guests:
             raise HTTPException(
                 400, f"Maximum number of guests is {listing.max_guests}"

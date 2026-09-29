@@ -110,6 +110,7 @@ class PropertyListingRepository:
                     .exists(),
                     PropertyListing.max_guests >= guests,
                     PropertyListing.minimum_nights <= (check_out - check_in).days,
+                    PropertyListing.maximum_nights >= (check_out - check_in).days,
                     ~select(Stay.id)
                     .where(
                         Stay.venue_id == PropertyListing.venue_id,

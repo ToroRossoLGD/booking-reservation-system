@@ -88,3 +88,17 @@ emails, owner cancellation, rescheduling and
 long-term lease workflows remain separate work. Do not enable booking for a
 property also advertised elsewhere until its external reservations can be
 accounted for operationally; external calendar sync is not implemented.
+
+## Maximum stay length
+
+Owners can set `maximum_nights` (1–90, no lower than `minimum_nights`) in the
+nightly listing editor. The default remains 90 nights for existing listings and
+clients that omit the field. Date-based search excludes listings that cannot
+accept the requested duration; quotes and booking confirmation enforce the same
+rule. The guest form shows the limit and caps departure at the earlier of the
+maximum stay length or the existing one-year booking horizon.
+
+Changing this rule affects new bookings only. Confirmed stays and idempotent
+retries of successful bookings keep their original dates. This setting applies
+to nightly stays, not rental inquiries or sales. Run `alembic upgrade head`
+(migration `fc724087913a`) before deploying this change.
