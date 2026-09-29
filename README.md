@@ -48,12 +48,26 @@ Owners can upload up to 12 images and select their cover. Visitors browse the ga
 
 </details>
 
+### Your Bookica and rental terms
+
+Homepage shortcuts bring saved listings, stays, rental inquiries and notifications together. Rental terms are grouped for easier reading on desktop and mobile; historical inquiries keep the terms from submission.
+
+<img src="docs/images/bookica-shortcuts-desktop.png" alt="Homepage shortcuts to saved properties, stays, rental inquiries and notifications" width="780" />
+
+<details>
+<summary>Mobile shortcuts and rental conditions</summary>
+
+<img src="docs/images/bookica-shortcuts-mobile.png" alt="Mobile homepage shortcuts with large clickable cards" width="340" />
+<img src="docs/images/rental-terms-mobile.png" alt="Rental terms showing deposit, estimated bills, availability, minimum duration and pets policy" width="340" />
+
+</details>
+
 ## What Bookica is being built to do
 
 | Offer | Intended experience | Current implementation |
 | --- | --- | --- |
 | Short stays | Find and reserve an entire apartment for a city break or holiday | Availability calendar, nightly quotes, confirmation and cancellation; payment at the property |
-| Long-term rentals | Find a home, contact the owner and arrange a viewing | Published listings, monthly prices, private conversations, viewing proposals and confirmations |
+| Long-term rentals | Find a home, contact the owner and arrange a viewing | Published listings, monthly prices, rental terms, private conversations, viewing proposals, confirmations and in-app notifications |
 | Apartment sales | Explore properties, compare details and contact sellers | Published listings, total asking prices, search and email contact |
 
 The goal is one place for property discovery and owner management, with a reservation flow for short stays. Long-term rentals use private inquiries; sales listings currently use email contact. Neither is purchased through the short-stay checkout.
@@ -76,7 +90,7 @@ The goal is one place for property discovery and owner management, with a reserv
 
 ### Nightly reservations
 
-- Owners explicitly enable booking and set the maximum number of guests, minimum nights and property timezone.
+- Owners explicitly enable booking and set the guest capacity, minimum/maximum nights and property timezone.
 - Guests choose arrival, departure and guest count, view occupied nights and request a server-calculated quote.
 - Visitors can filter short-stay search results by arrival, departure and guest count. Matching listings respect confirmed stays, capacity, minimum nights and the property's local booking window; the selection prefills booking forms.
 - Confirmation rechecks price and availability. A reservation occupies the entire apartment, regardless of guest count.
@@ -107,22 +121,42 @@ Email/password login, Google OAuth, customer/owner/admin roles and database migr
 
 ## Roadmap
 
-The next development areas are:
+Planned work is grouped by suggested priority, not promised release dates. Checkmarks describe shipped functionality; unchecked items are proposals.
+
+### Next practical improvements
+
+- [ ] Owner preview of unpublished listings before publishing.
+- [ ] Saved-search alerts with explicit opt-in and notification preferences.
+- [ ] Compare selected properties side by side within the same offer type and currency.
+- [ ] Clearer listing completeness hints for owners (photos, contact and rental terms).
+- [ ] Guest-requested stay date changes with owner approval and availability rechecks.
+- [ ] Listing reports and an owner/admin moderation workflow.
+- [ ] Consistent Serbian/English language selection and a keyboard/screen-reader accessibility review.
+
+### Larger booking and marketplace features
+
+- [ ] Seasonal nightly rates with an itemized quote and preserved booked prices.
+- [ ] Advance-booking windows and preparation gaps between stays.
+- [ ] External calendar synchronization, conflict reporting and last-sync status.
+- [ ] Online short-stay payments and deposits, including refunds and failed-payment recovery.
+- [ ] Email/push delivery and stay/viewing reminders with preferences and delivery tracking.
+- [ ] Property map search with deliberate address-privacy controls.
+- [ ] Sales inquiries and viewing appointments inside Bookica.
+- [ ] Long-term leases and monthly rental payments.
+
+<details>
+<summary>Completed milestones</summary>
 
 - [x] Property photographs, cover selection and galleries.
 - [x] Structured property details and matching shareable search filters.
 - [x] Dedicated property pages and shareable listing links.
 - [x] Native listing sharing on supported devices, with copy-link fallback.
-- [ ] Seasonal nightly pricing and more flexible booking rules.
 - [x] Owner-defined maximum nightly stay length, enforced in search and booking.
 - [x] Local check-in/check-out times for nightly stays, preserved on reservations.
 - [x] Owner daily arrivals/departures, reservation filters and block-management shortcuts.
 - [x] Owner property analytics: detail views, monthly stays, nights and booked value.
 - [x] Owner calendar blocks for whole-apartment stays.
-- [ ] Synchronization with external booking calendars.
-- [ ] Online payments and deposits for short stays.
 - [x] Long-term rental inquiries and viewing proposals.
-- [ ] Leases, monthly rental payments and richer sales workflows.
 - [x] Private saved property listings.
 - [x] Private rental conversations, message history and unread indicators.
 - [x] Advanced property filters and sorting.
@@ -130,12 +164,12 @@ The next development areas are:
 - [x] Shareable searches with URL filters and browser-history navigation.
 - [x] Calendar downloads for confirmed stays and viewings.
 - [x] Verified nightly property reviews and average ratings.
-- [ ] Property map search.
 - [x] In-app guest and owner notifications for confirmed/cancelled nightly stays.
 - [x] In-app rental inquiry and viewing notifications for owners and tenants.
-- [ ] Email/push notifications, stay reminders, rescheduling and more complete host operations.
+- [x] Long-term rental terms and preserved inquiry snapshots.
+- [x] Homepage shortcuts to saved properties, stays, inquiries and notifications.
 
-These are planned features, not claims about the current release. Bookica is still being built and is not presented as a finished real-estate platform.
+</details>
 
 ## Try the current flow
 

@@ -26,6 +26,7 @@ for (const mobile of [false, true]) {
     await page.goto("/");
     await page.getByRole("button", { name: `Detalji: ${property.title}` }).click();
     await expect(page.getByRole("region", { name: "Uslovi najma", exact: true })).toBeVisible();
+    await page.locator(".rental-terms").screenshot({ path: testInfo.outputPath(`rental-terms-${mobile ? "mobile" : "desktop"}.png`) });
     await expect(page.getByLabel("Trajanje najma (meseci)")).toHaveAttribute("min", "6");
     await page.getByLabel("Željeno useljenje").fill(inquiry.move_in);
     await page.getByLabel("Poruka vlasniku").fill(inquiry.message);

@@ -17,4 +17,8 @@
 .rental-message-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; font-size: 12px; }
 .rental-message-meta time, .rental-conversation small { font-size: 11px; color: #62745f; }
 .rental-event-label { font-weight: 600; }
+.rental-terms { margin: 20px 0; padding: 18px; border: 1px solid #d8e2d6; border-radius: 12px; background: #f5f7f1; }
+.rental-terms h3 { margin: 0 0 12px; color: #204d3f; }
+.rental-terms ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 10px; list-style: none; margin: 0; padding: 0; }
+.rental-terms li { padding: 12px; border-radius: 8px; background: white; border: 1px solid #e2e8dc; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
 .rental-unread-label { display: block; font-weight: 600; }

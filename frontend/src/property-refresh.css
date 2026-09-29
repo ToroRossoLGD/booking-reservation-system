@@ -82,6 +82,18 @@
   .ph-owner-invite h2 { line-height: 1.2; }
   .ph-empty .ph-primary { width: auto; }
 }
+.ph-shortcuts { margin: 36px 0; padding: 28px 0; border-top: 1px solid #dce4d9; }
+.ph-shortcuts .ph-section-heading p:not(.ph-eyebrow) { color: #57685d; font-size: 14px; line-height: 1.7; max-width: 620px; }
+.ph-shortcut-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.ph-shortcut { display: flex; flex-direction: column; align-items: flex-start; padding: 22px; border: 1px solid #dce4d9; border-radius: 14px; background: #fff; color: #204d3f; text-decoration: none; min-width: 0; overflow-wrap: anywhere; }
+.ph-shortcut:hover { border-color: #396b55; background: #f5f8f1; }
+.ph-shortcut:focus-visible { outline: 3px solid #396b55; outline-offset: 4px; }
+.ph-shortcut-icon { display: grid; place-items: center; width: 42px; height: 42px; background: #edf3e7; border-radius: 12px; font-size: 24px; }
+.ph-shortcut h3 { font-size: 18px; margin: 20px 0 10px; }
+.ph-shortcut p { margin: 0 0 20px; font-size: 14px; line-height: 1.7; color: #57685d; }
+.ph-shortcut-action { display: flex; justify-content: space-between; gap: 10px; width: 100%; margin-top: auto; font-size: 13px; font-weight: 600; }
+@media (max-width: 1000px) { .ph-shortcut-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .ph-shortcut-grid { grid-template-columns: 1fr; } .ph-shortcut { padding: 20px; } }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .ph-skeleton div, .ph-skeleton span { animation: none; }

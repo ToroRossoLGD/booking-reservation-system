@@ -1,3 +1,4 @@
+import PropertyShortcuts from "./PropertyShortcuts";
 import { detailEntries, detailKeys } from "./property-details";
 import { useEffect, useState } from "react";
 import { propertySearchPath, readPropertySearch } from "./property-search-url";
@@ -129,6 +130,7 @@ export default function PropertyHome() {
           {(offset > 0 || page.has_next) && <nav className="ph-pagination" aria-label="Stranice oglasa"><button className="ph-outline" disabled={offset === 0} onClick={() => { apply({ city: query, offer, filters, offset: Math.max(0, offset - 12) }); }}>Prethodna</button><span>Stranica {Math.floor(offset / 12) + 1}</span><button className="ph-outline" disabled={!page.has_next} onClick={() => { apply({ city: query, offer, filters, offset: offset + 12 }); }}>Sledeća</button></nav>}
         </>}
       </section>
+      <PropertyShortcuts />
       <section className="ph-destinations" id="destinacije"><div><p className="ph-eyebrow">PROMENI OKRUŽENJE</p><h2>Gde te vodi sledeći plan?</h2><p>Gradski ritam, planinska tišina ili dani uz more.</p></div><div className="ph-destination-links">{["Beograd", "Novi Sad", "Zlatibor", "Budva"].map(city => <a href="#ponuda" key={city} onClick={() => search(city, "")}>{city}<span>↗</span></a>)}</div></section>
       <section className="ph-owner-invite"><div><p className="ph-eyebrow">IMAŠ PROSTOR ZA NEČIJE PLANOVE?</p><h2>Svaki dom ima svoju priču.<br />Podeli svoju.</h2><p>Predstavi nekretninu, odredi cenu i poveži se sa budućim gostima ili kupcima.</p></div><a href="/owner" className="ph-primary">Kreiraj svoj oglas <span>↗</span></a></section>
     </main>

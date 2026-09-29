@@ -36,6 +36,10 @@ test("property search and contact work on desktop and mobile", async ({ page }, 
   });
   await page.goto("/");
   await expect(page.getByRole("heading", { name: listing.title })).toBeVisible();
+  await page.locator(".ph-shortcuts").screenshot({ path: testInfo.outputPath("bookica-shortcuts-desktop.png") });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator(".ph-shortcuts").screenshot({ path: testInfo.outputPath("bookica-shortcuts-mobile.png") });
+  await page.setViewportSize({ width: 1280, height: 720 });
   await page.getByRole("button", { name: "Stan na dan", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Nema oglasa za ovaj izbor." })).toBeVisible();
   await page.getByRole("button", { name: "Prodaja", exact: true }).click();
