@@ -19,6 +19,12 @@ import type {
 } from "./types";
 
 type AccountTab = "reservations" | "favorites" | "notifications";
+const notificationLinks: Record<string, string> = {
+  "/stays": "Moji boravci",
+  "/owner/stays": "Rezervacije tvojih stanova",
+  "/rentals": "Moji upiti za najam",
+  "/owner/rentals": "Upiti za tvoje stanove",
+};
 
 function money(cents: number, currency = "EUR") {
   return new Intl.NumberFormat("en", { style: "currency", currency }).format(
@@ -454,7 +460,7 @@ export function AccountDashboard({
                         <h3>{item.title}</h3>
                         <p>{item.message}</p>
                         <small>{when(item.created_at)}</small>
-                        {(item.action_path === "/stays" || item.action_path === "/owner/stays") && <p><a href={item.action_path}>{item.action_path === "/owner/stays" ? "Rezervacije tvojih stanova" : "Moji boravci"} ↗</a></p>}
+                        {item.action_path && Object.hasOwn(notificationLinks, item.action_path) && <p><a href={item.action_path}>{notificationLinks[item.action_path]} ↗</a></p>}
                       </div>
                       <div className="notification-actions">
                         {!item.is_read && (

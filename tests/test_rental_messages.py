@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.schema import CreateSchema, DropSchema
 
 from app.db.base import Base
+from app.models.notification import Notification
 from app.models.property_listing import PropertyListing
 from app.models.rental_inquiry import RentalInquiry
 from app.models.rental_message import RentalMessage
@@ -255,6 +256,7 @@ async def test_postgres_concurrent_message_retries():
         PropertyListing.__table__,
         RentalInquiry.__table__,
         RentalMessage.__table__,
+        Notification.__table__,
     ]
     try:
         async with engine.begin() as connection:

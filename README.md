@@ -131,6 +131,7 @@ The next development areas are:
 - [x] Verified nightly property reviews and average ratings.
 - [ ] Property map search.
 - [x] In-app guest and owner notifications for confirmed/cancelled nightly stays.
+- [x] In-app rental inquiry and viewing notifications for owners and tenants.
 - [ ] Email/push notifications, stay reminders, rescheduling and more complete host operations.
 
 These are planned features, not claims about the current release. Bookica is still being built and is not presented as a finished real-estate platform.

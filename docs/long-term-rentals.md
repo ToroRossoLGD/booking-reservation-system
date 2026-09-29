@@ -25,6 +25,17 @@ create leases, or charge monthly rent.
 
 ## Workflow
 
+New inquiries notify the owner in `/account/notifications`. Viewing proposals,
+confirmations, declined proposals, closure and withdrawal notify the other
+participant, with a link to their rental inbox. Notifications are private and
+saved in the same transaction as the inquiry and conversation event. Retried
+creation requests and rejected stale updates do not duplicate notifications.
+Viewing times in notification text are explicitly UTC; the rental inbox displays
+them in the browser's timezone. Ordinary chat messages and owner replies retain
+their existing conversation unread indicators without extra inbox notifications.
+These are in-app notifications only; no email or push messages are sent. Existing
+events are not backfilled, and this feature adds no database migration.
+
 - `/rentals`: the tenant's inquiries, owner replies, and viewing proposals.
 - `/owner/rentals`: inquiries addressed to the signed-in owner.
 - Owners reply and optionally propose a future viewing time and meeting place.

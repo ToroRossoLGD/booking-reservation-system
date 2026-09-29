@@ -93,6 +93,16 @@ describe("AccountDashboard notification inbox", () => {
     expect(within(screen.getByText("Unknown target").closest("article")!).queryByRole("link")).not.toBeInTheDocument();
   });
 
+  it("links rental milestones to the correct participant inbox", async () => {
+    apiMock.notifications.mockResolvedValue({ items: [
+      { ...unread, action_path: "/rentals" },
+      { ...read, action_path: "/owner/rentals" },
+    ], has_next: false });
+    renderNotifications();
+    expect(await screen.findByRole("link", { name: "Moji upiti za najam ↗" })).toHaveAttribute("href", "/rentals");
+    expect(screen.getByRole("link", { name: "Upiti za tvoje stanove ↗" })).toHaveAttribute("href", "/owner/rentals");
+  });
+
   it("loads older notifications and returns after dismissing the last item there", async () => {
     apiMock.notifications.mockResolvedValueOnce({ items: [unread], has_next: true })
       .mockResolvedValueOnce({ items: [read], has_next: false })

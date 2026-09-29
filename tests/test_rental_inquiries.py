@@ -14,6 +14,7 @@ from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.orm import Session
 
 from app.db.base import Base
+from app.models.notification import Notification
 from app.models.property_listing import PropertyListing
 from app.models.rental_inquiry import RentalInquiry
 from app.models.rental_message import RentalMessage
@@ -52,6 +53,7 @@ def service():
             PropertyListing.__table__,
             RentalInquiry.__table__,
             RentalMessage.__table__,
+            Notification.__table__,
         ],
     )
     with Session(engine, expire_on_commit=False) as session:
@@ -88,7 +90,15 @@ def service():
         session.commit()
         db = MagicMock()
         db.add = session.add
-        for name in ("scalar", "scalars", "commit", "refresh", "flush", "execute"):
+        for name in (
+            "scalar",
+            "scalars",
+            "commit",
+            "refresh",
+            "flush",
+            "execute",
+            "rollback",
+        ):
             setattr(db, name, AsyncMock(side_effect=getattr(session, name)))
         yield RentalInquiryService(db)
     engine.dispose()
