@@ -23,9 +23,10 @@ function errorMessage(err: unknown) {
   return status === 413 ? "Fotografija je prevelika: do 10 MB i 20 megapiksela." : status === 415 ? "Fajl nije ispravna JPEG, PNG ili WebP fotografija." : status === 409 ? "Lista fotografija se promenila ili je dostignut limit od 12. Osveži fotografije." : status === 503 ? "Čuvanje fotografija još nije podešeno na serveru." : status === 401 || status === 403 ? "Proveri prijavu i pristup ovom oglasu." : "Izmena nije uspela. Pokušaj ponovo.";
 }
 
-export default function PropertyPhotoManager({ propertyId, title }: { propertyId: number; title: string }) {
+export default function PropertyPhotoManager({ propertyId, title, onPhotosChange }: { propertyId: number; title: string; onPhotosChange?: (id: number, photos: PropertyPhoto[]) => void }) {
   const [photos, setPhotos] = useState<PropertyPhoto[]>([]);
   const [pending, setPending] = useState<PendingPhoto[]>([]);
+  const [hasLoadedPhotos, setHasLoadedPhotos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [version, setVersion] = useState(0);
@@ -34,9 +35,10 @@ export default function PropertyPhotoManager({ propertyId, title }: { propertyId
   const [deleteId, setDeleteId] = useState<number | null>(null);
   useEffect(() => {
     let active = true;
-    api.ownerPhotos(propertyId).then(result => { if (active) { setPhotos(result); setLoading(false); } }).catch(err => { if (active) { setError(errorMessage(err)); setLoading(false); } });
+    api.ownerPhotos(propertyId).then(result => { if (active) { setPhotos(result); setHasLoadedPhotos(true); setLoading(false); } }).catch(err => { if (active) { setError(errorMessage(err)); setLoading(false); } });
     return () => { active = false; };
   }, [propertyId, version]);
+  useEffect(() => { if (hasLoadedPhotos) onPhotosChange?.(propertyId, photos); }, [hasLoadedPhotos, onPhotosChange, propertyId, photos]);
   async function upload() {
     setBusy(true); setError(""); setNotice("");
     let uploaded = 0;

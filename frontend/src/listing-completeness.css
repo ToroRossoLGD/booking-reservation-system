@@ -1,0 +1,6 @@
+.listing-completeness { padding: 1rem; margin-block: 1rem; border: 1px solid #b6caca; border-radius: 12px; background: #f4f9f8; color: #173f3d; }
+.listing-completeness h4 { margin: 0 0 .5rem; font-size: 1.1rem; }
+.listing-completeness p { margin-block: .5rem; }
+.listing-completeness ul { padding-left: 1.3rem; }
+.listing-completeness button { text-align: left; white-space: normal; background: transparent; border: 0; color: inherit; text-decoration: underline; padding: .65rem .25rem; cursor: pointer; }
+.listing-completeness button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }

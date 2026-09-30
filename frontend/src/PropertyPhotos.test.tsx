@@ -45,23 +45,27 @@ it("shows a retry control for unavailable gallery images", async () => {
 
 it("selects a cover and requires confirmation to delete", async () => {
   const user = userEvent.setup();
-  render(<PropertyPhotoManager propertyId={7} title="Stan" />);
+  const onPhotosChange = vi.fn();
+  render(<PropertyPhotoManager propertyId={7} title="Stan" onPhotosChange={onPhotosChange} />);
   await user.click(await screen.findByRole("button", { name: "Postavi fotografiju 2 kao naslovnu" }));
   await waitFor(() => expect(api.reorderPropertyPhotos).toHaveBeenCalledWith(7, [2, 1]));
   await user.click(screen.getByRole("button", { name: "Obriši fotografiju 1" }));
   expect(api.deletePropertyPhoto).not.toHaveBeenCalled();
   await user.click(screen.getByRole("button", { name: "Potvrdi brisanje" }));
   await waitFor(() => expect(api.deletePropertyPhoto).toHaveBeenCalledWith(7, 2));
+  await waitFor(() => expect(onPhotosChange).toHaveBeenLastCalledWith(7, [photos[0]]));
 });
 
 it("retains only failed uploads with the same request identifier for retry", async () => {
   vi.mocked(api.ownerPhotos).mockResolvedValue([]);
   vi.mocked(api.uploadPropertyPhoto).mockResolvedValueOnce(photos[0]).mockRejectedValueOnce(new Error("offline")).mockResolvedValue(photos[1]);
   const user = userEvent.setup();
-  render(<PropertyPhotoManager propertyId={7} title="Stan" />);
+  const onPhotosChange = vi.fn();
+  render(<PropertyPhotoManager propertyId={7} title="Stan" onPhotosChange={onPhotosChange} />);
   await user.upload(await screen.findByLabelText("Dodaj fotografije"), [new File(["one"], "one.png", { type: "image/png" }), new File(["two"], "two.png", { type: "image/png" })]);
   await user.click(screen.getByRole("button", { name: "Otpremi fotografije (2)" }));
   await screen.findByRole("alert");
+  await waitFor(() => expect(onPhotosChange).toHaveBeenLastCalledWith(7, [photos[0]]));
   expect(screen.queryByRole("button", { name: "Ukloni iz reda: one.png" })).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Otpremi fotografije (1)" }));
   await waitFor(() => expect(api.uploadPropertyPhoto).toHaveBeenCalledTimes(3));

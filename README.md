@@ -77,6 +77,7 @@ The goal is one place for property discovery and owner management, with a reserv
 ### Property marketplace
 
 - Owners can create, edit, publish and withdraw listings, or keep them as private drafts.
+- The owner editor offers live completeness hints for photos, description, contact, property details and long-term rental terms, with shortcuts to missing fields. These recommendations add no publishing restrictions; photos are managed after the first save.
 - Owners can open **Pregled oglasa** to inspect saved drafts, protected photo previews, asking prices and rental/stay terms before publication. Preview is read-only and does not count as a public listing view.
 - Listings include city, description, floor area, room count, price, currency and a public contact email.
 - Optional property details include apartment/house type, neighborhood, floor, heating, furnishing, elevator, parking and terrace. Visitors can view and filter by these details; unspecified values stay unknown.
@@ -130,7 +131,7 @@ Planned work is grouped by suggested priority, not promised release dates. Check
 - [x] Private owner preview of saved drafts and published listings at `/owner/properties/{id}/preview`.
 - [ ] Saved-search alerts with explicit opt-in and notification preferences.
 - [ ] Compare selected properties side by side within the same offer type and currency.
-- [ ] Clearer listing completeness hints for owners (photos, contact and rental terms).
+- [x] Clearer listing completeness hints for owners (photos, contact and rental terms).
 - [ ] Guest-requested stay date changes with owner approval and availability rechecks.
 - [ ] Listing reports and an owner/admin moderation workflow.
 - [ ] Consistent Serbian/English language selection and a keyboard/screen-reader accessibility review.
