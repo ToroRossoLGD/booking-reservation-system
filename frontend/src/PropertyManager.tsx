@@ -1,10 +1,12 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { offerLabels, priceUnits, propertyPrice } from "./property-types";
 import type { OfferType, PropertyInput, PropertyListing, PropertyPage } from "./property-types";
 import type { OwnerVenue } from "./types";
 import "./property-home.css";
+import ListingCompleteness from "./ListingCompleteness";
+import type { PropertyPhoto } from "./property-types";
 import PropertyDetailFields from "./PropertyDetailFields";
 import RentalTermsFields from "./RentalTermsFields";
 import { readRentalTerms } from "./rental-terms";
@@ -20,6 +22,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
   const [offset, setOffset] = useState(0);
   const [version, setVersion] = useState(0);
   const [editing, setEditing] = useState<PropertyListing | "new" | null>(null);
+  const [hintFields, setHintFields] = useState<FormData | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(() => {
@@ -29,7 +32,15 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
   const [message, setMessage] = useState("");
   const [type, setType] = useState<OfferType>("short_stay");
   const [blockListing, setBlockListing] = useState<PropertyListing | null>(null);
+  const photoPanel = useRef<HTMLDivElement>(null);
   const [photoListing, setPhotoListing] = useState<PropertyListing | null>(null);
+
+  useEffect(() => { if (photoListing) photoPanel.current?.focus(); }, [photoListing]);
+
+  const updatePhotos = useCallback((id: number, photos: PropertyPhoto[]) => {
+    setEditing(value => value && value !== "new" && value.id === id ? { ...value, photos } : value);
+    setPage(value => value ? { ...value, items: value.items.map(item => item.id === id ? { ...item, photos } : item) } : value);
+  }, []);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("blocks");
@@ -54,6 +65,15 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
 
   function refresh(nextOffset = offset) {
     setError(""); setLoading(true); setOffset(nextOffset); setVersion(value => value + 1);
+  }
+
+  function updateHints(event: FormEvent<HTMLFormElement>) {
+    const form = event.currentTarget;
+    setHintFields(new FormData(form));
+    if (event.target instanceof HTMLSelectElement && event.target.name === "offer_type") {
+      // Read again after the offer-specific fields have mounted or unmounted.
+      requestAnimationFrame(() => { if (form.isConnected) setHintFields(new FormData(form)); });
+    }
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -94,19 +114,20 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
   return <section className="ph-manager owner-panel" aria-label="Oglasi za nekretnine">
     <p><a href="/account/notifications">Obaveštenja o rezervacijama i upitima</a></p>
     <p><a href="/owner/analytics">Analitika oglasa i rezervacija ↗</a></p>
-    <div className="ph-section-heading"><div><p className="eyebrow">NEKRETNINE</p><h2>Tvoji oglasi</h2></div><button className="button primary" disabled={!venues.length || busy} onClick={() => { setEditing("new"); setType("short_stay"); setError(""); setMessage(""); }}>Novi oglas</button></div>
+    <div className="ph-section-heading"><div><p className="eyebrow">NEKRETNINE</p><h2>Tvoji oglasi</h2></div><button className="button primary" disabled={!venues.length || busy} onClick={() => { setHintFields(null); setEditing("new"); setType("short_stay"); setError(""); setMessage(""); }}>Novi oglas</button></div>
     <p className="muted-copy">Poveži oglas sa svojim objektom, odredi cenu i objavi ponudu za prodaju ili najam. <a href="/">Pogledaj javnu ponudu ↗</a></p>
     <p><a href="/owner/stays">Pregledaj rezervacije stanova ↗</a> · <a href="/owner/rentals">Upiti za dugoročni najam ↗</a></p>
     {!venues.length && <p>Prvo dodaj objekat preko dugmeta „Add venue“, pa kreiraj oglas.</p>}
     {error && <p role="alert" className="error-message">{error}</p>}
     {message && <p role="status">{message}</p>}
     {blockListing && <><Suspense fallback={<p role="status">Učitavanje...</p>}><StayBlockManager key={blockListing.id} property={blockListing} /></Suspense><button className="ph-outline" onClick={() => setBlockListing(null)}>Zatvori blokade</button></>}
-    {photoListing && <><Suspense fallback={<p role="status">Učitavanje fotografija…</p>}><PropertyPhotoManager key={photoListing.id} propertyId={photoListing.id} title={photoListing.title} /></Suspense><button className="ph-outline" type="button" onClick={() => setPhotoListing(null)}>Zatvori fotografije</button></>}
-    {editing && <form key={current?.id ?? "new"} className="ph-property-form" onSubmit={save}>
+    {photoListing && <div ref={photoPanel} tabIndex={-1}><Suspense fallback={<p role="status">Učitavanje fotografija…</p>}><PropertyPhotoManager key={photoListing.id} propertyId={photoListing.id} title={photoListing.title} onPhotosChange={updatePhotos} /></Suspense><button className="ph-outline" type="button" onClick={() => setPhotoListing(null)}>Zatvori fotografije</button></div>}
+    {editing && <form key={current?.id ?? "new"} className="ph-property-form" onChange={updateHints} onSubmit={save}>
       <h3>{current ? "Izmeni oglas" : "Nova nekretnina"}</h3>
+      <ListingCompleteness listing={current} fields={hintFields} type={type} busy={busy} onPhotos={() => { if (current) setPhotoListing(current); }} />
       <fieldset disabled={busy}>
         <label>Objekat<select name="venue_id" required defaultValue={current?.venue_id ?? venues[0]?.id}>{venues.map(v => <option value={v.id} key={v.id}>{v.name}</option>)}</select></label>
-        <label>Vrsta ponude<select value={type} onChange={e => setType(e.target.value as OfferType)}>{(Object.keys(offerLabels) as OfferType[]).map(value => <option key={value} value={value}>{offerLabels[value]}</option>)}</select></label>
+        <label>Vrsta ponude<select name="offer_type" value={type} onChange={e => setType(e.target.value as OfferType)}>{(Object.keys(offerLabels) as OfferType[]).map(value => <option key={value} value={value}>{offerLabels[value]}</option>)}</select></label>
         <label>Naslov oglasa<input name="title" minLength={3} maxLength={160} required defaultValue={current?.title} /></label>
         <label>Grad ili destinacija<input name="city" minLength={2} maxLength={100} required defaultValue={current?.city} /></label>
         <label>Površina (m²)<input name="area_sqm" type="number" min={1} max={100000} step={1} required defaultValue={current?.area_sqm} /></label>
@@ -134,7 +155,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
       <div className="ph-form-actions"><button className="button primary" disabled={busy}>{busy ? "Čuvanje…" : "Sačuvaj oglas"}</button><button className="ph-outline" type="button" disabled={busy} onClick={() => setEditing(null)}>Odustani</button></div>
     </form>}
     {loading ? <p role="status">Učitavanje oglasa…</p> : <>
-      {page?.items.map(p => <article key={p.id} className="ph-owner-listing"><div><strong>{p.title}</strong><p>{p.city} · {offerLabels[p.offer_type]} · {propertyPrice(p)} / {priceUnits[p.offer_type]}</p><small>{p.is_published ? "Objavljen" : "Nacrt"}</small></div><a className="ph-outline" href={`/owner/properties/${p.id}/preview`} aria-label={`Pregledaj: ${p.title}`}>Pregled oglasa</a><button className="ph-outline" disabled={busy} aria-label={`Blokade: ${p.title}`} onClick={() => setBlockListing(p)}>Zauzetost</button><button className="ph-outline" disabled={busy} aria-label={`Fotografije: ${p.title}`} onClick={() => setPhotoListing(p)}>Fotografije</button><button className="ph-outline" disabled={busy} onClick={() => { setEditing(p); setType(p.offer_type); setError(""); setMessage(""); }} aria-label={`Izmeni: ${p.title}`}>Izmeni</button></article>)}
+      {page?.items.map(p => <article key={p.id} className="ph-owner-listing"><div><strong>{p.title}</strong><p>{p.city} · {offerLabels[p.offer_type]} · {propertyPrice(p)} / {priceUnits[p.offer_type]}</p><small>{p.is_published ? "Objavljen" : "Nacrt"}</small></div><a className="ph-outline" href={`/owner/properties/${p.id}/preview`} aria-label={`Pregledaj: ${p.title}`}>Pregled oglasa</a><button className="ph-outline" disabled={busy} aria-label={`Blokade: ${p.title}`} onClick={() => setBlockListing(p)}>Zauzetost</button><button className="ph-outline" disabled={busy} aria-label={`Fotografije: ${p.title}`} onClick={() => setPhotoListing(p)}>Fotografije</button><button className="ph-outline" disabled={busy} onClick={() => { setHintFields(null); setEditing(p); setType(p.offer_type); setError(""); setMessage(""); }} aria-label={`Izmeni: ${p.title}`}>Izmeni</button></article>)}
       {page?.total === 0 && <p>Još nemaš oglase. Kreiraj prvi i sačuvaj ga kao nacrt ili objavi.</p>}
       <div className="ph-pagination"><button className="ph-outline" disabled={offset === 0 || busy} onClick={() => refresh(Math.max(0, offset - 20))}>Prethodna</button><button className="ph-outline" disabled={busy} onClick={() => refresh()}>Osveži oglase</button><button className="ph-outline" disabled={!page?.has_next || busy} onClick={() => refresh(offset + 20)}>Sledeća</button></div>
     </>}
