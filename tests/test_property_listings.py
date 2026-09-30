@@ -197,6 +197,7 @@ def test_migration_upgrade_and_downgrade_preserve_existing_venues():
             "max_guests",
             "minimum_nights",
             "maximum_nights",
+            "seasonal_rates",
             "timezone",
         }
         assert len(inspector.get_indexes("property_listings")) == 4

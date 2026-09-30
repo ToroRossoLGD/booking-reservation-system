@@ -93,6 +93,7 @@ The goal is one place for property discovery and owner management, with a reserv
 
 - Owners explicitly enable booking and set the guest capacity, minimum/maximum nights and property timezone.
 - Guests choose arrival, departure and guest count, view occupied nights and request a server-calculated quote.
+- Owners can set up to 24 seasonal price periods. Guests see an itemized nightly quote; confirmed stays retain the original prices. With dates, search filters use the average nightly amount and cards show the stay total. See [seasonal pricing](docs/seasonal-pricing.md).
 - Visitors can filter short-stay search results by arrival, departure and guest count. Matching listings respect confirmed stays, capacity, minimum nights and the property's local booking window; the selection prefills booking forms.
 - Confirmation rechecks price and availability. A reservation occupies the entire apartment, regardless of guest count.
 - PostgreSQL transaction locks protect against simultaneous overlapping reservations. Repeated requests return the existing reservation.
@@ -136,7 +137,7 @@ Planned work is grouped by suggested priority, not promised release dates. Check
 
 ### Larger booking and marketplace features
 
-- [ ] Seasonal nightly rates with an itemized quote and preserved booked prices.
+- [x] Seasonal nightly rates with an itemized quote and preserved booked prices.
 - [ ] Advance-booking windows and preparation gaps between stays.
 - [ ] External calendar synchronization, conflict reporting and last-sync status.
 - [ ] Online short-stay payments and deposits, including refunds and failed-payment recovery.

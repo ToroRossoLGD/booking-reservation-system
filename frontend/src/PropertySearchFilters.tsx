@@ -54,6 +54,7 @@ export default function PropertySearchFilters({ offer, value, onApply }: {
         <label>Odlazak u pretrazi<input type="date" value={departure} onChange={e => setDeparture(e.target.value)} /></label>
         <label>Broj gostiju u pretrazi<input type="number" min="1" max="100" step="1" value={guests} onChange={e => setGuests(e.target.value)} /></label>
       </>}
+      {offer === "short_stay" && <p className="ph-filter-help">Sa datumima: filter cene važi za prosek po noći, kartice prikazuju ukupan boravak. Bez datuma: osnovna cena van sezonskih perioda.</p>}
       <p className="ph-filter-help">{offer ? `Cena po jedinici: ${priceUnits[offer]}.` : "Za pretragu po ceni prvo izaberi vrstu ponude iznad."}</p>
       <label>Cena od<input type="number" min="0" max="10000000000" step="0.01" disabled={!offer} value={minPrice} onChange={e => setMinPrice(e.target.value)} /></label>
       <label>Cena do<input type="number" min="0" max="10000000000" step="0.01" disabled={!offer} value={maxPrice} onChange={e => setMaxPrice(e.target.value)} /></label>

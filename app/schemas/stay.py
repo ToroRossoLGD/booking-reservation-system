@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.schemas.seasonal_rate import NightlyPrice
 from app.schemas.stay_times import StayTime
 
 
@@ -21,6 +22,9 @@ class StayDates(BaseModel):
 
 
 class StayCreate(StayDates):
+    expected_nightly_prices: list[NightlyPrice] | None = Field(
+        default=None, max_length=90
+    )
     expected_check_in_time: StayTime | None = None
     expected_check_out_time: StayTime | None = None
     expected_timezone: str | None = Field(default=None, max_length=64)
@@ -30,6 +34,7 @@ class StayCreate(StayDates):
 
 
 class StayQuote(BaseModel):
+    nightly_prices: list[NightlyPrice] = Field(default_factory=list)
     check_in_time: StayTime | None = None
     check_out_time: StayTime | None = None
     nights: int
@@ -41,6 +46,7 @@ class StayQuote(BaseModel):
 
 
 class StayRead(BaseModel):
+    nightly_prices: list[NightlyPrice] | None = None
     check_in_time: StayTime | None = None
     check_out_time: StayTime | None = None
     model_config = ConfigDict(from_attributes=True)

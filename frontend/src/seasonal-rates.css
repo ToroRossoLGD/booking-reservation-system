@@ -1,0 +1,12 @@
+.seasonal-editor { padding: 18px; border: 1px solid #d8e2d6; border-radius: 12px; background: #f5f7f1; }
+.seasonal-editor > p, .seasonal-summary p { font-size: 13px; line-height: 1.6; }
+.seasonal-editor > small { display: block; margin-top: 10px; }
+.ph-property-form fieldset.seasonal-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; margin: 16px 0; padding: 14px; border: 1px solid #d8e2d6; border-radius: 8px; }
+.seasonal-row legend { font-weight: 600; }
+.seasonal-summary, .nightly-breakdown { margin: 16px 0; padding: 12px; background: #f5f7f1; border-radius: 8px; color: #253e35; }
+.seasonal-summary summary, .nightly-breakdown summary { cursor: pointer; font-weight: 600; padding: 4px; }
+.seasonal-summary li { margin: 10px 0; overflow-wrap: anywhere; }
+.nightly-breakdown-scroll { max-height: 300px; overflow: auto; margin-top: 10px; }
+.nightly-breakdown table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.nightly-breakdown th, .nightly-breakdown td { padding: 9px; border-bottom: 1px solid #d8e2d6; text-align: left; }
+.nightly-breakdown caption { text-align: left; padding: 8px; }

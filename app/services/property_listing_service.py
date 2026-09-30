@@ -8,10 +8,23 @@ from app.models.stay_block import StayBlock
 from app.models.user import User
 from app.repositories.property_listing_repository import PropertyListingRepository
 from app.repositories.venue_repository import VenueRepository
-from app.schemas.property_listing import PropertyListingPage, PropertyListingWrite
+from app.schemas.property_listing import (
+    PropertyListingPage,
+    PropertyListingRead,
+    PropertyListingWrite,
+)
+from app.services.nightly_pricing import nightly_prices
 
 
 class PropertyListingService:
+    @staticmethod
+    def values(data):
+        values = data.model_dump()
+        values["seasonal_rates"] = [
+            rate.model_dump(mode="json") for rate in data.seasonal_rates
+        ]
+        return values
+
     def __init__(self, db: AsyncSession):
         self.repository = PropertyListingRepository(db)
         self.venues = VenueRepository(db)
@@ -32,7 +45,7 @@ class PropertyListingService:
                 409,
                 "Nightly stays require a venue without hourly resources",
             )
-        return await self.repository.save(PropertyListing(**data.model_dump()))
+        return await self.repository.save(PropertyListing(**self.values(data)))
 
     async def update(self, listing_id: int, data: PropertyListingWrite, user: User):
         listing = await self.repository.get(listing_id, lock=True)
@@ -67,7 +80,7 @@ class PropertyListingService:
                 raise HTTPException(
                     409, "A listing with reservation history cannot change its venue"
                 )
-        for field, value in data.model_dump().items():
+        for field, value in self.values(data).items():
             setattr(listing, field, value)
         return await self.repository.save(listing)
 
@@ -88,6 +101,20 @@ class PropertyListingService:
             limit=limit,
             offset=offset,
         )
+        if filters.get("check_in") is not None:
+            items = [
+                PropertyListingRead.model_validate(item).model_copy(
+                    update={
+                        "stay_total_cents": sum(
+                            night.price_cents
+                            for night in nightly_prices(
+                                item, filters["check_in"], filters["check_out"]
+                            )
+                        )
+                    }
+                )
+                for item in items
+            ]
         return PropertyListingPage(
             items=items,
             total=total,

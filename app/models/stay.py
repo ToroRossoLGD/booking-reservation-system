@@ -1,6 +1,7 @@
 from datetime import UTC, date, datetime
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     CheckConstraint,
     Date,
@@ -45,6 +46,7 @@ class Stay(Base):
     check_out_time: Mapped[str | None] = mapped_column(String(5))
     contact_email: Mapped[str] = mapped_column(String(254))
     nightly_rate_cents: Mapped[int] = mapped_column(BigInteger)
+    nightly_prices: Mapped[list | None] = mapped_column(JSON, nullable=True)
     total_cents: Mapped[int] = mapped_column(BigInteger)
     currency: Mapped[str] = mapped_column(String(3))
     created_at: Mapped[datetime] = mapped_column(

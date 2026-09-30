@@ -14,6 +14,7 @@ from pydantic import (
 from app.schemas.property_details import PropertyDetails
 from app.schemas.property_photo import PropertyPhotoRead
 from app.schemas.rental_terms import RentalTerms
+from app.schemas.seasonal_rate import SeasonalRate
 from app.schemas.stay_times import StayTime
 
 OfferType = Literal["short_stay", "long_term", "sale"]
@@ -67,6 +68,7 @@ class PropertySearch(PropertyDetails):
 
 
 class PropertyListingWrite(PropertyDetails, RentalTerms):
+    seasonal_rates: list[SeasonalRate] = Field(default_factory=list, max_length=24)
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     venue_id: int = Field(gt=0)
@@ -99,6 +101,12 @@ class PropertyListingWrite(PropertyDetails, RentalTerms):
 
     @model_validator(mode="after")
     def booking_only_for_short_stays(self):
+        if self.seasonal_rates and self.offer_type != "short_stay":
+            raise ValueError("Seasonal rates apply only to nightly stays")
+        ordered = sorted(self.seasonal_rates, key=lambda rate: rate.start)
+        if any(first.end > second.start for first, second in zip(ordered, ordered[1:])):
+            raise ValueError("Seasonal rate periods must not overlap")
+        self.seasonal_rates = ordered
         if self.maximum_nights < self.minimum_nights:
             raise ValueError("Maximum nights must not be below minimum nights")
         if self.offer_type != "long_term" and any(
@@ -115,6 +123,7 @@ class PropertyListingWrite(PropertyDetails, RentalTerms):
 
 
 class PropertyListingRead(PropertyListingWrite):
+    stay_total_cents: int | None = None
     model_config = ConfigDict(from_attributes=True)
     id: int
     photos: list[PropertyPhotoRead] = Field(default_factory=list)

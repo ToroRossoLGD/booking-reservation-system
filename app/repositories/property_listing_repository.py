@@ -9,6 +9,7 @@ from app.models.resource import Resource
 from app.models.stay import Stay
 from app.models.stay_block import StayBlock
 from app.models.venue import Venue
+from app.repositories.seasonal_price_expression import StayTotal
 
 
 class PropertyListingRepository:
@@ -135,8 +136,24 @@ class PropertyListingRepository:
                 ) <= check_in and check_out <= today + timedelta(days=365):
                     eligible.append(timezone)
             filters.append(PropertyListing.timezone.in_(eligible))
+        price = PropertyListing.price_cents
+        if check_in is not None:
+            nights = (check_out - check_in).days
+            price = StayTotal(
+                PropertyListing.seasonal_rates,
+                PropertyListing.price_cents,
+                check_in,
+                check_out,
+            )
+            # Price filters remain per night: compare exact totals to bounds * nights.
+            min_price_cents = (
+                None if min_price_cents is None else min_price_cents * nights
+            )
+            max_price_cents = (
+                None if max_price_cents is None else max_price_cents * nights
+            )
         for column, lower, upper in (
-            (PropertyListing.price_cents, min_price_cents, max_price_cents),
+            (price, min_price_cents, max_price_cents),
             (PropertyListing.area_sqm, min_area_sqm, max_area_sqm),
         ):
             if lower is not None:
@@ -145,8 +162,8 @@ class PropertyListingRepository:
                 filters.append(column <= upper)
         ordering = {
             "newest": PropertyListing.id.desc(),
-            "price_asc": PropertyListing.price_cents.asc(),
-            "price_desc": PropertyListing.price_cents.desc(),
+            "price_asc": price.asc(),
+            "price_desc": price.desc(),
             "area_desc": PropertyListing.area_sqm.desc(),
         }[sort]
         query = select(PropertyListing).join(Venue).where(*filters)
