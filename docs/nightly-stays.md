@@ -83,7 +83,8 @@ this test. Migration tests check old listing preservation and disabled defaults.
 Browser tests cover quote → confirmation → account view → cancellation, with
 deterministic API fixtures; component tests cover stale quotes and safe retries.
 
-Seasonal prices, external calendar imports, online payments, automated guest
+Seasonal prices are supported; see [seasonal pricing](seasonal-pricing.md).
+External calendar imports, online payments, automated guest
 emails, owner cancellation, rescheduling and
 long-term lease workflows remain separate work. Do not enable booking for a
 property also advertised elsewhere until its external reservations can be

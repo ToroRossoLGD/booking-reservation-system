@@ -1,3 +1,4 @@
+import { stayMoney } from "./stay-types";
 import type { StayDates } from "./stay-types";
 import { useState } from "react";
 import type { ReactNode } from "react";
@@ -20,7 +21,7 @@ export default function PropertyCard({ property: p, saveAction, stayDates }: { p
       <p className="ph-location"><span aria-hidden="true">⌖</span> {p.city}</p><h3><a href={`/properties/${p.id}${stayDates ? `?${new URLSearchParams({ ...stayDates, guests: String(stayDates.guests) })}` : ""}`}>{p.title}</a></h3>
       {!expanded && <p className="ph-card-preview">{p.description}</p>}
       <p className="ph-facts">{p.area_sqm} m² <span>·</span> {p.rooms === 0 ? "Garsonjera" : `Broj soba: ${p.rooms}`}</p>
-      <div className="ph-card-bottom"><p><strong>{propertyPrice(p)}</strong> / {priceUnits[p.offer_type]}</p>
+      <div className="ph-card-bottom"><p><strong>{stayDates && p.stay_total_cents != null ? stayMoney(p.stay_total_cents, p.currency) : propertyPrice(p)}</strong> / {stayDates && p.stay_total_cents != null ? "boravak" : priceUnits[p.offer_type]}{!stayDates && !!p.seasonal_rates?.length && <small> · Osnovna cena</small>}</p>
         <button aria-expanded={expanded} aria-controls={`property-${p.id}`} onClick={() => setExpanded(!expanded)} aria-label={`Detalji: ${p.title}`}>{expanded ? "Zatvori −" : "Detalji ↗"}</button>
       </div>
       <div id={`property-${p.id}`} className="ph-detail" hidden={!expanded}>

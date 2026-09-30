@@ -80,7 +80,7 @@ export default function PropertyDetailPage({ id }: { id: string }) {
             <PropertyFacts property={property} />
           </section>
           <aside className="property-detail-actions" aria-label="Cena i kontakt">
-            <p className="property-detail-price"><strong>{propertyPrice(property)}</strong> / {priceUnits[property.offer_type]}</p>
+            <p className="property-detail-price"><strong>{propertyPrice(property)}</strong> / {priceUnits[property.offer_type]}{!!property.seasonal_rates?.length && <small> · Osnovna cena</small>}</p>
             <SavePropertyButton propertyId={property.id} title={property.title} saved={saved} onChange={setSaved} />
             {saveError && <p role="alert">Status sačuvanog oglasa nije učitan. <button onClick={reload}>Pokušaj ponovo</button></p>}
             <div className="property-share">{typeof navigator.share === "function" && <button className="ph-outline" disabled={sharing} onClick={() => void shareListing()}>Podeli oglas</button>}<button className="ph-outline" disabled={sharing} onClick={() => void copyLink()}>Kopiraj link oglasa</button>{copied && <p role="status">Link je kopiran.</p>}{copyError && <label>Kopiraj adresu ručno<input readOnly value={url} onFocus={event => event.target.select()} /></label>}</div>

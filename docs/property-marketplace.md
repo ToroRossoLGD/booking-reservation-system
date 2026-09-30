@@ -67,9 +67,9 @@ use owner-uploaded cover photos when available and clearly labeled illustrations
 otherwise. See [property photos](property-photos.md) for upload limits, private
 storage setup and galleries. Existing resource favorites are unchanged.
 
-Short stays may use direct owner contact or opt in to fixed-price nightly
-booking with payment at the property. Seasonal pricing and online checkout
-are not included yet; see the nightly booking guide.
+Short stays may use direct owner contact or opt in to nightly booking with
+payment at the property, including [seasonal price periods](seasonal-pricing.md)
+and an itemized quote. Online checkout remains separate future work.
 
 ## Saved properties
 

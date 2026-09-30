@@ -1,6 +1,7 @@
 from datetime import date
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Boolean,
     CheckConstraint,
@@ -46,6 +47,9 @@ class PropertyListing(Base):
     area_sqm: Mapped[int] = mapped_column(Integer)
     rooms: Mapped[int] = mapped_column(Integer)
     price_cents: Mapped[int] = mapped_column(BigInteger)
+    seasonal_rates: Mapped[list] = mapped_column(
+        JSON, default=list, server_default="[]"
+    )
     currency: Mapped[str] = mapped_column(String(3))
     contact_email: Mapped[str] = mapped_column(String(254))
     is_published: Mapped[bool] = mapped_column(Boolean, default=False, index=True)

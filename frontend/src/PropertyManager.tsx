@@ -8,6 +8,8 @@ import "./property-home.css";
 import PropertyDetailFields from "./PropertyDetailFields";
 import RentalTermsFields from "./RentalTermsFields";
 import { readRentalTerms } from "./rental-terms";
+import SeasonalRateFields from "./SeasonalRateFields";
+import { readSeasonalRates } from "./seasonal-rates";
 import { readDetails } from "./property-details";
 
 const StayBlockManager = lazy(() => import("./StayBlockManager"));
@@ -57,7 +59,11 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
+    let seasonalRates;
+    try { seasonalRates = type === "short_stay" ? readSeasonalRates(fields) : []; }
+    catch (err) { setError(err instanceof Error ? err.message : "Proveri sezonske cene."); return; }
     const data: PropertyInput = {
+      seasonal_rates: seasonalRates,
       ...readDetails(fields),
       ...readRentalTerms(fields, type === "long_term"),
       venue_id: Number(fields.get("venue_id")), title: String(fields.get("title")),
@@ -113,6 +119,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
         <PropertyDetailFields value={current ?? {}} />
         {type === "long_term" && <RentalTermsFields value={current ?? {}} />}
         {type === "short_stay" && <>
+          <SeasonalRateFields rates={current?.seasonal_rates ?? []} />
           <label>Prijava od<input name="check_in_time" type="time" step="60" defaultValue={current ? current.check_in_time ?? "" : "14:00"} /></label>
           <label>Odjava do<input name="check_out_time" type="time" step="60" defaultValue={current ? current.check_out_time ?? "" : "11:00"} /></label>
           <small className="ph-form-wide">Unesi oba vremena ili ostavi oba prazna za dogovor sa gostom. Važe u vremenskoj zoni smeštaja. Izmene važe samo za nove rezervacije.</small>

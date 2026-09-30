@@ -5,7 +5,9 @@ from fastapi import HTTPException
 
 from app.models.stay import Stay
 from app.repositories.stay_repository import StayRepository
+from app.schemas.seasonal_rate import NightlyPrice
 from app.schemas.stay import OwnerStayPage, StayCalendar, StayPage, StayQuote, StayRead
+from app.services.nightly_pricing import nightly_prices
 from app.services.stay_notification_service import add_stay_notifications
 
 
@@ -44,10 +46,12 @@ class StayService:
             raise HTTPException(
                 400, f"Maximum number of guests is {listing.max_guests}"
             )
+        prices = nightly_prices(listing, data.check_in, data.check_out)
         return StayQuote(
+            nightly_prices=prices,
             nights=nights,
             nightly_rate_cents=listing.price_cents,
-            total_cents=nights * listing.price_cents,
+            total_cents=sum(night.price_cents for night in prices),
             currency=listing.currency,
             timezone=listing.timezone,
             check_in_time=listing.check_in_time,
@@ -72,6 +76,7 @@ class StayService:
         await self.repository.lock_user(user.id)
         previous = await self.repository.previous_request(user.id, data.request_id)
         if previous:
+            self.validate_expected_prices(previous, data)
             self.validate_expected_times(previous, data)
             if (
                 previous.property_id,
@@ -96,6 +101,7 @@ class StayService:
             raise HTTPException(400, "You cannot reserve your own property")
         quote = self.validate_dates(listing, data)
         self.validate_expected_times(quote, data)
+        self.validate_expected_prices(quote, data)
         if (data.expected_total_cents, data.expected_currency) != (
             quote.total_cents,
             quote.currency,
@@ -117,6 +123,9 @@ class StayService:
             check_out_time=listing.check_out_time,
             contact_email=listing.contact_email,
             nightly_rate_cents=quote.nightly_rate_cents,
+            nightly_prices=[
+                night.model_dump(mode="json") for night in quote.nightly_prices
+            ],
             total_cents=quote.total_cents,
             currency=quote.currency,
             status="confirmed",
@@ -129,6 +138,19 @@ class StayService:
         await self.repository.db.flush()
         add_stay_notifications(self.repository.db, stay, owner_id)
         return await self.repository.save(stay)
+
+    @staticmethod
+    def validate_expected_prices(terms, data):
+        if data.expected_nightly_prices is not None:
+            expected = [
+                night.model_dump(mode="json") for night in data.expected_nightly_prices
+            ]
+            actual = [
+                NightlyPrice.model_validate(night).model_dump(mode="json")
+                for night in (terms.nightly_prices or [])
+            ]
+            if expected != actual:
+                raise HTTPException(409, "Nightly prices changed. Request a new quote")
 
     @staticmethod
     def validate_expected_times(terms, data):
