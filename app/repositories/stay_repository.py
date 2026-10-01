@@ -1,3 +1,6 @@
+from datetime import timedelta
+from types import SimpleNamespace
+
 from sqlalchemy import and_, false, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +9,7 @@ from app.models.stay import Stay
 from app.models.stay_block import StayBlock
 from app.models.user import User
 from app.models.venue import Venue
+from app.repositories.preparation_gap import venue_gap
 
 
 class StayRepository:
@@ -35,14 +39,17 @@ class StayRepository:
             )
         )
 
-    async def occupied(self, venue_id, start, end):
+    async def preparation_days(self, venue_id):
+        return await self.db.scalar(select(venue_gap(venue_id))) or 0
+
+    async def occupied(self, venue_id, start, end, preparation_days=0):
         result = await self.db.scalars(
             select(Stay)
             .where(
                 Stay.venue_id == venue_id,
                 Stay.status == "confirmed",
-                Stay.check_in < end,
-                Stay.check_out > start,
+                Stay.check_in < end + timedelta(days=preparation_days),
+                Stay.check_out > start - timedelta(days=preparation_days),
             )
             .order_by(Stay.check_in)
         )
@@ -56,7 +63,16 @@ class StayRepository:
             )
             .order_by(StayBlock.check_in)
         )
-        return sorted([*result.all(), *blocks.all()], key=lambda item: item.check_in)
+        stays = list(result.all())
+        if preparation_days:
+            gap = timedelta(days=preparation_days)
+            stays = [
+                SimpleNamespace(
+                    check_in=stay.check_in - gap, check_out=stay.check_out + gap
+                )
+                for stay in stays
+            ]
+        return sorted([*stays, *blocks.all()], key=lambda item: item.check_in)
 
     async def save(self, stay):
         self.db.add(stay)

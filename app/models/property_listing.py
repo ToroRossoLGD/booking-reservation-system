@@ -59,6 +59,9 @@ class PropertyListing(Base):
     maximum_nights: Mapped[int] = mapped_column(
         Integer, default=90, server_default="90"
     )
+    preparation_days: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0"
+    )
     advance_notice_days: Mapped[int] = mapped_column(
         Integer, default=1, server_default="1"
     )

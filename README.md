@@ -95,6 +95,7 @@ The goal is one place for property discovery and owner management, with a reserv
 
 - Owners explicitly enable booking and set the guest capacity, minimum/maximum nights and property timezone.
 - Owners can also set advance notice for arrival and a departure horizon, enforced in search and booking using local calendar dates. See [booking windows](docs/booking-windows.md).
+- Owners can require 0–7 preparation days between stays. Search, booking and the calendar apply the longest gap among booking-enabled listings of the same apartment. See [preparation gaps](docs/preparation-gaps.md).
 - Guests choose arrival, departure and guest count, view occupied nights and request a server-calculated quote.
 - Owners can set up to 24 seasonal price periods. Guests see an itemized nightly quote; confirmed stays retain the original prices. With dates, search filters use the average nightly amount and cards show the stay total. See [seasonal pricing](docs/seasonal-pricing.md).
 - Visitors can filter short-stay search results by arrival, departure and guest count. Matching listings respect confirmed stays, capacity, minimum nights and the property's local booking window; the selection prefills booking forms.
@@ -142,7 +143,7 @@ Planned work is grouped by suggested priority, not promised release dates. Check
 
 - [x] Seasonal nightly rates with an itemized quote and preserved booked prices.
 - [x] Owner-defined advance-booking notice and departure windows for short stays, enforced in search, quotes and confirmation.
-- [ ] Preparation gaps between stays.
+- [x] Preparation gaps between stays, shared across booking-enabled listings for the same apartment.
 - [ ] External calendar synchronization, conflict reporting and last-sync status.
 - [ ] Online short-stay payments and deposits, including refunds and failed-payment recovery.
 - [ ] Email/push delivery and stay/viewing reminders with preferences and delivery tracking.

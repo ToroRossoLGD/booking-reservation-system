@@ -14,6 +14,13 @@ beforeEach(() => {
   vi.mocked(api.stayQuote).mockResolvedValue({ nights: 2, nightly_rate_cents: 6500, total_cents: 13000, currency: "EUR", timezone: "Europe/Belgrade", check_in_time: "15:00", check_out_time: "10:30", payment_method: "pay_on_arrival" });
 });
 
+it("shows the effective shared preparation gap returned by the calendar", async () => {
+  const today = propertyToday("Europe/Belgrade");
+  vi.mocked(api.stayCalendar).mockResolvedValue({ start: today, end: shiftDate(today, 30), preparation_days: 3, occupied: [{ check_in: today, check_out: shiftDate(today, 3) }] });
+  render(<StayBooking property={{ ...property, preparation_days: 1 }} />);
+  expect(await screen.findByText(/Pauza između boravaka: 3 dana/)).toBeVisible();
+});
+
 it("prefills and constrains dates using the owner's booking window", async () => {
   const user = userEvent.setup();
   render(<StayBooking property={{ ...property, advance_notice_days: 7, booking_window_days: 30 }} />);

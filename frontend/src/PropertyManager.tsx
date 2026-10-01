@@ -99,6 +99,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
       max_guests: Number(fields.get("max_guests") ?? current?.max_guests ?? 2),
       minimum_nights: Number(fields.get("minimum_nights") ?? current?.minimum_nights ?? 1),
       maximum_nights: Number(fields.get("maximum_nights") ?? current?.maximum_nights ?? 90),
+      preparation_days: type === "short_stay" ? Number(fields.get("preparation_days") ?? 0) : 0,
       advance_notice_days: type === "short_stay" ? Number(fields.get("advance_notice_days") ?? 1) : 1,
       booking_window_days: type === "short_stay" ? Number(fields.get("booking_window_days") ?? 365) : 365,
       timezone: String(fields.get("timezone") ?? current?.timezone ?? "Europe/Belgrade"),
@@ -146,6 +147,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
         {type === "long_term" && <RentalTermsFields value={current ?? {}} />}
         {type === "short_stay" && <>
           <SeasonalRateFields rates={current?.seasonal_rates ?? []} />
+          <label>Pauza za pripremu (dana)<input name="preparation_days" type="number" min={0} max={7} required defaultValue={current?.preparation_days ?? 0} /><small>0 dozvoljava smenu gostiju istog dana. Za isti objekat važi najduža pauza među oglasima sa uključenim rezervacijama, uključujući nacrte. Postojeće rezervacije ostaju nepromenjene.</small></label>
           <label>Najava dolaska (dana unapred)<input name="advance_notice_days" type="number" min={1} max={90} required defaultValue={current?.advance_notice_days ?? 1} /></label>
           <label>Rok odlaska (dana unapred)<input name="booking_window_days" type="number" min={2} max={365} required defaultValue={current?.booking_window_days ?? 365} /></label>
           <small className="ph-form-wide">Rok se računa od današnjeg datuma u zoni smeštaja i mora obuhvatiti najavu i minimalan boravak. Promene važe za nove rezervacije; postojeće ostaju nepromenjene.</small>

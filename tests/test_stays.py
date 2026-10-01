@@ -417,6 +417,45 @@ async def test_postgres_concurrent_overlap_and_retries(monkeypatch):
         )
         assert isinstance(retries[0], int) and retries[0] == retries[1]
 
+        # Adjacent reservations through different aliases must respect preparation.
+        async with sessions() as db:
+            sibling = await db.get(PropertyListing, 2)
+            sibling.preparation_days = 2
+            await db.commit()
+        early = booking(
+            check_in=TODAY + timedelta(days=40), check_out=TODAY + timedelta(days=43)
+        )
+        late = booking(
+            check_in=TODAY + timedelta(days=43), check_out=TODAY + timedelta(days=46)
+        )
+        gap_race = await asyncio.gather(
+            attempt(1, early, GUEST), attempt(2, late, OTHER)
+        )
+        assert sum(isinstance(result, int) for result in gap_race) == 1
+        rejected = late if isinstance(gap_race[0], int) else early
+        from datetime import datetime
+
+        from app.repositories import property_listing_repository as search_module
+        from app.repositories.property_listing_repository import (
+            PropertyListingRepository,
+        )
+
+        monkeypatch.setattr(
+            search_module,
+            "datetime",
+            SimpleNamespace(
+                now=lambda tz: datetime.combine(TODAY, datetime.min.time(), tzinfo=tz)
+            ),
+        )
+
+        async with sessions() as db:
+            items, total = await PropertyListingRepository(db).search(
+                offer_type="short_stay",
+                check_in=rejected.check_in,
+                check_out=rejected.check_out,
+                guests=2,
+            )
+            assert total == 0 and not items
     finally:
         async with engine.begin() as connection:
             await connection.execute(DropSchema(schema, cascade=True, if_exists=True))

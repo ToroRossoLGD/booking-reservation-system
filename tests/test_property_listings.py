@@ -197,6 +197,7 @@ def test_migration_upgrade_and_downgrade_preserve_existing_venues():
             "max_guests",
             "minimum_nights",
             "maximum_nights",
+            "preparation_days",
             "advance_notice_days",
             "booking_window_days",
             "seasonal_rates",

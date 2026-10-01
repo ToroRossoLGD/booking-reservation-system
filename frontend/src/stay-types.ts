@@ -16,7 +16,7 @@ export type StayQuote = StayTimes & { nightly_prices?: NightlyPrice[]; nights: n
 export type Stay = StayDates & StayTimes & { nightly_prices?: NightlyPrice[] | null; id: number; property_id: number; status: "confirmed" | "cancelled"; title: string; city: string; timezone: string; contact_email: string; guest_email?: string | null; nightly_rate_cents: number; total_cents: number; currency: string; created_at: string; payment_method: "pay_on_arrival" };
 export type OwnerStayFilters = { property_id?: number; status?: "confirmed" | "cancelled"; day?: "arrivals" | "departures" };
 export type StayPage = { items: Stay[]; total: number; has_next: boolean; arrivals_today?: number; departures_today?: number; properties?: { id: number; title: string }[] };
-export type StayCalendar = { start: string; end: string; occupied: { check_in: string; check_out: string }[] };
+export type StayCalendar = { preparation_days?: number; start: string; end: string; occupied: { check_in: string; check_out: string }[] };
 export type StayCreate = StayDates & { expected_nightly_prices?: NightlyPrice[]; request_id: string; expected_total_cents: number; expected_currency: string; expected_check_in_time?: string | null; expected_check_out_time?: string | null; expected_timezone?: string };
 
 export function stayMoney(cents: number, currency: string) {

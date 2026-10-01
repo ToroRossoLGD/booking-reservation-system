@@ -9,6 +9,7 @@ from app.models.resource import Resource
 from app.models.stay import Stay
 from app.models.stay_block import StayBlock
 from app.models.venue import Venue
+from app.repositories.preparation_gap import ShiftDays, venue_gap
 from app.repositories.seasonal_price_expression import StayTotal
 
 
@@ -116,8 +117,10 @@ class PropertyListingRepository:
                     .where(
                         Stay.venue_id == PropertyListing.venue_id,
                         Stay.status == "confirmed",
-                        Stay.check_in < check_out,
-                        Stay.check_out > check_in,
+                        ShiftDays(Stay.check_in, -venue_gap(PropertyListing.venue_id))
+                        < check_out,
+                        ShiftDays(Stay.check_out, venue_gap(PropertyListing.venue_id))
+                        > check_in,
                     )
                     .exists(),
                 ]
