@@ -31,12 +31,16 @@ class StayService:
 
     def validate_dates(self, listing, data):
         today = self.today(listing.timezone)
-        if data.check_in < today + timedelta(days=1):
+        notice = getattr(listing, "advance_notice_days", 1) or 1
+        window = getattr(listing, "booking_window_days", 365) or 365
+        if data.check_in < today + timedelta(days=notice):
             raise HTTPException(
-                400, "Arrival must be tomorrow or later in the property timezone"
+                400,
+                f"Arrival requires at least {notice} days notice "
+                "in the property timezone",
             )
-        if data.check_out > today + timedelta(days=365):
-            raise HTTPException(400, "Departure must be within the next 365 days")
+        if data.check_out > today + timedelta(days=window):
+            raise HTTPException(400, f"Departure must be within the next {window} days")
         nights = (data.check_out - data.check_in).days
         if nights < listing.minimum_nights:
             raise HTTPException(400, f"Minimum stay is {listing.minimum_nights} nights")

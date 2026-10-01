@@ -14,6 +14,21 @@ beforeEach(() => {
   vi.mocked(api.stayQuote).mockResolvedValue({ nights: 2, nightly_rate_cents: 6500, total_cents: 13000, currency: "EUR", timezone: "Europe/Belgrade", check_in_time: "15:00", check_out_time: "10:30", payment_method: "pay_on_arrival" });
 });
 
+it("prefills and constrains dates using the owner's booking window", async () => {
+  const user = userEvent.setup();
+  render(<StayBooking property={{ ...property, advance_notice_days: 7, booking_window_days: 30 }} />);
+  const today = propertyToday("Europe/Belgrade");
+  const arrival = screen.getByLabelText("Dolazak");
+  const departure = screen.getByLabelText("Odlazak");
+  expect(arrival).toHaveValue(shiftDate(today, 7));
+  expect(arrival).toHaveAttribute("min", shiftDate(today, 7));
+  expect(arrival).toHaveAttribute("max", shiftDate(today, 28));
+  expect(departure).toHaveAttribute("max", shiftDate(today, 30));
+  fireEvent.change(arrival, { target: { value: shiftDate(today, 6) } });
+  await user.click(screen.getByRole("button", { name: "Proveri dostupnost i cenu" }));
+  expect(api.stayQuote).not.toHaveBeenCalled();
+});
+
 it("limits departure by owner rules and updates the limit when arrival changes", async () => {
   const user = userEvent.setup();
   render(<StayBooking property={{ ...property, maximum_nights: 3 }} />);

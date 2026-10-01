@@ -86,6 +86,8 @@ class PropertyListingWrite(PropertyDetails, RentalTerms):
     max_guests: int = Field(default=2, ge=1, le=100)
     minimum_nights: int = Field(default=1, ge=1, le=30)
     maximum_nights: int = Field(default=90, ge=1, le=90)
+    advance_notice_days: int = Field(default=1, ge=1, le=90)
+    booking_window_days: int = Field(default=365, ge=2, le=365)
     timezone: str = Field(default="Europe/Belgrade", max_length=64)
     check_in_time: StayTime | None = None
     check_out_time: StayTime | None = None
@@ -107,6 +109,14 @@ class PropertyListingWrite(PropertyDetails, RentalTerms):
         if any(first.end > second.start for first, second in zip(ordered, ordered[1:])):
             raise ValueError("Seasonal rate periods must not overlap")
         self.seasonal_rates = ordered
+        if self.advance_notice_days + self.minimum_nights > self.booking_window_days:
+            raise ValueError(
+                "Booking window must allow advance notice and minimum stay"
+            )
+        if self.offer_type != "short_stay" and (
+            self.advance_notice_days != 1 or self.booking_window_days != 365
+        ):
+            raise ValueError("Booking windows apply only to nightly stays")
         if self.maximum_nights < self.minimum_nights:
             raise ValueError("Maximum nights must not be below minimum nights")
         if self.offer_type != "long_term" and any(

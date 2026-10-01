@@ -16,10 +16,12 @@ it("edits the nightly maximum and hides the control for other offers", async () 
   await user.click(await screen.findByRole("button", { name: "Izmeni: Stan na dan" }));
   const maximum = screen.getByLabelText(/Maksimalan broj noćenja/);
   expect(maximum).toHaveValue(14);
+  await user.clear(screen.getByLabelText("Najava dolaska (dana unapred)"));
+  await user.type(screen.getByLabelText("Najava dolaska (dana unapred)"), "3");
   await user.clear(maximum);
   await user.type(maximum, "7");
   await user.click(screen.getByRole("button", { name: "Sačuvaj oglas" }));
-  await waitFor(() => expect(api.updateProperty).toHaveBeenCalledWith(8, expect.objectContaining({ maximum_nights: 7 })));
+  await waitFor(() => expect(api.updateProperty).toHaveBeenCalledWith(8, expect.objectContaining({ maximum_nights: 7, advance_notice_days: 3 })));
   await user.click(await screen.findByRole("button", { name: "Izmeni: Stan na dan" }));
   await user.selectOptions(screen.getByLabelText("Vrsta ponude"), "sale");
   expect(screen.queryByLabelText(/Maksimalan broj noćenja/)).not.toBeInTheDocument();
@@ -46,9 +48,9 @@ it("publishes a property with the selected price unit and can withdraw it", asyn
   await user.click(screen.getByRole("checkbox"));
   await user.click(screen.getByRole("button", { name: "Sačuvaj oglas" }));
   const { id, ...input } = listing;
-  await waitFor(() => expect(api.createProperty).toHaveBeenCalledWith({ ...input, seasonal_rates: [], deposit_cents: null, monthly_bills_cents: null, available_from: null, minimum_rental_months: null, pets_policy: null, property_type: null, neighborhood: null, floor: null, heating: null, furnishing: null, has_elevator: null, has_parking: null, has_terrace: null, check_in_time: null, check_out_time: null, booking_enabled: false, max_guests: 2, minimum_nights: 1, maximum_nights: 90, timezone: "Europe/Belgrade" }));
+  await waitFor(() => expect(api.createProperty).toHaveBeenCalledWith({ ...input, seasonal_rates: [], advance_notice_days: 1, booking_window_days: 365, deposit_cents: null, monthly_bills_cents: null, available_from: null, minimum_rental_months: null, pets_policy: null, property_type: null, neighborhood: null, floor: null, heating: null, furnishing: null, has_elevator: null, has_parking: null, has_terrace: null, check_in_time: null, check_out_time: null, booking_enabled: false, max_guests: 2, minimum_nights: 1, maximum_nights: 90, timezone: "Europe/Belgrade" }));
   await user.click(await screen.findByRole("button", { name: `Izmeni: ${listing.title}` }));
   await user.click(screen.getByRole("checkbox"));
   await user.click(screen.getByRole("button", { name: "Sačuvaj oglas" }));
-  await waitFor(() => expect(api.updateProperty).toHaveBeenCalledWith(id, { ...input, seasonal_rates: [], deposit_cents: null, monthly_bills_cents: null, available_from: null, minimum_rental_months: null, pets_policy: null, property_type: null, neighborhood: null, floor: null, heating: null, furnishing: null, has_elevator: null, has_parking: null, has_terrace: null, is_published: false, check_in_time: null, check_out_time: null, booking_enabled: false, max_guests: 2, minimum_nights: 1, maximum_nights: 90, timezone: "Europe/Belgrade" }));
+  await waitFor(() => expect(api.updateProperty).toHaveBeenCalledWith(id, { ...input, seasonal_rates: [], advance_notice_days: 1, booking_window_days: 365, deposit_cents: null, monthly_bills_cents: null, available_from: null, minimum_rental_months: null, pets_policy: null, property_type: null, neighborhood: null, floor: null, heating: null, furnishing: null, has_elevator: null, has_parking: null, has_terrace: null, is_published: false, check_in_time: null, check_out_time: null, booking_enabled: false, max_guests: 2, minimum_nights: 1, maximum_nights: 90, timezone: "Europe/Belgrade" }));
 });
