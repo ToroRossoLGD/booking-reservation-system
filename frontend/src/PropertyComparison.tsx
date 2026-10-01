@@ -29,6 +29,7 @@ export default function PropertyComparison({ items, onRemove, onClear }: {
     ["Rezervacije u aplikaciji", p => p.booking_enabled ? "Da" : "Ne"],
     ["Maksimalno gostiju", p => p.max_guests ?? unknown],
     ["Minimum noćenja", p => p.minimum_nights ?? unknown],
+    ["Podešena pauza za pripremu (dana)", p => p.preparation_days ?? 0],
     ["Maksimum noćenja", p => p.maximum_nights ?? unknown],
     ["Najava dolaska (dana)", p => p.advance_notice_days ?? 1],
     ["Rok odlaska (dana unapred)", p => p.booking_window_days ?? 365],

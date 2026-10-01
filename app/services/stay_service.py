@@ -64,7 +64,10 @@ class StayService:
 
     async def assert_available(self, listing, data):
         if await self.repository.occupied(
-            listing.venue_id, data.check_in, data.check_out
+            listing.venue_id,
+            data.check_in,
+            data.check_out,
+            preparation_days=await self.repository.preparation_days(listing.venue_id),
         ):
             raise HTTPException(409, "These dates are no longer available")
 
@@ -169,10 +172,17 @@ class StayService:
         if not 1 <= (end - start).days <= 93:
             raise HTTPException(400, "Calendar range must be between 1 and 93 days")
         listing = await self.bookable_listing(property_id)
+        gap = await self.repository.preparation_days(listing.venue_id)
         return StayCalendar(
+            preparation_days=gap,
             start=start,
             end=end,
-            occupied=await self.repository.occupied(listing.venue_id, start, end),
+            occupied=await self.repository.occupied(
+                listing.venue_id,
+                start,
+                end,
+                preparation_days=gap,
+            ),
         )
 
     async def list(self, user, owner=False, offset=0, limit=20):

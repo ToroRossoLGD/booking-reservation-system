@@ -78,6 +78,7 @@ export default function StayBooking({ property, initialDates }: { property: Prop
   const weekday = (new Date(`${start}T12:00:00Z`).getUTCDay() + 6) % 7;
   return <section className="stay-booking" aria-label={`Rezervacija: ${property.title}`}>
     <h4>Rezerviši ceo stan</h4>
+    <p>Pauza između boravaka: {calendar?.preparation_days ?? property.preparation_days ?? 0} dana. Kalendar prikazuje i dane za pripremu kao nedostupne.</p>
     <p>Do {property.max_guests ?? 2} gostiju · Najmanje {minimum} noćenja · Najviše {maximum} noćenja</p>
     <SeasonalRateSummary rates={property.seasonal_rates} currency={property.currency} />
     <div className="stay-month"><button type="button" aria-label="Prethodni mesec" disabled={month <= today.slice(0, 7)} onClick={() => moveMonth(-1)}>‹</button><strong>{new Intl.DateTimeFormat("sr-Latn", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${start}T12:00:00Z`))}</strong><button type="button" aria-label="Sledeći mesec" disabled={month >= bookingEnd.slice(0, 7)} onClick={() => moveMonth(1)}>›</button></div>

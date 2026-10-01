@@ -32,6 +32,7 @@ export type PropertyInput = PropertyDetails & RentalTerms & {
   max_guests?: number;
   minimum_nights?: number;
   maximum_nights?: number;
+  preparation_days?: number;
   advance_notice_days?: number;
   booking_window_days?: number;
   timezone?: string;

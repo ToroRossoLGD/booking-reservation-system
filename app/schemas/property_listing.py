@@ -86,6 +86,7 @@ class PropertyListingWrite(PropertyDetails, RentalTerms):
     max_guests: int = Field(default=2, ge=1, le=100)
     minimum_nights: int = Field(default=1, ge=1, le=30)
     maximum_nights: int = Field(default=90, ge=1, le=90)
+    preparation_days: int = Field(default=0, ge=0, le=7)
     advance_notice_days: int = Field(default=1, ge=1, le=90)
     booking_window_days: int = Field(default=365, ge=2, le=365)
     timezone: str = Field(default="Europe/Belgrade", max_length=64)
@@ -103,6 +104,8 @@ class PropertyListingWrite(PropertyDetails, RentalTerms):
 
     @model_validator(mode="after")
     def booking_only_for_short_stays(self):
+        if self.preparation_days and self.offer_type != "short_stay":
+            raise ValueError("Preparation gaps apply only to nightly stays")
         if self.seasonal_rates and self.offer_type != "short_stay":
             raise ValueError("Seasonal rates apply only to nightly stays")
         ordered = sorted(self.seasonal_rates, key=lambda rate: rate.start)

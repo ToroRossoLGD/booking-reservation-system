@@ -92,6 +92,7 @@ class OccupiedDates(BaseModel):
 
 
 class StayCalendar(BaseModel):
+    preparation_days: int = 0
     start: date
     end: date
     occupied: list[OccupiedDates]
