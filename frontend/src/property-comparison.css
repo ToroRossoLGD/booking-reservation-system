@@ -1,0 +1,9 @@
+.property-comparison { margin: 1rem 0; padding: 1rem; border: 1px solid #b6caca; border-radius: 16px; background: #f4f9f8; color: #173f3d; min-width: 0; }
+.property-comparison button, .compare-toggle { padding: .6rem .8rem; margin-block: .25rem; cursor: pointer; border: 1px solid #789d98; border-radius: 8px; background: white; color: #173f3d; }
+.property-comparison button:disabled { opacity: .6; cursor: default; }
+.compare-toggle[aria-pressed="true"] { background: #173f3d; color: white; }
+.comparison-scroll { max-width: 100%; overflow-x: auto; }
+.comparison-scroll table { border-collapse: collapse; width: 100%; min-width: 560px; }
+.comparison-scroll th, .comparison-scroll td { text-align: left; vertical-align: top; padding: .8rem; border-bottom: 1px solid #b6caca; min-width: 140px; overflow-wrap: anywhere; }
+.comparison-scroll caption { text-align: left; padding-block: .75rem; }
+.comparison-scroll:focus-visible, .compare-toggle:focus-visible { outline: 2px solid #173f3d; outline-offset: 3px; }

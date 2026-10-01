@@ -82,6 +82,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - Listings include city, description, floor area, room count, price, currency and a public contact email.
 - Optional property details include apartment/house type, neighborhood, floor, heating, furnishing, elevator, parking and terrace. Visitors can view and filter by these details; unspecified values stay unknown.
 - Visitors can search by city and offer type, filter by price, floor area and exact room count (including studios), and sort by newest, price or largest area.
+- Visitors can compare up to three listings of the same offer type and currency from search results. Selection survives filtering and pagination until the page is reloaded. The mobile-scrollable table compares asking/base prices, property details and relevant rental/stay terms; unknown values remain explicit. Comparison uses data from selection time, so current terms and date-specific nightly prices should be checked on the listing.
 - Price filters and sorting require an offer type and currency so nightly, monthly and sale prices are not mixed. Applied filters stay active across result pages and can be cleared together.
 - Search filters and pagination persist in the URL, survive reload and browser Back/Forward, and can be shared using **Kopiraj link pretrage**.
 - Each listing has a shareable `/properties/{id}` page with photos, description, saving, owner contact and the relevant booking or inquiry form. Click its title in the catalog or saved listings to open it.
@@ -130,7 +131,7 @@ Planned work is grouped by suggested priority, not promised release dates. Check
 
 - [x] Private owner preview of saved drafts and published listings at `/owner/properties/{id}/preview`.
 - [ ] Saved-search alerts with explicit opt-in and notification preferences.
-- [ ] Compare selected properties side by side within the same offer type and currency.
+- [x] Compare selected properties side by side within the same offer type and currency.
 - [x] Clearer listing completeness hints for owners (photos, contact and rental terms).
 - [ ] Guest-requested stay date changes with owner approval and availability rechecks.
 - [ ] Listing reports and an owner/admin moderation workflow.
