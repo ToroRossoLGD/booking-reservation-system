@@ -41,8 +41,9 @@ city, timezone, arrival/departure times, nightly price and total are snapshotted
 
 ## Dates, price and concurrency
 
-- Arrival is tomorrow or later in the property's timezone; departure must be
-  within 365 days. Stays last 1–90 nights and respect the owner's minimum (1–30).
+- Arrival and departure respect the owner's [booking window](booking-windows.md)
+  in the property's timezone (defaults: arrival from tomorrow, departure within
+  365 days). Stays last 1–90 nights and respect the owner's minimum (1–30).
 - Guests must fit the owner's maximum (1–100), but booking always occupies the
   whole apartment. Price is per apartment/night, not per guest.
 - Calendar dates are stored as `DATE`. Nights are the difference between dates,

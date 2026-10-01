@@ -1,7 +1,7 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.property_listing import PropertyListing
@@ -131,11 +131,14 @@ class PropertyListingRepository:
             eligible = []
             for timezone in timezones:
                 today = now.astimezone(ZoneInfo(timezone)).date()
-                if today + timedelta(
-                    days=1
-                ) <= check_in and check_out <= today + timedelta(days=365):
-                    eligible.append(timezone)
-            filters.append(PropertyListing.timezone.in_(eligible))
+                eligible.append(
+                    and_(
+                        PropertyListing.timezone == timezone,
+                        PropertyListing.advance_notice_days <= (check_in - today).days,
+                        PropertyListing.booking_window_days >= (check_out - today).days,
+                    )
+                )
+            filters.append(or_(*eligible) if eligible else PropertyListing.id < 0)
         price = PropertyListing.price_cents
         if check_in is not None:
             nights = (check_out - check_in).days

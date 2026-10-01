@@ -13,9 +13,11 @@ export default function StayBooking({ property, initialDates }: { property: Prop
   const today = propertyToday(timezone);
   const minimum = property.minimum_nights ?? 1;
   const maximum = property.maximum_nights ?? 90;
-  const bookingEnd = shiftDate(today, 365);
-  const [arrival, setArrival] = useState(initialDates?.check_in ?? shiftDate(today, 1));
-  const [departure, setDeparture] = useState(initialDates?.check_out ?? shiftDate(today, 1 + minimum));
+  const notice = property.advance_notice_days ?? 1;
+  const bookingEnd = shiftDate(today, property.booking_window_days ?? 365);
+  const bookingStart = shiftDate(today, notice);
+  const [arrival, setArrival] = useState(initialDates?.check_in ?? bookingStart);
+  const [departure, setDeparture] = useState(initialDates?.check_out ?? shiftDate(today, notice + minimum));
   const [guests, setGuests] = useState(initialDates?.guests ?? 1);
   const [month, setMonth] = useState((initialDates?.check_in ?? today).slice(0, 7));
   const [calendar, setCalendar] = useState<StayCalendar | null>(null);
@@ -78,21 +80,21 @@ export default function StayBooking({ property, initialDates }: { property: Prop
     <h4>Rezerviši ceo stan</h4>
     <p>Do {property.max_guests ?? 2} gostiju · Najmanje {minimum} noćenja · Najviše {maximum} noćenja</p>
     <SeasonalRateSummary rates={property.seasonal_rates} currency={property.currency} />
-    <div className="stay-month"><button type="button" aria-label="Prethodni mesec" disabled={month <= today.slice(0, 7)} onClick={() => moveMonth(-1)}>‹</button><strong>{new Intl.DateTimeFormat("sr-Latn", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${start}T12:00:00Z`))}</strong><button type="button" aria-label="Sledeći mesec" disabled={month >= shiftDate(today, 365).slice(0, 7)} onClick={() => moveMonth(1)}>›</button></div>
+    <div className="stay-month"><button type="button" aria-label="Prethodni mesec" disabled={month <= today.slice(0, 7)} onClick={() => moveMonth(-1)}>‹</button><strong>{new Intl.DateTimeFormat("sr-Latn", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${start}T12:00:00Z`))}</strong><button type="button" aria-label="Sledeći mesec" disabled={month >= bookingEnd.slice(0, 7)} onClick={() => moveMonth(1)}>›</button></div>
     {calendarError ? <p role="alert">Kalendar nije dostupan. <button type="button" onClick={reloadCalendar}>Pokušaj ponovo</button></p> : !calendar ? <p role="status">Učitavanje kalendara…</p> : <><div className="stay-calendar" aria-label="Kalendar zauzetih noći">{["P", "U", "S", "Č", "P", "S", "N"].map((day, i) => <small key={i} aria-hidden="true">{day}</small>)}{Array.from({ length: weekday }, (_, i) => <span key={`blank-${i}`} />)}{days.map(day => {
       const occupied = calendar.occupied.some(range => range.check_in <= day && day < range.check_out);
-      const past = day <= today;
+      const past = day < bookingStart || day >= bookingEnd;
       return <span key={day} className={occupied ? "occupied" : past ? "past" : ""} aria-label={`${displayDate(day)}: ${occupied ? "zauzeto" : past ? "dolazak nije dostupan" : "slobodna noć"}`}>{Number(day.slice(-2))}</span>;
     })}</div><p className="stay-legend">Precrtano = zauzeta noć. Datum odlaska ne zauzima narednu noć.</p></>}
     <form onSubmit={event => { event.preventDefault(); checkPrice(); }}>
       <fieldset disabled={busy}>
-        <label>Dolazak<input type="date" required value={arrival} min={shiftDate(today, 1)} max={shiftDate(today, 364)} onChange={event => { setArrival(event.target.value); invalidate(); }} /></label>
-        <label>Odlazak<input type="date" required value={departure} min={arrival ? shiftDate(arrival, minimum) : shiftDate(today, 2)} max={arrival && shiftDate(arrival, maximum) < bookingEnd ? shiftDate(arrival, maximum) : bookingEnd} onChange={event => { setDeparture(event.target.value); invalidate(); }} /></label>
+        <label>Dolazak<input type="date" required value={arrival} min={bookingStart} max={shiftDate(bookingEnd, -minimum)} onChange={event => { setArrival(event.target.value); invalidate(); }} /></label>
+        <label>Odlazak<input type="date" required value={departure} min={arrival ? shiftDate(arrival, minimum) : shiftDate(bookingStart, minimum)} max={arrival && shiftDate(arrival, maximum) < bookingEnd ? shiftDate(arrival, maximum) : bookingEnd} onChange={event => { setDeparture(event.target.value); invalidate(); }} /></label>
         <label>Broj gostiju<input type="number" required min={1} max={property.max_guests ?? 2} value={guests} onChange={event => { setGuests(Number(event.target.value)); invalidate(); }} /></label>
         <button className="ph-outline" type="submit">{busy ? "Provera…" : "Proveri dostupnost i cenu"}</button>
       </fieldset>
     </form>
-    <p className="stay-legend">Datumi važe u zoni {timezone}. Dolazak je moguć od sutra, a boravak traje do {maximum} noći.</p>
+    <p className="stay-legend">Datumi važe u zoni {timezone}. Dolazak od {displayDate(bookingStart)}, odlazak najkasnije {displayDate(bookingEnd)}. Boravak traje do {maximum} noći.</p>
     {error && <p role="alert">{error} {needsLogin && <a href="/account">Prijavi se ↗</a>}</p>}
     {quote && <div className="stay-quote"><StayTimes {...quote} />{quote.nightly_prices?.length ? <NightlyPriceBreakdown prices={quote.nightly_prices} currency={quote.currency} /> : <p>{quote.nights} noćenja × {stayMoney(quote.nightly_rate_cents, quote.currency)}</p>}<strong>Ukupno {stayMoney(quote.total_cents, quote.currency)}</strong><p>Plaćanje kod domaćina. Sada ništa ne naplaćujemo. Besplatno otkazivanje pre dana dolaska.</p><button className="ph-primary" type="button" disabled={busy} onClick={reserve}>{busy ? "Potvrđivanje…" : "Potvrdi rezervaciju"}</button></div>}
   </section>;

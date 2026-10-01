@@ -44,7 +44,7 @@ export default function OwnerPropertyPreview({ id }: { id: string }) {
         <p className="property-detail-price"><strong>{propertyPrice(property)}</strong> / {priceUnits[property.offer_type]}</p>
         <p>Javni kontakt: {property.contact_email}</p>
         {property.offer_type === "long_term" && <RentalTermsDisplay terms={property} currency={property.currency} />}
-        {property.offer_type === "short_stay" && <><p>{property.booking_enabled ? "Rezervacije uključene" : "Rezervacije isključene"}</p><p>Do {property.max_guests ?? 2} gostiju · {property.minimum_nights ?? 1}–{property.maximum_nights ?? 90} noćenja</p><StayTimes {...property} /><SeasonalRateSummary rates={property.seasonal_rates} currency={property.currency} /></>}
+        {property.offer_type === "short_stay" && <><p>{property.booking_enabled ? "Rezervacije uključene" : "Rezervacije isključene"}</p><p>Do {property.max_guests ?? 2} gostiju · {property.minimum_nights ?? 1}–{property.maximum_nights ?? 90} noćenja</p><p>Najava dolaska: {property.advance_notice_days ?? 1} dana. Rok odlaska: {property.booking_window_days ?? 365} dana unapred.</p><StayTimes {...property} /><SeasonalRateSummary rates={property.seasonal_rates} currency={property.currency} /></>}
       </aside></div>
     </>}
   </main></div>;

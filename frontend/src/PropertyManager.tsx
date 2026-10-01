@@ -79,6 +79,9 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
+    if (type === "short_stay" && Number(fields.get("advance_notice_days")) + Number(fields.get("minimum_nights")) > Number(fields.get("booking_window_days"))) {
+      setError("Rok odlaska mora obuhvatiti najavu dolaska i minimalan broj noćenja."); return;
+    }
     let seasonalRates;
     try { seasonalRates = type === "short_stay" ? readSeasonalRates(fields) : []; }
     catch (err) { setError(err instanceof Error ? err.message : "Proveri sezonske cene."); return; }
@@ -96,6 +99,8 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
       max_guests: Number(fields.get("max_guests") ?? current?.max_guests ?? 2),
       minimum_nights: Number(fields.get("minimum_nights") ?? current?.minimum_nights ?? 1),
       maximum_nights: Number(fields.get("maximum_nights") ?? current?.maximum_nights ?? 90),
+      advance_notice_days: type === "short_stay" ? Number(fields.get("advance_notice_days") ?? 1) : 1,
+      booking_window_days: type === "short_stay" ? Number(fields.get("booking_window_days") ?? 365) : 365,
       timezone: String(fields.get("timezone") ?? current?.timezone ?? "Europe/Belgrade"),
       check_in_time: type === "short_stay" ? String(fields.get("check_in_time") ?? "") || null : null,
       check_out_time: type === "short_stay" ? String(fields.get("check_out_time") ?? "") || null : null,
@@ -141,6 +146,9 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
         {type === "long_term" && <RentalTermsFields value={current ?? {}} />}
         {type === "short_stay" && <>
           <SeasonalRateFields rates={current?.seasonal_rates ?? []} />
+          <label>Najava dolaska (dana unapred)<input name="advance_notice_days" type="number" min={1} max={90} required defaultValue={current?.advance_notice_days ?? 1} /></label>
+          <label>Rok odlaska (dana unapred)<input name="booking_window_days" type="number" min={2} max={365} required defaultValue={current?.booking_window_days ?? 365} /></label>
+          <small className="ph-form-wide">Rok se računa od današnjeg datuma u zoni smeštaja i mora obuhvatiti najavu i minimalan boravak. Promene važe za nove rezervacije; postojeće ostaju nepromenjene.</small>
           <label>Prijava od<input name="check_in_time" type="time" step="60" defaultValue={current ? current.check_in_time ?? "" : "14:00"} /></label>
           <label>Odjava do<input name="check_out_time" type="time" step="60" defaultValue={current ? current.check_out_time ?? "" : "11:00"} /></label>
           <small className="ph-form-wide">Unesi oba vremena ili ostavi oba prazna za dogovor sa gostom. Važe u vremenskoj zoni smeštaja. Izmene važe samo za nove rezervacije.</small>
