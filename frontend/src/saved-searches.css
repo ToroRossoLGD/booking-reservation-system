@@ -1,0 +1,9 @@
+.saved-searches { margin: 1.5rem 0; padding: 1.25rem; border: 1px solid #b6caca; border-radius: 16px; background: #f4f9f8; color: #173f3d; }
+.saved-searches form { display: flex; gap: .75rem; align-items: end; flex-wrap: wrap; }
+.saved-searches label { display: grid; gap: .4rem; flex: 1 1 240px; min-width: 0; }
+.saved-searches input { width: 100%; box-sizing: border-box; padding: .8rem; border: 1px solid #789d98; border-radius: 8px; font: inherit; }
+.saved-searches ul { list-style: none; padding: 0; }
+.saved-searches li { display: flex; align-items: center; justify-content: space-between; gap: .75rem; border-top: 1px solid #b6caca; padding-block: .75rem; }
+.saved-searches li a { overflow-wrap: anywhere; min-width: 0; }
+.saved-searches button { white-space: normal; }
+.saved-searches li button { flex-shrink: 0; }
