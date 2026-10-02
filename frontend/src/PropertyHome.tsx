@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { propertySearchPath, readPropertySearch } from "./property-search-url";
 import type { PropertySearchState } from "./property-search-url";
 import ShareSearchButton from "./ShareSearchButton";
+import SavedSearches from "./SavedSearches";
 import { api } from "./api";
 import PropertySearchFilters from "./PropertySearchFilters";
 import PropertyCard from "./PropertyCard";
@@ -129,6 +130,7 @@ export default function PropertyHome() {
         <PropertySearchFilters key={`${offer}-${filterReset}`} offer={offer} value={filters} onApply={next => search(location, offer, next)} />
       </section>
       <ShareSearchButton key={searchPath} path={searchPath} />
+      <SavedSearches path={searchPath} />
       <section className="ph-listings" id="ponuda" aria-busy={loading}>
         <div className="ph-section-heading"><div><p className="ph-eyebrow">PROSTORI ZA TVOJE PLANOVE</p><h2>Mesto koje ti pristaje.</h2></div><a href="/owner" className="ph-outline">Dodaj svoju nekretninu</a></div>
         <PropertyComparison items={compared} onRemove={id => { setCompared(items => items.filter(item => item.id !== id)); setComparisonError(""); }} onClear={() => { setCompared([]); setComparisonError(""); }} />

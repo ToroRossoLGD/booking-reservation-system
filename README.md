@@ -85,6 +85,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - Visitors can compare up to three listings of the same offer type and currency from search results. Selection survives filtering and pagination until the page is reloaded. The mobile-scrollable table compares asking/base prices, property details and relevant rental/stay terms; unknown values remain explicit. Comparison uses data from selection time, so current terms and date-specific nightly prices should be checked on the listing.
 - Price filters and sorting require an offer type and currency so nightly, monthly and sale prices are not mixed. Applied filters stay active across result pages and can be cleared together.
 - Search filters and pagination persist in the URL, survive reload and browser Back/Forward, and can be shared using **Kopiraj link pretrage**.
+- Visitors can name and save up to 10 searches in the current browser, reopen their filters from page one, rename matching searches or remove them. These searches persist across reloads without login; they are local to the browser profile and do not send alerts. Saved dates remain unchanged. See [saved searches](docs/saved-searches.md).
 - Each listing has a shareable `/properties/{id}` page with photos, description, saving, owner contact and the relevant booking or inquiry form. Click its title in the catalog or saved listings to open it.
 - Signed-in users can save listings of any offer type and revisit them on `/saved`, with current prices and direct access to booking or rental inquiries.
 - Owners can upload up to 12 photos per listing, select a cover, reorder and delete them; visitors can open a full-screen gallery on desktop and mobile.
@@ -132,7 +133,8 @@ Planned work is grouped by suggested priority, not promised release dates. Check
 ### Next practical improvements
 
 - [x] Private owner preview of saved drafts and published listings at `/owner/properties/{id}/preview`.
-- [ ] Saved-search alerts with explicit opt-in and notification preferences.
+- [x] Named saved searches in the current browser, with filter restoration, renaming and removal.
+- [ ] Account-synced saved searches and alerts with explicit opt-in and notification preferences.
 - [x] Compare selected properties side by side within the same offer type and currency.
 - [x] Clearer listing completeness hints for owners (photos, contact and rental terms).
 - [ ] Guest-requested stay date changes with owner approval and availability rechecks.
