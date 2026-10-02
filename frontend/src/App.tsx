@@ -944,7 +944,7 @@ export default function App() {
           }}
         />
       ) : (
-        <main id="top">
+        <main id="main-content" tabIndex={-1}><span id="top" aria-hidden="true" />
           <section className="hero">
             <div className="hero-glow one" />
             <div className="hero-glow two" />

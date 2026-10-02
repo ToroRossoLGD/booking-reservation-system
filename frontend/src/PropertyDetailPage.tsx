@@ -69,7 +69,7 @@ export default function PropertyDetailPage({ id }: { id: string }) {
 
   return <div className="property-home property-detail-page">
     <header className="ph-header"><a className="ph-brand" href="/">bookica.</a><nav aria-label="Navigacija oglasa"><a href="/saved">Sačuvani oglasi</a><a href="/account">Moj nalog</a></nav></header>
-    <main>
+    <main id="main-content" tabIndex={-1}>
       <a className="ph-text-link" href="/">← Svi oglasi</a>
       {!validId || error === "missing" ? <section className="ph-empty"><h1>Oglas nije dostupan.</h1><p>Možda je povučen ili link nije ispravan.</p></section> : error ? <section className="ph-empty" role="alert"><h1>Oglas trenutno nije učitan.</h1><button className="ph-outline" onClick={reload}>Pokušaj ponovo</button></section> : !property ? <p role="status">Učitavanje oglasa…</p> : <>
         <div className="property-detail-heading"><p className="ph-eyebrow">{offerLabels[property.offer_type]} · {property.city}</p><h1>{property.title}</h1><p>{property.area_sqm} m² · {property.rooms === 0 ? "Garsonjera" : `Broj soba: ${property.rooms}`}</p></div>

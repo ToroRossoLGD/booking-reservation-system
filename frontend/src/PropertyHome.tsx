@@ -112,7 +112,7 @@ export default function PropertyHome() {
       <a className="ph-outline" href="/owner">Objavi oglas ↗</a>
     </header>
     <nav className="ph-mobile-nav" aria-label="Mobilna navigacija"><a href="#ponuda">Ponuda</a><a href="/saved">Sačuvano</a><a href="/stays">Boravci</a><a href="/rentals">Upiti</a><a href="/account">Moj nalog ↗</a></nav>
-    <main>
+    <main id="main-content" tabIndex={-1}>
       <section className="ph-hero">
         <div className="ph-hero-copy"><p className="ph-eyebrow"><span className="ph-live-dot" /> TVOJE MESTO. TVOJ RITAM.</p><h1>Negde te čeka<br />tvoj <em>novi pogled.</em></h1><p>Za nekoliko dana, novo poglavlje ili ceo život.<br />Pronađi prostor u kom želiš da budeš.</p><a href="#ponuda" className="ph-text-link">Pronađi svoje mesto <span>↗</span></a><div className="ph-hero-note"><span aria-hidden="true">⌂</span><p>Jedna adresa za tvoje planove.<small>Odmor · Dugoročni najam · Novi dom</small></p></div></div>
         <div className="ph-hero-art" role="img" aria-label="Ilustracija sunčane kuće među zelenim brdima"><div className="ph-sun" /><div className="ph-hill ph-hill-back" /><div className="ph-hill" /><div className="ph-house"><div className="ph-window" /><div className="ph-door" /></div><span className="ph-art-caption">Manje svakodnevice. Više tvog sveta.</span></div>

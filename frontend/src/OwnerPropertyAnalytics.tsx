@@ -32,7 +32,7 @@ export default function OwnerPropertyAnalytics() {
     for (const [currency, cents] of Object.entries(month.booked_value_cents)) values[currency] = (values[currency] ?? 0) + cents;
   }
   const maximum = Math.max(1, ...(data?.months.map(month => month[metric]) ?? []));
-  return <div className="stay-page analytics-page"><header><a className="ph-brand" href="/">bookica.</a><a href="/owner">Vlasnički panel ↗</a></header><main>
+  return <div className="stay-page analytics-page"><header><a className="ph-brand" href="/">bookica.</a><a href="/owner">Vlasnički panel ↗</a></header><main id="main-content" tabIndex={-1}>
     <p className="ph-eyebrow">TVOJI OGLASI</p><h1>Analitika nekretnina</h1><p>Pregledi oglasa i mesečni pregled rezervacija stana na dan.</p>
     <nav className="stay-page-nav"><a href="/owner/stays">Rezervacije stanova</a><a href="/owner/rentals">Upiti za najam</a></nav>
     <form className="analytics-filters" onSubmit={event => { event.preventDefault(); setYear(Number(yearInput)); refresh(); }}>

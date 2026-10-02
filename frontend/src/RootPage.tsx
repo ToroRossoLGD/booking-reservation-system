@@ -5,19 +5,24 @@ import PropertyHome from "./PropertyHome";
 import StaysPage from "./StaysPage";
 import RentalInquiriesPage from "./RentalInquiriesPage";
 import SavedPropertiesPage from "./SavedPropertiesPage";
+import SkipToContent from "./SkipToContent";
 
 const PropertyDetailPage = lazy(() => import("./PropertyDetailPage"));
 const OwnerPropertyPreview = lazy(() => import("./OwnerPropertyPreview"));
 const OwnerPropertyAnalytics = lazy(() => import("./OwnerPropertyAnalytics"));
 
 export default function RootPage() {
+  return <><SkipToContent /><PageContent /></>;
+}
+
+function PageContent() {
   const { pathname } = useLocation();
   const preview = pathname.match(/^\/owner\/properties\/([^/]+)\/preview\/?$/);
-  if (preview) return <Suspense fallback={<p role="status">Učitavanje pregleda…</p>}><OwnerPropertyPreview key={preview[1]} id={preview[1]} /></Suspense>;
-  if (pathname === "/owner/analytics") return <Suspense fallback={<p role="status">Učitavanje analitike…</p>}><OwnerPropertyAnalytics /></Suspense>;
+  if (preview) return <Suspense fallback={<main id="main-content" tabIndex={-1}><p role="status">Učitavanje pregleda…</p></main>}><OwnerPropertyPreview key={preview[1]} id={preview[1]} /></Suspense>;
+  if (pathname === "/owner/analytics") return <Suspense fallback={<main id="main-content" tabIndex={-1}><p role="status">Učitavanje analitike…</p></main>}><OwnerPropertyAnalytics /></Suspense>;
   if (pathname.startsWith("/properties/")) {
     const id = pathname.slice("/properties/".length).replace(/\/$/, "");
-    return <Suspense fallback={<p role="status">Učitavanje oglasa…</p>}><PropertyDetailPage key={id} id={id} /></Suspense>;
+    return <Suspense fallback={<main id="main-content" tabIndex={-1}><p role="status">Učitavanje oglasa…</p></main>}><PropertyDetailPage key={id} id={id} /></Suspense>;
   }
   if (pathname === "/saved") return <SavedPropertiesPage />;
   if (pathname === "/rentals") return <RentalInquiriesPage key="renter" />;

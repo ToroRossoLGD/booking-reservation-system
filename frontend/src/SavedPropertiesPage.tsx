@@ -30,7 +30,7 @@ export default function SavedPropertiesPage() {
   function reload(nextOffset = offset) { setLoading(true); setError(""); setLogin(false); setOffset(nextOffset); setVersion(value => value + 1); }
   return <div className="property-home saved-properties-page">
     <header className="ph-header"><a href="/" className="ph-brand">bookica.</a><a className="ph-outline" href="/account">Moj nalog</a></header>
-    <main>
+    <main id="main-content" tabIndex={-1}>
       <div className="saved-properties-heading"><p className="ph-eyebrow">TVOJ IZBOR</p><h1>Sačuvani oglasi</h1><p>Stanovi koje želiš da pogledaš ponovo — za odmor, najam ili novi dom.</p><a href="/">Pronađi još nekretnina ↗</a></div>
       <p className="saved-properties-note">Prikazujemo trenutno objavljene oglase i aktuelne cene. Čuvanje oglasa ne rezerviše nekretninu.</p>
       {loading ? <p role="status">Učitavanje sačuvanih oglasa…</p> : error ? <div className="ph-empty" role="alert"><p>{error}</p>{login && <a className="ph-outline" href="/account">Prijavi se</a>}<button className="ph-outline" onClick={() => reload()}>Pokušaj ponovo</button></div> : page && <>
