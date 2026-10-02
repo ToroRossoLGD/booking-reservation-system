@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AccountSavedSearches from "./AccountSavedSearches";
 import { MAX_SAVED_SEARCHES, normalizedSearchPath, readSavedSearches, SAVED_SEARCHES_KEY, writeSavedSearches } from "./saved-searches";
 import type { SavedSearch } from "./saved-searches";
 import "./saved-searches.css";
@@ -61,5 +62,6 @@ export default function SavedSearches({ path }: { path: string }) {
       <button type="button" className="ph-outline" aria-label={`Ukloni pretragu: ${item.name}`} onClick={() => change(items => items.filter(saved => saved.path !== item.path), "Pretraga je uklonjena.")}>Ukloni</button>
     </li>)}</ul>
     <small>Pretrage nisu povezane sa nalogom. Dostupne su svakome ko koristi ovaj profil pregledača; brisanjem podataka pregledača uklanjaš i njih. Sačuvane datume po potrebi promeni pre nove pretrage.</small>
+    <AccountSavedSearches path={path} localItems={state.items} />
   </section>;
 }
