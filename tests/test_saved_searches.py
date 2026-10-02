@@ -107,6 +107,10 @@ def test_routes_require_authentication():
             == 401
         )
         assert client.delete("/saved-searches/1").status_code == 401
+        assert (
+            client.patch("/saved-searches/1/alerts", json={"enabled": True}).status_code
+            == 401
+        )
 
 
 def test_migration_roundtrip():
@@ -134,7 +138,10 @@ def test_migration_roundtrip():
         assert {
             column["name"]
             for column in inspect(connection).get_columns("saved_searches")
-        } == set(SavedSearch.__table__.columns.keys())
+        } == set(SavedSearch.__table__.columns.keys()) - {
+            "alerts_enabled",
+            "alerts_since",
+        }
         connection.execute(
             text(
                 "INSERT INTO saved_searches (user_id, name, path) VALUES (1, 'A', '/')"

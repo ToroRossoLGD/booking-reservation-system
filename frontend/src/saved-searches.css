@@ -10,3 +10,6 @@
 .account-searches { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #b6caca; }
 .account-searches li span { min-width: 0; overflow-wrap: anywhere; }
 .account-searches li button { max-width: 55%; }
+.account-searches .account-search-row { display: grid; gap: .5rem; }
+.account-search-row > div { display: flex; gap: .5rem; flex-wrap: wrap; }
+.account-searches .account-search-row button { max-width: 100%; }

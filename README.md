@@ -87,6 +87,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - Search filters and pagination persist in the URL, survive reload and browser Back/Forward, and can be shared using **Kopiraj link pretrage**.
 - Visitors can name and save up to 10 searches in the current browser, reopen their filters from page one, rename matching searches or remove them. These searches persist across reloads without login; they are local to the browser profile and do not send alerts. Saved dates remain unchanged. See [saved searches](docs/saved-searches.md).
 - Signed-in visitors can additionally keep 10 private searches on their account, accessible on other devices. Local searches transfer only when explicitly selected, and account changes can be refreshed without altering the local copies.
+- Account searches offer optional in-app alerts for newly published matching listings, with an independent on/off preference for each search and direct listing links in the notification inbox. See [saved-search alerts](docs/saved-search-alerts.md) for matching rules and worker setup.
 - Each listing has a shareable `/properties/{id}` page with photos, description, saving, owner contact and the relevant booking or inquiry form. Click its title in the catalog or saved listings to open it.
 - Signed-in users can save listings of any offer type and revisit them on `/saved`, with current prices and direct access to booking or rental inquiries.
 - Owners can upload up to 12 photos per listing, select a cover, reorder and delete them; visitors can open a full-screen gallery on desktop and mobile.
@@ -137,7 +138,7 @@ Planned work is grouped by suggested priority, not promised release dates. Check
 - [x] Private owner preview of saved drafts and published listings at `/owner/properties/{id}/preview`.
 - [x] Named saved searches in the current browser, with filter restoration, renaming and removal.
 - [x] Account-synced saved searches with explicit transfer from browser-local searches.
-- [ ] Saved-search alerts with explicit opt-in and notification preferences.
+- [x] Saved-search alerts with explicit per-search opt-in and in-app notification preferences. See [delivery and deployment](docs/saved-search-alerts.md).
 - [x] Compare selected properties side by side within the same offer type and currency.
 - [x] Clearer listing completeness hints for owners (photos, contact and rental terms).
 - [ ] Guest-requested stay date changes with owner approval and availability rechecks.

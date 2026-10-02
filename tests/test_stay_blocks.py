@@ -38,7 +38,19 @@ def block_data(**changes):
 
 
 @pytest.mark.asyncio
-async def test_block_alias_privacy_search_and_reopening(stay_service):
+async def test_block_alias_privacy_search_and_reopening(stay_service, monkeypatch):
+    from datetime import datetime
+    from types import SimpleNamespace
+
+    from app.repositories import property_listing_repository as search_module
+
+    monkeypatch.setattr(
+        search_module,
+        "datetime",
+        SimpleNamespace(
+            now=lambda tz: datetime.combine(TODAY, datetime.min.time(), tzinfo=tz)
+        ),
+    )
     blocks = StayBlockService(stay_service.repository.db)
     data = block_data()
     created = await blocks.create(1, data, OWNER)

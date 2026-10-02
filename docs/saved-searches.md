@@ -43,5 +43,6 @@ values and external paths are rejected. Database uniqueness protects user/path
 pairs, and deleting an account cascades to its searches.
 
 Deploy migration `dab68421357e` using `alembic upgrade head`. Existing local
-searches are unaffected. Matching-new-listing alerts and notification
-preferences remain planned; neither local nor account saves send notifications.
+searches are unaffected. Account searches support optional
+[new-listing alerts](saved-search-alerts.md); saving or transferring a search
+does not turn them on automatically.

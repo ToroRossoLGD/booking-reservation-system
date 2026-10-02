@@ -4,7 +4,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.saved_search import SavedSearchRead, SavedSearchWrite
+from app.schemas.saved_search import (
+    SavedSearchAlertPreference,
+    SavedSearchRead,
+    SavedSearchWrite,
+)
 from app.services.saved_search_service import SavedSearchService
 
 router = APIRouter(prefix="/saved-searches", tags=["Saved searches"])
@@ -33,3 +37,13 @@ async def remove_search(
     user: User = Depends(get_current_user),
 ):
     await SavedSearchService(db).remove(search_id, user)
+
+
+@router.patch("/{search_id}/alerts", response_model=SavedSearchRead)
+async def set_alerts(
+    data: SavedSearchAlertPreference,
+    search_id: int = Path(ge=1),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await SavedSearchService(db).set_alerts(search_id, data.enabled, user)

@@ -4,9 +4,28 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import AccountSavedSearches from "./AccountSavedSearches";
 import { api } from "./api";
 
-vi.mock("./api", () => ({ api: { accountSearches: vi.fn(), saveAccountSearch: vi.fn(), removeAccountSearch: vi.fn() }, ApiError: class extends Error { status = 409; } }));
+vi.mock("./api", () => ({ api: { accountSearches: vi.fn(), saveAccountSearch: vi.fn(), removeAccountSearch: vi.fn(), setSearchAlerts: vi.fn() }, ApiError: class extends Error { status = 409; } }));
 beforeEach(() => { vi.resetAllMocks(); localStorage.setItem("bookica_token", "account-one"); vi.mocked(api.accountSearches).mockResolvedValue([]); });
 afterEach(() => localStorage.clear());
+
+it("requires explicit alert opt-in and keeps the saved state after a failed toggle", async () => {
+  const item = { id: 1, name: "Stan", path: "/", alerts_enabled: false };
+  vi.mocked(api.accountSearches).mockResolvedValue([item]);
+  vi.mocked(api.setSearchAlerts).mockResolvedValueOnce({ ...item, alerts_enabled: true }).mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(item);
+  const user = userEvent.setup();
+  render(<AccountSavedSearches path="/" localItems={[]} />);
+  await user.click(screen.getByRole("button", { name: "Pretrage na nalogu" }));
+  const enable = await screen.findByRole("button", { name: "Uključi obaveštenja: Stan" });
+  expect(api.setSearchAlerts).not.toHaveBeenCalled();
+  expect(enable).toHaveAttribute("aria-pressed", "false");
+  await user.click(enable);
+  expect(api.setSearchAlerts).toHaveBeenCalledWith(1, true);
+  await user.click(await screen.findByRole("button", { name: "Isključi obaveštenja: Stan" }));
+  expect(await screen.findByRole("alert")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Isključi obaveštenja: Stan" })).toHaveAttribute("aria-pressed", "true");
+  await user.click(screen.getByRole("button", { name: "Isključi obaveštenja: Stan" }));
+  expect(await screen.findByRole("button", { name: "Uključi obaveštenja: Stan" })).toBeVisible();
+});
 
 it("loads on demand and only transfers a local search after an explicit click", async () => {
   const user = userEvent.setup();

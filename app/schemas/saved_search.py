@@ -51,3 +51,9 @@ class SavedSearchWrite(BaseModel):
 class SavedSearchRead(SavedSearchWrite):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    alerts_enabled: bool = False
+
+
+class SavedSearchAlertPreference(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool

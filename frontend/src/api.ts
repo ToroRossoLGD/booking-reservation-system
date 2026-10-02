@@ -65,6 +65,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  setSearchAlerts: (id: number, enabled: boolean) => request<import("./saved-searches").AccountSearch>(`/saved-searches/${id}/alerts`, { method: "PATCH", body: JSON.stringify({ enabled }) }),
   accountSearches: (signal?: AbortSignal) => request<import("./saved-searches").AccountSearch[]>("/saved-searches", { signal }),
   saveAccountSearch: (data: import("./saved-searches").SavedSearch) => request<import("./saved-searches").AccountSearch>("/saved-searches", { method: "PUT", body: JSON.stringify(data) }),
   removeAccountSearch: (id: number) => request<void>(`/saved-searches/${id}`, { method: "DELETE" }),
