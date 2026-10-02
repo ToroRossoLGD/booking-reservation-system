@@ -30,6 +30,7 @@ from app.models.resource import Resource
 from app.models.resource_review import ResourceReview
 from app.models.review_report import ReviewReport
 from app.models.saved_search import SavedSearch
+from app.models.saved_search_match import SavedSearchMatch
 from app.models.stay import Stay
 from app.models.stay_block import StayBlock
 from app.models.support_ticket import SupportMessage, SupportTicket
@@ -42,6 +43,7 @@ from app.models.waiver import WaiverAcceptance, WaiverTemplate, WaiverVersion
 from app.models.webhook import WebhookDelivery, WebhookSubscription
 
 __all__ = [
+    "SavedSearchMatch",
     "SavedSearch",
     "PropertyView",
     "PropertyReview",

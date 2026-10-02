@@ -24,6 +24,8 @@ class PropertyListingRepository:
         return await self.db.scalar(query)
 
     async def save(self, listing: PropertyListing) -> PropertyListing:
+        if listing.is_published and listing.first_published_at is None:
+            listing.first_published_at = datetime.now(UTC)
         self.db.add(listing)
         await self.db.commit()
         await self.db.refresh(listing)
@@ -43,6 +45,7 @@ class PropertyListingRepository:
     async def search(
         self,
         *,
+        property_id=None,
         city="",
         offer_type=None,
         owner_id=None,
@@ -68,6 +71,8 @@ class PropertyListingRepository:
         has_terrace=None,
     ):
         filters = []
+        if property_id is not None:
+            filters.append(PropertyListing.id == property_id)
         for field, value in (
             ("property_type", property_type),
             ("floor", floor),

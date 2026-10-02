@@ -40,7 +40,7 @@ function AccountSearchPanel({ path, localItems, token }: { path: string; localIt
     return () => controller.abort();
   }, [open, version, token]);
 
-  async function mutate(data: SavedSearch | number) {
+  async function mutate(data: SavedSearch | number | { searchId: number; enabled: boolean }) {
     if (busy || loading || tokenSnapshot() !== token) return;
     setBusy(true); setError(""); setMessage("");
     try {
@@ -48,10 +48,10 @@ function AccountSearchPanel({ path, localItems, token }: { path: string; localIt
         await api.removeAccountSearch(data);
         if (tokenSnapshot() === token) { setItems(current => current.filter(item => item.id !== data)); setMessage("Pretraga je uklonjena sa naloga."); }
       } else {
-        const saved = await api.saveAccountSearch({ name: data.name, path: data.path });
+        const saved = "searchId" in data ? await api.setSearchAlerts(data.searchId, data.enabled) : await api.saveAccountSearch({ name: data.name, path: data.path });
         if (tokenSnapshot() === token) {
           setItems(current => [...current.filter(item => item.id !== saved.id), saved].sort((a, b) => a.id - b.id));
-          setMessage("Pretraga je sačuvana na nalogu.");
+          setMessage("searchId" in data ? (saved.alerts_enabled ? "Obaveštenja su uključena." : "Obaveštenja su isključena.") : "Pretraga je sačuvana na nalogu.");
         }
       }
     } catch (err) {
@@ -63,7 +63,8 @@ function AccountSearchPanel({ path, localItems, token }: { path: string; localIt
     <button className="ph-outline" type="button" aria-expanded={open} onClick={() => { if (!open) { setLoading(true); setError(""); setMessage(""); } setOpen(value => !value); }}>Pretrage na nalogu</button>
     {open && <section aria-label="Pretrage na nalogu">
       <h3>Pretrage na nalogu</h3>
-      <p>Do 10 pretraga dostupnih na svim uređajima na kojima se prijaviš. Lokalne pretrage prenosiš pojedinačno; ostaju sačuvane i u pregledaču. Obaveštenja za nove oglase još nisu uključena.</p>
+      <p>Do 10 pretraga dostupnih na svim uređajima na kojima se prijaviš. Lokalne pretrage prenosiš pojedinačno; ostaju sačuvane i u pregledaču.</p>
+      <p>Obaveštenja uključuješ posebno za svaku pretragu. Stižu u <a href="/account/notifications">inbox u aplikaciji</a> za nove oglase objavljene nakon uključivanja. Stariji oglasi i kasnije izmene ne šalju nova obaveštenja. Obrada može potrajati nekoliko minuta; dostupnost proveri na oglasu.</p>
       <button className="ph-outline" type="button" disabled={busy || loading} onClick={() => { setLoading(true); setError(""); setMessage(""); setVersion(value => value + 1); }}>Osveži pretrage na nalogu</button>
       {loading && <p role="status">Učitavanje pretraga sa naloga…</p>}
       {error && <p role="alert">{error}</p>}
@@ -73,7 +74,7 @@ function AccountSearchPanel({ path, localItems, token }: { path: string; localIt
         <button type="submit" className="ph-outline" disabled={busy || loading || !name.trim()}>{existing ? "Promeni naziv na nalogu" : "Sačuvaj pretragu na nalogu"}</button>
       </form>
       {!loading && !error && !items.length && <p>Još nema pretraga na nalogu.</p>}
-      <ul>{items.map(item => <li key={item.id}><a href={normalizedSearchPath(item.path) ?? "/"}>{item.name}</a><button className="ph-outline" type="button" disabled={busy || loading} aria-label={`Ukloni sa naloga: ${item.name}`} onClick={() => void mutate(item.id)}>Ukloni</button></li>)}</ul>
+      <ul>{items.map(item => <li key={item.id} className="account-search-row"><a href={normalizedSearchPath(item.path) ?? "/"}>{item.name}</a><span>Obaveštenja: {item.alerts_enabled ? "uključena" : "isključena"}</span><div><button className="ph-outline" type="button" disabled={busy || loading} aria-pressed={!!item.alerts_enabled} aria-label={`${item.alerts_enabled ? "Isključi" : "Uključi"} obaveštenja: ${item.name}`} onClick={() => void mutate({ searchId: item.id, enabled: !item.alerts_enabled })}>{item.alerts_enabled ? "Isključi obaveštenja" : "Uključi obaveštenja"}</button><button className="ph-outline" type="button" disabled={busy || loading} aria-label={`Ukloni sa naloga: ${item.name}`} onClick={() => void mutate(item.id)}>Ukloni</button></div></li>)}</ul>
       {!!localItems.length && <><h4>Prenesi iz ovog pregledača</h4><ul>{localItems.map(item => <li key={item.path}><span>{item.name}</span><button className="ph-outline" type="button" disabled={busy || loading || items.some(saved => normalizedSearchPath(saved.path) === item.path)} aria-label={`Sačuvaj na nalogu: ${item.name}`} onClick={() => void mutate(item)}>Sačuvaj na nalogu</button></li>)}</ul></>}
     </section>}
   </div>;

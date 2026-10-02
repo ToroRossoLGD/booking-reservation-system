@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from fastapi import HTTPException
 from sqlalchemy import func, select
 
@@ -40,6 +42,23 @@ class SavedSearchService:
             self.db.add(item)
         else:
             item.name = data.name
+        await self.db.commit()
+        await self.db.refresh(item)
+        return item
+
+    async def set_alerts(self, search_id, enabled, user):
+        await self.lock_user(user)
+        item = await self.db.scalar(
+            select(SavedSearch)
+            .where(SavedSearch.id == search_id, SavedSearch.user_id == user.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if item is None:
+            raise HTTPException(404, "Saved search not found")
+        if enabled and not item.alerts_enabled:
+            item.alerts_since = datetime.now(UTC)
+        item.alerts_enabled = enabled
         await self.db.commit()
         await self.db.refresh(item)
         return item

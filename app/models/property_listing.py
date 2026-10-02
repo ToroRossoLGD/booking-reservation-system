@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import (
     JSON,
@@ -6,6 +6,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     Date,
+    DateTime,
     ForeignKey,
     Integer,
     String,
@@ -35,6 +36,10 @@ class PropertyListing(Base):
     available_from: Mapped[date | None] = mapped_column(Date)
     minimum_rental_months: Mapped[int | None]
     pets_policy: Mapped[str | None] = mapped_column(String(20))
+
+    first_published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), index=True
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     venue_id: Mapped[int] = mapped_column(
