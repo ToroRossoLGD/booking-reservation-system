@@ -21,5 +21,27 @@ entries are ignored and malformed stored JSON is treated as an empty list.
 Storage permission/quota errors are shown without reporting a successful save
 or deleting entries from the visible list.
 
-This is the local saved-search portion of the roadmap. Cross-device account
-sync, matching-new-listing alerts and notification preferences remain planned.
+## Account searches
+
+Signed-in visitors can open **Pretrage na nalogu** to load up to ten searches
+stored privately on their account. They can save the current filters, rename
+matching searches, remove entries and refresh changes made on another device.
+Account searches are kept only in component memory on the client, not copied
+into shared browser storage. Switching authentication tokens clears that state.
+
+Local searches remain separate. Each local entry has an explicit transfer
+button; no automatic upload takes place and transfer does not remove the local
+copy. A matching account search disables the transfer button to preserve its
+existing name. Refresh the account list to see another device's changes.
+
+Authenticated `GET /saved-searches`, `PUT /saved-searches` (`name`, `path`) and
+`DELETE /saved-searches/{id}` are scoped to the current user. PUT normalizes
+supported filters, drops pagination and unknown parameters, and upserts the
+same filter set. A user row lock serializes upserts and the ten-entry limit;
+deleting an absent or another user's ID is an idempotent no-op. Invalid filter
+values and external paths are rejected. Database uniqueness protects user/path
+pairs, and deleting an account cascades to its searches.
+
+Deploy migration `dab68421357e` using `alembic upgrade head`. Existing local
+searches are unaffected. Matching-new-listing alerts and notification
+preferences remain planned; neither local nor account saves send notifications.

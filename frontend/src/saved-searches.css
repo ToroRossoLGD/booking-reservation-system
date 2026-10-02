@@ -7,3 +7,6 @@
 .saved-searches li a { overflow-wrap: anywhere; min-width: 0; }
 .saved-searches button { white-space: normal; }
 .saved-searches li button { flex-shrink: 0; }
+.account-searches { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #b6caca; }
+.account-searches li span { min-width: 0; overflow-wrap: anywhere; }
+.account-searches li button { max-width: 55%; }

@@ -3,6 +3,7 @@ import { propertySearchPath, readPropertySearch } from "./property-search-url";
 export const SAVED_SEARCHES_KEY = "bookica_saved_searches_v1";
 export const MAX_SAVED_SEARCHES = 10;
 export type SavedSearch = { name: string; path: string };
+export type AccountSearch = SavedSearch & { id: number };
 
 export function normalizedSearchPath(path: string): string | null {
   if (path !== "/" && !path.startsWith("/?")) return null;

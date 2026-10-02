@@ -65,6 +65,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  accountSearches: (signal?: AbortSignal) => request<import("./saved-searches").AccountSearch[]>("/saved-searches", { signal }),
+  saveAccountSearch: (data: import("./saved-searches").SavedSearch) => request<import("./saved-searches").AccountSearch>("/saved-searches", { method: "PUT", body: JSON.stringify(data) }),
+  removeAccountSearch: (id: number) => request<void>(`/saved-searches/${id}`, { method: "DELETE" }),
   stayBlocks: (id: number, offset = 0, signal?: AbortSignal) => request<StayBlockPage>(`/owner/properties/${id}/stay-blocks?offset=${offset}&limit=20`, { signal }),
   createStayBlock: (id: number, data: StayBlockCreate) => request<StayBlock>(`/owner/properties/${id}/stay-blocks`, { method: "POST", body: JSON.stringify(data) }),
   removeStayBlock: (id: number, blockId: number) => request<void>(`/owner/properties/${id}/stay-blocks/${blockId}`, { method: "DELETE" }),
