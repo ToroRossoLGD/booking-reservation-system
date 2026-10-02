@@ -1,0 +1,4 @@
+.skip-to-content { position: fixed; top: .75rem; left: .75rem; z-index: 10000; transform: translateY(calc(-100% - 1rem)); padding: .85rem 1rem; border-radius: 8px; background: #173f3d; color: #fff; font: 600 1rem/1.4 sans-serif; text-decoration: underline; }
+.skip-to-content:focus { transform: none; outline: 3px solid #bc6d38; outline-offset: 3px; }
+#main-content { scroll-margin-top: 1rem; }
+#main-content:focus-visible { outline: 3px solid #bc6d38; outline-offset: -3px; }

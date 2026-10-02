@@ -91,6 +91,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - Signed-in users can save listings of any offer type and revisit them on `/saved`, with current prices and direct access to booking or rental inquiries.
 - Owners can upload up to 12 photos per listing, select a cover, reorder and delete them; visitors can open a full-screen gallery on desktop and mobile.
 - The responsive storefront includes mobile navigation, active filters and loading, empty and error states.
+- Keyboard users can press Tab to reveal **Preskoči na sadržaj**, then Enter to focus the main content without traversing navigation or changing the current search URL.
 - Contact links open the visitor's email application; long-term rentals also offer private inquiries stored in Bookica.
 
 ### Nightly reservations
@@ -142,6 +143,7 @@ Planned work is grouped by suggested priority, not promised release dates. Check
 - [ ] Guest-requested stay date changes with owner approval and availability rechecks.
 - [ ] Listing reports and an owner/admin moderation workflow.
 - [ ] Consistent Serbian/English language selection and a keyboard/screen-reader accessibility review.
+- [x] Keyboard skip navigation to the main content across marketplace and account/owner pages.
 
 ### Larger booking and marketplace features
 

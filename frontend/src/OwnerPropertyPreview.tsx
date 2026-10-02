@@ -32,7 +32,7 @@ export default function OwnerPropertyPreview({ id }: { id: string }) {
     return () => controller.abort();
   }, [id, valid, version]);
   function reload() { setError(""); setPhotoError(false); setPhotos(null); setProperty(null); setVersion(value => value + 1); }
-  return <div className="property-home property-detail-page"><main>
+  return <div className="property-home property-detail-page"><main id="main-content" tabIndex={-1}>
     <a href="/owner" className="ph-text-link">← Nazad na tvoje oglase</a>
     <section className="rental-terms" aria-label="Privatni pregled"><h2>Privatni pregled oglasa</h2><p>Prikaz sačuvanih podataka. Za izmene se vrati u vlasnički panel. Ovaj pregled ne objavljuje oglas i ne prima rezervacije ili upite.</p></section>
     {!valid ? <p role="alert">Link oglasa nije ispravan.</p> : error ? <div role="alert"><p>{error}</p><a href="/account">Prijava</a> <button className="ph-outline" onClick={reload}>Pokušaj ponovo</button></div> : !property ? <p role="status">Učitavanje pregleda…</p> : <>

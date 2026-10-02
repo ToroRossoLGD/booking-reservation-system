@@ -237,7 +237,7 @@ export function AccountDashboard({
   }
 
   return (
-    <main className="dashboard-page">
+    <main id="main-content" tabIndex={-1} className="dashboard-page">
       <p className="dashboard-message"><a href="/stays">Rezervacije stanova — moji boravci ↗</a></p>
       <section className="dashboard-hero">
         <div>
@@ -566,7 +566,7 @@ function ReservationDetail({
   }
 
   return (
-    <main className="dashboard-page reservation-detail-page">
+    <main id="main-content" tabIndex={-1} className="dashboard-page reservation-detail-page">
       <section className="dashboard-hero reservation-detail-hero">
         <div>
           <button className="back-link" onClick={onBack}>← My reservations</button>
@@ -799,7 +799,7 @@ export function OwnerDashboard({
   }
 
   return (
-    <main className="dashboard-page owner-page">
+    <main id="main-content" tabIndex={-1} className="dashboard-page owner-page">
       <section className="dashboard-hero">
         <div>
           <p className="eyebrow">Owner workspace</p>
@@ -1095,7 +1095,7 @@ function OwnerVenueManager({ venueId, onBack }: { venueId: number; onBack: () =>
     catch (error) { setMessage(error instanceof Error ? error.message : "Unable to add extra"); }
   }
 
-  return <main className="dashboard-page owner-page">
+  return <main id="main-content" tabIndex={-1} className="dashboard-page owner-page">
     <section className="dashboard-hero"><div><button className="back-link" onClick={onBack}>← Owner dashboard</button><p className="eyebrow">Venue management</p><h1>{venue?.name ?? "Loading venue…"}</h1><p>{venue?.address}</p></div></section>
     <div className="owner-manager">
       {message && <p className="dashboard-message">{message}</p>}
