@@ -21,6 +21,14 @@ class PropertyListing(Base):
     __tablename__ = "property_listings"
     __table_args__ = (
         CheckConstraint(
+            "moderation_state IN ('clear', 'suspended', 'appealed')",
+            name="ck_property_moderation_state",
+        ),
+        CheckConstraint(
+            "NOT is_published OR moderation_state = 'clear'",
+            name="ck_property_moderation_publish",
+        ),
+        CheckConstraint(
             "offer_type IN ('short_stay', 'long_term', 'sale')",
             name="ck_property_offer",
         ),
@@ -32,6 +40,14 @@ class PropertyListing(Base):
     )
 
     deposit_cents: Mapped[int | None] = mapped_column(BigInteger)
+    moderation_state: Mapped[str] = mapped_column(
+        String(16), default="clear", server_default="clear"
+    )
+    moderation_version: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0"
+    )
+    moderation_note: Mapped[str] = mapped_column(Text, default="", server_default="")
+    moderation_appeal: Mapped[str] = mapped_column(Text, default="", server_default="")
     monthly_bills_cents: Mapped[int | None] = mapped_column(BigInteger)
     available_from: Mapped[date | None] = mapped_column(Date)
     minimum_rental_months: Mapped[int | None]

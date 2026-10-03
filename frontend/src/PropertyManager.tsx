@@ -112,12 +112,13 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
       else await api.createProperty(data);
       setEditing(null); setMessage(data.is_published ? "Oglas je objavljen na naslovnoj strani." : "Nacrt je sačuvan. Nije vidljiv posetiocima."); refresh(0);
     } catch (err) {
-      setError(err instanceof ApiError && err.status === 422 ? "Proveri sva polja, vremensku zonu i pravila boravka. Opis mora imati najmanje 20 znakova, a kontakt ispravnu email adresu." : err instanceof ApiError && err.status === 409 ? "Objekat ima satne resurse ili oglas ima rezervacije ili aktivne blokade. Za noćenja koristi objekat bez satnih resursa. Pre promene objekta ukloni blokade; oglas sa istorijom rezervacija ne može promeniti objekat." : "Čuvanje nije uspelo. Proveri prijavu i pokušaj ponovo.");
+      setError(err instanceof ApiError && err.status === 409 && err.message.startsWith("Listing suspended") ? "Oglas je suspendovan. Sa?uvaj izmene kao nacrt i otvori moderaciju da zatra?i? ponovni pregled." : err instanceof ApiError && err.status === 422 ? "Proveri sva polja, vremensku zonu i pravila boravka. Opis mora imati najmanje 20 znakova, a kontakt ispravnu email adresu." : err instanceof ApiError && err.status === 409 ? "Objekat ima satne resurse ili oglas ima rezervacije ili aktivne blokade. Za noćenja koristi objekat bez satnih resursa. Pre promene objekta ukloni blokade; oglas sa istorijom rezervacija ne može promeniti objekat." : "Čuvanje nije uspelo. Proveri prijavu i pokušaj ponovo.");
     } finally { setBusy(false); }
   }
 
   const current = editing && editing !== "new" ? editing : null;
   return <section className="ph-manager owner-panel" aria-label="Oglasi za nekretnine">
+    <p><a href="/moderation">Prijave, odluke i ponovni pregled oglasa ↗</a></p>
     <p><a href="/account/notifications">Obaveštenja o rezervacijama i upitima</a></p>
     <p><a href="/owner/analytics">Analitika oglasa i rezervacija ↗</a></p>
     <div className="ph-section-heading"><div><p className="eyebrow">NEKRETNINE</p><h2>Tvoji oglasi</h2></div><button className="button primary" disabled={!venues.length || busy} onClick={() => { setHintFields(null); setEditing("new"); setType("short_stay"); setError(""); setMessage(""); }}>Novi oglas</button></div>

@@ -1,0 +1,9 @@
+.property-report { margin-top: 1.5rem; border-top: 1px solid #ccd9d6; padding-top: 1rem; }
+.property-report fieldset, .moderation-page fieldset { display: grid; gap: .8rem; border: 0; padding: 1rem 0; min-width: 0; }
+.property-report label, .moderation-page label { display: grid; gap: .4rem; }
+.property-report textarea, .moderation-page textarea { min-height: 100px; resize: vertical; width: 100%; box-sizing: border-box; }
+.property-report textarea, .property-report select, .moderation-page textarea, .moderation-page select { padding: .65rem; border: 1px solid #ccd9d6; border-radius: 8px; font: inherit; max-width: 100%; min-width: 0; }
+.moderation-tabs { display: flex; flex-wrap: wrap; gap: .6rem; margin: 1.5rem 0; }
+.moderation-card { padding: 1.25rem; margin-top: 1rem; background: white; border: 1px solid #ccd9d6; border-radius: 12px; overflow-wrap: anywhere; }
+.moderation-note { white-space: pre-wrap; }
+.moderation-page button { max-width: 100%; white-space: normal; }

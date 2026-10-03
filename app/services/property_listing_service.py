@@ -53,6 +53,12 @@ class PropertyListingService:
             raise HTTPException(404, "Listing not found")
         await self.authorize_venue(listing.venue_id, user)
         await self.authorize_venue(data.venue_id, user)
+        if listing.moderation_state != "clear" and (
+            data.is_published or data.venue_id != listing.venue_id
+        ):
+            raise HTTPException(
+                409, "Listing suspended. Edit the draft and request a moderation review"
+            )
         if data.booking_enabled and await self.repository.has_hourly_resources(
             data.venue_id
         ):
