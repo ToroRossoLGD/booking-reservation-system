@@ -30,6 +30,7 @@ from app.api.routers.payments import router as payments_router
 from app.api.routers.promotions import router as promotions_router
 from app.api.routers.property_analytics import router as property_analytics_router
 from app.api.routers.property_listings import router as property_listings_router
+from app.api.routers.property_moderation import router as property_moderation_router
 from app.api.routers.property_photos import router as property_photos_router
 from app.api.routers.property_reviews import router as property_reviews_router
 from app.api.routers.rental_inquiries import router as rental_inquiries_router
@@ -128,6 +129,7 @@ app.include_router(media_router)
 app.include_router(payments_router)
 app.include_router(promotions_router)
 app.include_router(property_listings_router)
+app.include_router(property_moderation_router)
 app.include_router(property_photos_router)
 app.include_router(admin_router)
 app.include_router(favorites_router)

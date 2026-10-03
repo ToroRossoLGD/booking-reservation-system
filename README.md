@@ -142,7 +142,7 @@ Planned work is grouped by suggested priority, not promised release dates. Check
 - [x] Compare selected properties side by side within the same offer type and currency.
 - [x] Clearer listing completeness hints for owners (photos, contact and rental terms).
 - [x] Guest-requested stay date changes with owner approval, explicit price consent, history and availability rechecks. See [date changes](docs/stay-date-changes.md).
-- [ ] Listing reports and an owner/admin moderation workflow.
+- [x] Private listing reports, administrator suspension/review and owner appeals with audit history. See [property moderation](docs/property-moderation.md).
 - [ ] Consistent Serbian/English language selection and a keyboard/screen-reader accessibility review.
 - [x] Keyboard skip navigation to the main content across marketplace and account/owner pages.
 

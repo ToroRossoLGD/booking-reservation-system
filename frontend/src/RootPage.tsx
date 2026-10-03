@@ -10,6 +10,7 @@ import SkipToContent from "./SkipToContent";
 const PropertyDetailPage = lazy(() => import("./PropertyDetailPage"));
 const OwnerPropertyPreview = lazy(() => import("./OwnerPropertyPreview"));
 const OwnerPropertyAnalytics = lazy(() => import("./OwnerPropertyAnalytics"));
+const PropertyModerationPage = lazy(() => import("./PropertyModerationPage"));
 
 export default function RootPage() {
   return <><SkipToContent /><PageContent /></>;
@@ -17,6 +18,7 @@ export default function RootPage() {
 
 function PageContent() {
   const { pathname } = useLocation();
+  if (pathname === "/moderation") return <Suspense fallback={<main id="main-content" tabIndex={-1}><p role="status">Učitavanje moderacije…</p></main>}><PropertyModerationPage /></Suspense>;
   const preview = pathname.match(/^\/owner\/properties\/([^/]+)\/preview\/?$/);
   if (preview) return <Suspense fallback={<main id="main-content" tabIndex={-1}><p role="status">Učitavanje pregleda…</p></main>}><OwnerPropertyPreview key={preview[1]} id={preview[1]} /></Suspense>;
   if (pathname === "/owner/analytics") return <Suspense fallback={<main id="main-content" tabIndex={-1}><p role="status">Učitavanje analitike…</p></main>}><OwnerPropertyAnalytics /></Suspense>;

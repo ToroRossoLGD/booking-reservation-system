@@ -1,4 +1,5 @@
 import type { PropertyReview, PropertyReviewInput, PropertyReviewPage } from "./property-review-types";
+import type { ModerationAction, ModerationCase, ModerationEvent, ModerationPageData, PropertyReport } from "./moderation-types";
 import type { PropertyAnalytics } from "./property-analytics-types";
 import type { OwnerStayFilters, StayChange, StayChangePage, StayChangeCreate } from "./stay-types";
 import type {
@@ -65,6 +66,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  reportProperty: (id: number, data: { request_id: string; category: PropertyReport["category"]; details: string }) => request<Omit<PropertyReport, "listing">>(`/properties/${id}/reports`, { method: "POST", body: JSON.stringify(data) }),
+  propertyReports: (admin: boolean, status: string, offset: number, signal?: AbortSignal) => request<ModerationPageData<PropertyReport>>(`${admin ? "/admin/property-reports" : "/property-reports/mine"}?${new URLSearchParams({ offset: String(offset), limit: "20", ...(admin ? { status } : {}) })}`, { signal }),
+  moderationCases: (admin: boolean, offset: number, signal?: AbortSignal, state = "") => request<ModerationPageData<ModerationCase>>(`${admin ? "/admin" : "/owner"}/property-moderation?${new URLSearchParams({ offset: String(offset), limit: "20", ...(admin && state ? { state } : {}) })}`, { signal }),
+  moderateProperty: (id: number, data: ModerationAction, reportId?: number) => request<ModerationCase>(reportId === undefined ? `/properties/${id}/moderation` : `/admin/properties/${id}/reports/${reportId}/decision`, { method: "POST", body: JSON.stringify(data) }),
+  moderationHistory: (id: number, offset: number, signal?: AbortSignal) => request<ModerationPageData<ModerationEvent>>(`/properties/${id}/moderation-history?offset=${offset}&limit=20`, { signal }),
   setSearchAlerts: (id: number, enabled: boolean) => request<import("./saved-searches").AccountSearch>(`/saved-searches/${id}/alerts`, { method: "PATCH", body: JSON.stringify({ enabled }) }),
   accountSearches: (signal?: AbortSignal) => request<import("./saved-searches").AccountSearch[]>("/saved-searches", { signal }),
   saveAccountSearch: (data: import("./saved-searches").SavedSearch) => request<import("./saved-searches").AccountSearch>("/saved-searches", { method: "PUT", body: JSON.stringify(data) }),

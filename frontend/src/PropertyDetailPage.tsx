@@ -5,6 +5,7 @@ import PropertyGallery from "./PropertyGallery";
 import PropertyActions from "./PropertyActions";
 import PropertyFacts from "./PropertyFacts";
 import SavePropertyButton from "./SavePropertyButton";
+import PropertyReportForm from "./PropertyReportForm";
 import { offerLabels, priceUnits, propertyPrice } from "./property-types";
 import type { PropertyListing } from "./property-types";
 import "./property-home.css";
@@ -85,6 +86,7 @@ export default function PropertyDetailPage({ id }: { id: string }) {
             {saveError && <p role="alert">Status sačuvanog oglasa nije učitan. <button onClick={reload}>Pokušaj ponovo</button></p>}
             <div className="property-share">{typeof navigator.share === "function" && <button className="ph-outline" disabled={sharing} onClick={() => void shareListing()}>Podeli oglas</button>}<button className="ph-outline" disabled={sharing} onClick={() => void copyLink()}>Kopiraj link oglasa</button>{copied && <p role="status">Link je kopiran.</p>}{copyError && <label>Kopiraj adresu ručno<input readOnly value={url} onFocus={event => event.target.select()} /></label>}</div>
             <PropertyActions property={property} stayDates={stayDates} />
+            <PropertyReportForm key={property.id} propertyId={property.id} />
           </aside>
         </div>
       </>}
