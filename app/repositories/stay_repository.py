@@ -42,12 +42,15 @@ class StayRepository:
     async def preparation_days(self, venue_id):
         return await self.db.scalar(select(venue_gap(venue_id))) or 0
 
-    async def occupied(self, venue_id, start, end, preparation_days=0):
+    async def occupied(
+        self, venue_id, start, end, preparation_days=0, exclude_stay_id=None
+    ):
         result = await self.db.scalars(
             select(Stay)
             .where(
                 Stay.venue_id == venue_id,
                 Stay.status == "confirmed",
+                Stay.id != exclude_stay_id if exclude_stay_id is not None else True,
                 Stay.check_in < end + timedelta(days=preparation_days),
                 Stay.check_out > start - timedelta(days=preparation_days),
             )

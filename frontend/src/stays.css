@@ -48,3 +48,9 @@
 .stay-dates dt { color: #62745f; font-size: 12px; margin-bottom: 5px; }
 .stay-dates dd { margin: 0; font-size: 14px; font-weight: 600; }
 @media(max-width:650px) { .owner-stay-summary { gap: 10px; } .owner-stay-summary button { padding: 16px; flex-direction: column; align-items: flex-start; } .owner-stay-filters>button { flex: 1 1 auto; } }
+.stay-changes { margin-top: 1rem; border-top: 1px solid #ccd9d6; padding-top: 1rem; }
+.stay-changes fieldset { display: grid; gap: .75rem; border: 1px solid #ccd9d6; min-width: 0; }
+.stay-changes label { display: grid; gap: .4rem; }
+.stay-changes input[type="date"] { min-width: 0; max-width: 100%; padding: .6rem; }
+.stay-change-item { padding: 1rem 0; border-bottom: 1px solid #ccd9d6; }
+.stay-change-actions { display: flex; flex-wrap: wrap; gap: .5rem; }

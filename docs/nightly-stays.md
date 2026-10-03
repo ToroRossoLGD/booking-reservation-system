@@ -27,6 +27,8 @@ working as before.
 3. Confirm while signed in. The server rechecks current pricing and occupancy.
 4. View the confirmed stay at `/stays` (also linked from the account dashboard).
 5. Cancel without a fee before the arrival date, in the apartment's timezone.
+6. Request [new stay dates](stay-date-changes.md) with a fresh price quote and
+   owner approval. The original reservation remains active until approved.
 
 Reservations are confirmed immediately with **payment at the property**. There
 is no online charge, deposit, refund transaction or pending-payment hold in this
