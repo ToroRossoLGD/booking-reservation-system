@@ -16,9 +16,63 @@ from app.schemas.stay import (
     StayQuote,
     StayRead,
 )
+from app.schemas.stay_date_change import (
+    StayDateChangeCreate,
+    StayDateChangeDecision,
+    StayDateChangePage,
+    StayDateChangeRead,
+)
+from app.services.stay_date_change_service import StayDateChangeService
 from app.services.stay_service import StayService
 
 router = APIRouter(tags=["Nightly stays"])
+
+
+@router.post("/stays/{stay_id}/date-change-quote", response_model=StayQuote)
+async def date_change_quote(
+    stay_id: int,
+    data: StayDates,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await StayDateChangeService(db).quote(stay_id, data, user)
+
+
+@router.get("/stays/{stay_id}/date-changes", response_model=StayDateChangePage)
+async def date_changes(
+    stay_id: int,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await StayDateChangeService(db).list(stay_id, user, offset, limit)
+
+
+@router.post(
+    "/stays/{stay_id}/date-changes", response_model=StayDateChangeRead, status_code=201
+)
+async def request_date_change(
+    stay_id: int,
+    data: StayDateChangeCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await StayDateChangeService(db).create(stay_id, data, user)
+
+
+@router.post(
+    "/stays/{stay_id}/date-changes/{change_id}/decision",
+    response_model=StayDateChangeRead,
+)
+async def decide_date_change(
+    stay_id: int,
+    change_id: int,
+    data: StayDateChangeDecision,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await StayDateChangeService(db).decide(stay_id, change_id, data.action, user)
 
 
 @router.post("/properties/{property_id}/stay-quote", response_model=StayQuote)

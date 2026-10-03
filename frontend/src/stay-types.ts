@@ -1,4 +1,7 @@
 export type StayDates = { check_in: string; check_out: string; guests: number };
+export type StayChange = { id: number; stay_id: number; check_in: string; check_out: string; original: Stay; quote: StayQuote; status: "pending" | "accepted" | "declined" | "withdrawn" | "expired"; created_at: string; resolved_at: string | null };
+export type StayChangePage = { items: StayChange[]; total: number; has_next: boolean };
+export type StayChangeCreate = StayDates & { request_id: string; quote: StayQuote };
 
 export function parseStayDates(params: URLSearchParams): StayDates | undefined {
   const check_in = params.get("check_in") ?? "";

@@ -1,6 +1,6 @@
 import type { PropertyReview, PropertyReviewInput, PropertyReviewPage } from "./property-review-types";
 import type { PropertyAnalytics } from "./property-analytics-types";
-import type { OwnerStayFilters } from "./stay-types";
+import type { OwnerStayFilters, StayChange, StayChangePage, StayChangeCreate } from "./stay-types";
 import type {
   AvailableResource,
   AvailableSlot,
@@ -107,6 +107,10 @@ export const api = {
     return request<StayPage>(`${owner ? "/owner/stays" : "/stays/mine"}?${params}`, { signal });
   },
   cancelStay: (id: number) => request<Stay>(`/stays/${id}/cancel`, { method: "POST" }),
+  stayChanges: (id: number, offset = 0, signal?: AbortSignal) => request<StayChangePage>(`/stays/${id}/date-changes?offset=${offset}&limit=20`, { signal }),
+  stayChangeQuote: (id: number, data: StayDates) => request<StayQuote>(`/stays/${id}/date-change-quote`, { method: "POST", body: JSON.stringify(data) }),
+  requestStayChange: (id: number, data: StayChangeCreate) => request<StayChange>(`/stays/${id}/date-changes`, { method: "POST", body: JSON.stringify(data) }),
+  decideStayChange: (id: number, changeId: number, action: "accept" | "decline" | "withdraw") => request<StayChange>(`/stays/${id}/date-changes/${changeId}/decision`, { method: "POST", body: JSON.stringify({ action }) }),
   properties: (city: string, offerType: string, offset = 0, signal?: AbortSignal, filters: PropertySearchFilters = {}) => {
     const params = new URLSearchParams({ city, offset: String(offset), limit: "12" });
     if (offerType) params.set("offer_type", offerType);
