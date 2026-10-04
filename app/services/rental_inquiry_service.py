@@ -7,121 +7,162 @@ from sqlalchemy import func, select
 from app.models.property_listing import PropertyListing
 from app.models.rental_inquiry import RentalInquiry
 from app.models.rental_message import RentalMessage
+from app.models.sale_inquiry import SaleInquiry, SaleMessage
 from app.models.user import User
 from app.models.venue import Venue
 from app.schemas.rental_inquiry import RentalInquiryRead
 from app.schemas.rental_terms import RentalTerms
+from app.schemas.sale_inquiry import SaleInquiryRead
 from app.services.rental_message_service import append_rental_message
 from app.services.rental_notification_service import add_rental_notification
 
 
 class RentalInquiryService:
-    def __init__(self, db):
+    def __init__(self, db, *, sale=False):
         self.db = db
+        self.sale = sale
+        self.inquiry_model = SaleInquiry if sale else RentalInquiry
+        self.message_model = SaleMessage if sale else RentalMessage
+        self.read_schema = SaleInquiryRead if sale else RentalInquiryRead
 
     async def create(self, property_id, data, user):
         # Serialize retries and duplicate submissions from the same account.
         await self.db.scalar(
-            select(User.id).where(User.id == user.id).with_for_update()
+            select(User.id).where(User.id == user.id).with_for_update(key_share=True)
         )
         previous = await self.db.scalar(
-            select(RentalInquiry).where(
-                RentalInquiry.user_id == user.id,
-                RentalInquiry.request_id == str(data.request_id),
+            select(self.inquiry_model).where(
+                self.inquiry_model.user_id == user.id,
+                self.inquiry_model.request_id == str(data.request_id),
             )
         )
         if previous:
-            if (
-                previous.property_id,
-                previous.move_in,
-                previous.duration_months,
-                previous.message,
-            ) != (property_id, data.move_in, data.duration_months, data.message):
+            fields = (
+                ("property_id", "message")
+                if self.sale
+                else ("property_id", "move_in", "duration_months", "message")
+            )
+            expected = {"property_id": property_id, **data.model_dump()}
+            if any(getattr(previous, field) != expected[field] for field in fields):
                 raise HTTPException(409, "This request identifier was already used")
             return previous
+        # Lock the recipient key before inventory, so notification FK checks do
+        # not invert the user-first order of simultaneous bookings.
+        expected_owner = await self.db.scalar(
+            select(Venue.owner_id)
+            .join(PropertyListing, PropertyListing.venue_id == Venue.id)
+            .where(PropertyListing.id == property_id)
+        )
+        if expected_owner is not None:
+            await self.db.scalar(
+                select(User.id)
+                .where(User.id == expected_owner)
+                .with_for_update(read=True, key_share=True)
+            )
         listing = await self.db.scalar(
             select(PropertyListing)
             .where(PropertyListing.id == property_id)
             .with_for_update()
+            .execution_options(populate_existing=True)
         )
         if listing is None or not listing.is_published:
             raise HTTPException(404, "Property not found")
-        if listing.offer_type != "long_term":
-            raise HTTPException(
-                400, "Inquiries are available for long-term rentals only"
-            )
+        if listing.offer_type != ("sale" if self.sale else "long_term"):
+            raise HTTPException(400, "Inquiry type does not match the listing offer")
         owner_id = await self.db.scalar(
             select(Venue.owner_id).where(Venue.id == listing.venue_id)
         )
+        if owner_id != expected_owner:
+            raise HTTPException(409, "Listing ownership changed. Please retry")
         if owner_id == user.id:
             raise HTTPException(400, "You cannot inquire about your own property")
-        if data.move_in < datetime.now(ZoneInfo(listing.timezone)).date():
-            raise HTTPException(400, "Move-in date cannot be in the past")
-        if listing.available_from is not None and data.move_in < listing.available_from:
-            raise HTTPException(400, "Move-in date is before the listing is available")
-        if (
-            listing.minimum_rental_months is not None
-            and data.duration_months < listing.minimum_rental_months
-        ):
-            raise HTTPException(400, "Duration is below the minimum rental term")
+        if not self.sale:
+            if data.move_in < datetime.now(ZoneInfo(listing.timezone)).date():
+                raise HTTPException(400, "Move-in date cannot be in the past")
+            if (
+                listing.available_from is not None
+                and data.move_in < listing.available_from
+            ):
+                raise HTTPException(
+                    400, "Move-in date is before the listing is available"
+                )
+            if (
+                listing.minimum_rental_months is not None
+                and data.duration_months < listing.minimum_rental_months
+            ):
+                raise HTTPException(400, "Duration is below the minimum rental term")
         active = await self.db.scalar(
-            select(RentalInquiry.id).where(
-                RentalInquiry.user_id == user.id,
-                RentalInquiry.property_id == property_id,
-                RentalInquiry.status.notin_(["closed", "withdrawn"]),
+            select(self.inquiry_model.id).where(
+                self.inquiry_model.user_id == user.id,
+                self.inquiry_model.property_id == property_id,
+                self.inquiry_model.status.notin_(["closed", "withdrawn"]),
             )
         )
         if active:
             raise HTTPException(
                 409, "You already have an active inquiry for this property"
             )
-        inquiry = RentalInquiry(
-            **{field: getattr(listing, field) for field in RentalTerms.model_fields},
+        terms = (
+            {"asking_price_cents": listing.price_cents}
+            if self.sale
+            else {
+                **{
+                    field: getattr(listing, field) for field in RentalTerms.model_fields
+                },
+                "monthly_price_cents": listing.price_cents,
+                "move_in": data.move_in,
+                "duration_months": data.duration_months,
+            }
+        )
+        inquiry = self.inquiry_model(
+            **terms,
             property_id=property_id,
             owner_id=owner_id,
             user_id=user.id,
             request_id=str(data.request_id),
             title=listing.title,
-            monthly_price_cents=listing.price_cents,
             currency=listing.currency,
-            move_in=data.move_in,
-            duration_months=data.duration_months,
             message=data.message,
         )
         self.db.add(inquiry)
         await self.db.flush()
-        append_rental_message(self.db, inquiry, user.id, data.message)
-        add_rental_notification(self.db, inquiry, user.id, "created")
+        append_rental_message(
+            self.db, inquiry, user.id, data.message, message_model=self.message_model
+        )
+        add_rental_notification(self.db, inquiry, user.id, "created", sale=self.sale)
         await self.db.commit()
         await self.db.refresh(inquiry)
         return inquiry
 
     async def list(self, user, owner=False, offset=0, limit=20):
-        query = select(RentalInquiry).where(
-            (RentalInquiry.owner_id if owner else RentalInquiry.user_id) == user.id
+        query = select(self.inquiry_model).where(
+            (self.inquiry_model.owner_id if owner else self.inquiry_model.user_id)
+            == user.id
         )
         total = await self.db.scalar(select(func.count()).select_from(query.subquery()))
         items = list(
             await self.db.scalars(
-                query.order_by(RentalInquiry.id.desc()).offset(offset).limit(limit)
+                query.order_by(self.inquiry_model.id.desc()).offset(offset).limit(limit)
             )
         )
         if items:
             unread = dict(
                 (
                     await self.db.execute(
-                        select(RentalMessage.inquiry_id, func.count())
+                        select(self.message_model.inquiry_id, func.count())
                         .where(
-                            RentalMessage.inquiry_id.in_([item.id for item in items]),
-                            RentalMessage.sender_id != user.id,
-                            RentalMessage.read_at.is_(None),
+                            self.message_model.inquiry_id.in_(
+                                [item.id for item in items]
+                            ),
+                            self.message_model.sender_id != user.id,
+                            self.message_model.read_at.is_(None),
                         )
-                        .group_by(RentalMessage.inquiry_id)
+                        .group_by(self.message_model.inquiry_id)
                     )
                 ).all()
             )
             items = [
-                RentalInquiryRead.model_validate(item).model_copy(
+                self.read_schema.model_validate(item).model_copy(
                     update={"unread_count": unread.get(item.id, 0)}
                 )
                 for item in items
@@ -130,8 +171,8 @@ class RentalInquiryService:
 
     async def update(self, inquiry_id, data, user):
         inquiry = await self.db.scalar(
-            select(RentalInquiry)
-            .where(RentalInquiry.id == inquiry_id)
+            select(self.inquiry_model)
+            .where(self.inquiry_model.id == inquiry_id)
             .with_for_update()
             .execution_options(populate_existing=True)
         )
@@ -175,10 +216,13 @@ class RentalInquiryService:
             data.owner_reply,
             kind="message" if data.action == "reply" else data.action,
             viewing_at=data.viewing_at,
+            message_model=self.message_model,
         )
         inquiry.version += 1
         if data.action != "reply":
-            add_rental_notification(self.db, inquiry, user.id, data.action)
+            add_rental_notification(
+                self.db, inquiry, user.id, data.action, sale=self.sale
+            )
         await self.db.commit()
         await self.db.refresh(inquiry)
         return inquiry

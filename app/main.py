@@ -40,6 +40,7 @@ from app.api.routers.reservations import router as reservations_router
 from app.api.routers.resource_reviews import router as resource_reviews_router
 from app.api.routers.resources import router as resources_router
 from app.api.routers.review_moderation import router as review_moderation_router
+from app.api.routers.sale_inquiries import router as sale_inquiries_router
 from app.api.routers.saved_searches import router as saved_searches_router
 from app.api.routers.stay_blocks import router as stay_blocks_router
 from app.api.routers.stays import router as stays_router
@@ -119,6 +120,7 @@ app.include_router(property_reviews_router)
 app.include_router(stays_router)
 app.include_router(stay_blocks_router)
 app.include_router(rental_inquiries_router)
+app.include_router(sale_inquiries_router)
 app.include_router(reservations_router)
 app.include_router(reservation_guests_router)
 app.include_router(reservation_transfers_router)

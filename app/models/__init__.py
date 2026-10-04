@@ -30,6 +30,7 @@ from app.models.reservation_transfer import ReservationTransfer
 from app.models.resource import Resource
 from app.models.resource_review import ResourceReview
 from app.models.review_report import ReviewReport
+from app.models.sale_inquiry import SaleInquiry, SaleMessage
 from app.models.saved_search import SavedSearch
 from app.models.saved_search_match import SavedSearchMatch
 from app.models.stay import Stay
@@ -45,6 +46,8 @@ from app.models.waiver import WaiverAcceptance, WaiverTemplate, WaiverVersion
 from app.models.webhook import WebhookDelivery, WebhookSubscription
 
 __all__ = [
+    "SaleInquiry",
+    "SaleMessage",
     "StayDateChange",
     "PropertyReport",
     "PropertyModerationEvent",
