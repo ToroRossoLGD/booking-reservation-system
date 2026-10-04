@@ -274,6 +274,7 @@ function AuthModal({
   const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState(initialError);
   const [busy, setBusy] = useState(false);
   const socialProviders = [
@@ -299,6 +300,7 @@ function AuthModal({
   }
   async function submit(event: FormEvent) {
     event.preventDefault();
+    setPasswordVisible(false);
     setBusy(true);
     setError("");
     try {
@@ -380,17 +382,28 @@ function AuthModal({
               required
             />
           </label>
-          <label>
-            Password
+          <label htmlFor="auth-password">Password</label>
+          <div className="auth-password-control">
             <input
-              type="password"
+              id="auth-password"
+              type={passwordVisible ? "text" : "password"}
+              autoComplete={mode === "register" ? "new-password" : "current-password"}
+              autoCapitalize="none"
+              spellCheck={false}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="At least 8 characters"
               minLength={8}
               required
             />
-          </label>
+            <button
+              type="button"
+              aria-controls="auth-password"
+              aria-pressed={passwordVisible}
+              disabled={busy}
+              onClick={() => setPasswordVisible(visible => !visible)}
+            >Show password</button>
+          </div>
           {error && <p className="form-error">{error}</p>}
           <button className="button primary full" disabled={busy}>
             {busy
@@ -404,6 +417,7 @@ function AuthModal({
           className="text-button"
           onClick={() => {
             setMode(mode === "login" ? "register" : "login");
+            setPasswordVisible(false);
             setError("");
           }}
         >
