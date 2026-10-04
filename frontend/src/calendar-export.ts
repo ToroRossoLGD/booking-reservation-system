@@ -1,5 +1,5 @@
 import type { Stay } from "./stay-types";
-import type { RentalInquiry } from "./rental-types";
+import type { RentalInquiry, SaleInquiry } from "./rental-types";
 
 export type CalendarDownload = { filename: string; contents: string };
 
@@ -45,14 +45,15 @@ export function stayCalendar(stay: Stay, origin: string, owner = false, now = ne
   ], now) };
 }
 
-export function viewingCalendar(inquiry: RentalInquiry, origin: string, owner = false, now = new Date()): CalendarDownload | null {
+export function viewingCalendar(inquiry: RentalInquiry | SaleInquiry, origin: string, owner = false, now = new Date()): CalendarDownload | null {
   if (inquiry.status !== "viewing_confirmed" || !inquiry.viewing_at) return null;
+  const sale = "asking_price_cents" in inquiry;
   // The API stores an instant. UTC avoids floating-time and DST ambiguity.
   if (!/(Z|[+-]\d{2}:\d{2})$/i.test(inquiry.viewing_at)) throw new Error("Viewing must include a timezone");
-  return { filename: `bookica-razgledanje-${inquiry.id}.ics`, contents: calendar(`viewing-${inquiry.id}@${new URL(origin).host}`, [
+  return { filename: `bookica-${sale ? "prodaja-" : ""}razgledanje-${inquiry.id}.ics`, contents: calendar(`${sale ? "sale-" : ""}viewing-${inquiry.id}@${new URL(origin).host}`, [
     `DTSTART:${timestamp(inquiry.viewing_at)}`, `SEQUENCE:${inquiry.version}`,
     `SUMMARY:${text(`Razgledanje: ${inquiry.title}`)}`,
     `DESCRIPTION:${text(`Bookica upit #${inquiry.id}. Mesto sastanka i trajanje proveri u razgovoru. Ovo je kopija termina; izmene proveri u Bookici.`)}`,
-    `URL:${new URL(owner ? "/owner/rentals" : "/rentals", origin).href}`,
+    `URL:${new URL(sale ? owner ? "/owner/sales" : "/sales" : owner ? "/owner/rentals" : "/rentals", origin).href}`,
   ], now) };
 }

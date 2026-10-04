@@ -28,6 +28,8 @@ function PageContent() {
   }
   if (pathname === "/saved") return <SavedPropertiesPage />;
   if (pathname === "/rentals") return <RentalInquiriesPage key="renter" />;
+  if (pathname === "/sales") return <RentalInquiriesPage key="buyer" sale />;
+  if (pathname === "/owner/sales") return <RentalInquiriesPage key="seller" owner sale />;
   if (pathname === "/owner/rentals") return <RentalInquiriesPage key="landlord" owner />;
   if (pathname === "/stays") return <StaysPage key="guest" />;
   if (pathname === "/owner/stays") return <StaysPage key="owner" owner />;

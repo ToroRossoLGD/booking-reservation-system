@@ -68,9 +68,9 @@ Homepage shortcuts bring saved listings, stays, rental inquiries and notificatio
 | --- | --- | --- |
 | Short stays | Find and reserve an entire apartment for a city break or holiday | Availability calendar, nightly quotes, confirmation and cancellation; payment at the property |
 | Long-term rentals | Find a home, contact the owner and arrange a viewing | Published listings, monthly prices, rental terms, private conversations, viewing proposals, confirmations and in-app notifications |
-| Apartment sales | Explore properties, compare details and contact sellers | Published listings, total asking prices, search and email contact |
+| Apartment sales | Explore properties, contact sellers and arrange a viewing | Published listings, total asking prices, private inquiries, conversations and confirmed viewings |
 
-The goal is one place for property discovery and owner management, with a reservation flow for short stays. Long-term rentals use private inquiries; sales listings currently use email contact. Neither is purchased through the short-stay checkout.
+The goal is one place for property discovery and owner management, with a reservation flow for short stays. Long-term rentals and sales use private inquiries and viewing appointments. Neither is purchased through the short-stay checkout.
 
 ## What works today
 
@@ -93,7 +93,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - Owners can upload up to 12 photos per listing, select a cover, reorder and delete them; visitors can open a full-screen gallery on desktop and mobile.
 - The responsive storefront includes mobile navigation, active filters and loading, empty and error states.
 - Keyboard users can press Tab to reveal **Preskoči na sadržaj**, then Enter to focus the main content without traversing navigation or changing the current search URL.
-- Contact links open the visitor's email application; long-term rentals also offer private inquiries stored in Bookica.
+- Contact links open the visitor's email application; long-term rentals and sales also offer private inquiries stored in Bookica.
 
 ### Nightly reservations
 
@@ -125,6 +125,14 @@ The goal is one place for property discovery and owner management, with a reserv
 - Inquiries do not reserve apartments or create leases or payments. See the [long-term rental guide](docs/long-term-rentals.md).
 - Long-term listings can specify a deposit, estimated monthly bills, availability date, minimum lease duration and pets policy. Inquiries validate the date/duration and retain the original terms for both participants.
 
+### Property sales
+
+- Buyers send private inquiries from sale listings, without move-in dates or rental terms.
+- Buyers use `/sales`; sellers use `/owner/sales` to reply, propose viewings and close inquiries. Buyers can confirm, decline or withdraw.
+- Conversations include message history and unread indicators; viewing milestones create private in-app notifications. Confirmed viewings can be downloaded to a calendar.
+- Inquiries retain the original asking price and currency. Duplicate requests and stale viewing updates are protected; rental and sale histories remain separate.
+- Applies to both apartments and houses offered for sale. Inquiries do not reserve a property, create a purchase contract or collect payments. See [sales inquiries](docs/sales-inquiries.md).
+
 ### Existing foundation
 
 Email/password login, Google OAuth, customer/owner/admin roles and database migrations are already part of the application. The original hourly platform also retains its reservations, payment workflows, reviews, favorites, notifications and operational tools. Those features are not all available for property listings yet.
@@ -155,7 +163,7 @@ Planned work is grouped by suggested priority, not promised release dates. Check
 - [ ] Online short-stay payments and deposits, including refunds and failed-payment recovery.
 - [ ] Email/push delivery and stay/viewing reminders with preferences and delivery tracking.
 - [ ] Property map search with deliberate address-privacy controls.
-- [ ] Sales inquiries and viewing appointments inside Bookica.
+- [x] Sales inquiries and viewing appointments inside Bookica. See [sales inquiries](docs/sales-inquiries.md).
 - [ ] Long-term leases and monthly rental payments.
 
 <details>

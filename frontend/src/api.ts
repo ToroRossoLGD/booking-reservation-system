@@ -28,7 +28,7 @@ import type {
 } from "./types";
 
 import type { PropertyInput, PropertyListing, PropertyPage, PropertyPhoto, PropertySearchFilters } from "./property-types";
-import type { RentalInquiry, RentalInquiryInput, RentalInquiryPage, RentalUpdate, RentalMessage, RentalMessagePage } from "./rental-types";
+import type { SaleInquiry, SaleInquiryInput, SaleInquiryPage, RentalInquiry, RentalInquiryInput, RentalInquiryPage, RentalUpdate, RentalMessage, RentalMessagePage } from "./rental-types";
 import type { StayBlock, StayBlockPage, StayBlockCreate, Stay, StayCalendar, StayCreate, StayDates, StayPage, StayQuote } from "./stay-types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
@@ -99,6 +99,12 @@ export const api = {
   createRentalInquiry: (id: number, data: RentalInquiryInput) => request<RentalInquiry>(`/properties/${id}/rental-inquiries`, { method: "POST", body: JSON.stringify(data) }),
   rentalInquiries: (owner = false, offset = 0) => request<RentalInquiryPage>(`${owner ? "/owner/rental-inquiries" : "/rental-inquiries/mine"}?offset=${offset}&limit=20`),
   updateRentalInquiry: (id: number, data: RentalUpdate) => request<RentalInquiry>(`/rental-inquiries/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  saleMessages: (id: number, beforeId?: number) => request<RentalMessagePage>(`/sale-inquiries/${id}/messages${beforeId ? `?before_id=${beforeId}` : ""}`),
+  sendSaleMessage: (id: number, body: string, requestId: string) => request<RentalMessage>(`/sale-inquiries/${id}/messages`, { method: "POST", body: JSON.stringify({ body, request_id: requestId }) }),
+  readSaleMessages: (id: number, messageIds: number[]) => request<{ unread_count: number }>(`/sale-inquiries/${id}/messages/read`, { method: "POST", body: JSON.stringify({ message_ids: messageIds }) }),
+  createSaleInquiry: (id: number, data: SaleInquiryInput) => request<SaleInquiry>(`/properties/${id}/sale-inquiries`, { method: "POST", body: JSON.stringify(data) }),
+  saleInquiries: (owner = false, offset = 0) => request<SaleInquiryPage>(`${owner ? "/owner/sale-inquiries" : "/sale-inquiries/mine"}?offset=${offset}&limit=20`),
+  updateSaleInquiry: (id: number, data: RentalUpdate) => request<SaleInquiry>(`/sale-inquiries/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   stayQuote: (id: number, dates: StayDates) => request<StayQuote>(`/properties/${id}/stay-quote`, { method: "POST", body: JSON.stringify(dates) }),
   createStay: (id: number, data: StayCreate) => request<Stay>(`/properties/${id}/stays`, { method: "POST", body: JSON.stringify(data) }),
   stayCalendar: (id: number, start: string, end: string, signal?: AbortSignal) => request<StayCalendar>(`/properties/${id}/calendar?${new URLSearchParams({ start, end })}`, { signal }),

@@ -5,13 +5,22 @@ from sqlalchemy import func, select, update
 
 from app.models.rental_inquiry import RentalInquiry
 from app.models.rental_message import RentalMessage
+from app.models.sale_inquiry import SaleInquiry, SaleMessage
 from app.schemas.rental_message import RentalMessageRead
+from app.schemas.sale_inquiry import SaleMessageRead
 
 
 def append_rental_message(
-    db, inquiry, sender_id, body, kind="message", viewing_at=None, request_id=None
+    db,
+    inquiry,
+    sender_id,
+    body,
+    kind="message",
+    viewing_at=None,
+    request_id=None,
+    message_model=RentalMessage,
 ):
-    message = RentalMessage(
+    message = message_model(
         inquiry_id=inquiry.id,
         sender_id=sender_id,
         body=body,
@@ -24,13 +33,18 @@ def append_rental_message(
 
 
 class RentalMessageService:
-    def __init__(self, db):
+    def __init__(self, db, *, sale=False):
         self.db = db
+        self.sale = sale
+        self.inquiry_model = SaleInquiry if sale else RentalInquiry
+        self.message_model = SaleMessage if sale else RentalMessage
+        self.read_schema = SaleMessageRead if sale else RentalMessageRead
 
     async def participant_inquiry(self, inquiry_id, user, lock=False):
-        query = select(RentalInquiry).where(
-            RentalInquiry.id == inquiry_id,
-            (RentalInquiry.user_id == user.id) | (RentalInquiry.owner_id == user.id),
+        query = select(self.inquiry_model).where(
+            self.inquiry_model.id == inquiry_id,
+            (self.inquiry_model.user_id == user.id)
+            | (self.inquiry_model.owner_id == user.id),
         )
         if lock:
             query = query.with_for_update().execution_options(populate_existing=True)
@@ -39,11 +53,12 @@ class RentalMessageService:
             raise HTTPException(404, "Inquiry not found")
         return inquiry
 
-    @staticmethod
-    def read(message, inquiry):
-        return RentalMessageRead(
+    def read(self, message, inquiry):
+        return self.read_schema(
             id=message.id,
-            sender="owner" if message.sender_id == inquiry.owner_id else "tenant",
+            sender="owner"
+            if message.sender_id == inquiry.owner_id
+            else ("buyer" if self.sale else "tenant"),
             kind=message.kind,
             body=message.body,
             viewing_at=message.viewing_at,
@@ -53,12 +68,14 @@ class RentalMessageService:
 
     async def list(self, inquiry_id, user, before_id=None, limit=50):
         inquiry = await self.participant_inquiry(inquiry_id, user)
-        query = select(RentalMessage).where(RentalMessage.inquiry_id == inquiry_id)
+        query = select(self.message_model).where(
+            self.message_model.inquiry_id == inquiry_id
+        )
         if before_id is not None:
-            query = query.where(RentalMessage.id < before_id)
+            query = query.where(self.message_model.id < before_id)
         rows = list(
             await self.db.scalars(
-                query.order_by(RentalMessage.id.desc()).limit(limit + 1)
+                query.order_by(self.message_model.id.desc()).limit(limit + 1)
             )
         )
         has_more = len(rows) > limit
@@ -73,21 +90,21 @@ class RentalMessageService:
     async def unread_count(self, inquiry_id, user):
         return await self.db.scalar(
             select(func.count())
-            .select_from(RentalMessage)
+            .select_from(self.message_model)
             .where(
-                RentalMessage.inquiry_id == inquiry_id,
-                RentalMessage.sender_id != user.id,
-                RentalMessage.read_at.is_(None),
+                self.message_model.inquiry_id == inquiry_id,
+                self.message_model.sender_id != user.id,
+                self.message_model.read_at.is_(None),
             )
         )
 
     async def send(self, inquiry_id, data, user):
         inquiry = await self.participant_inquiry(inquiry_id, user, lock=True)
         previous = await self.db.scalar(
-            select(RentalMessage).where(
-                RentalMessage.inquiry_id == inquiry_id,
-                RentalMessage.sender_id == user.id,
-                RentalMessage.request_id == str(data.request_id),
+            select(self.message_model).where(
+                self.message_model.inquiry_id == inquiry_id,
+                self.message_model.sender_id == user.id,
+                self.message_model.request_id == str(data.request_id),
             )
         )
         if previous:
@@ -97,7 +114,12 @@ class RentalMessageService:
         if inquiry.status in {"closed", "withdrawn"}:
             raise HTTPException(409, "This inquiry is no longer active")
         message = append_rental_message(
-            self.db, inquiry, user.id, data.body, request_id=str(data.request_id)
+            self.db,
+            inquiry,
+            user.id,
+            data.body,
+            request_id=str(data.request_id),
+            message_model=self.message_model,
         )
         # A chat message does not alter the version of a viewing proposal.
         await self.db.commit()
@@ -107,12 +129,12 @@ class RentalMessageService:
     async def mark_read(self, inquiry_id, data, user):
         await self.participant_inquiry(inquiry_id, user, lock=True)
         await self.db.execute(
-            update(RentalMessage)
+            update(self.message_model)
             .where(
-                RentalMessage.inquiry_id == inquiry_id,
-                RentalMessage.id.in_(data.message_ids),
-                RentalMessage.sender_id != user.id,
-                RentalMessage.read_at.is_(None),
+                self.message_model.inquiry_id == inquiry_id,
+                self.message_model.id.in_(data.message_ids),
+                self.message_model.sender_id != user.id,
+                self.message_model.read_at.is_(None),
             )
             .values(read_at=datetime.now(timezone.utc))
         )

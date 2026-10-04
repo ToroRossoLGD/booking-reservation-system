@@ -33,6 +33,9 @@ export interface RentalInquiryPage {
   total: number;
   has_next: boolean;
 }
+export type SaleInquiryInput = Pick<RentalInquiryInput, "request_id" | "message">;
+export type SaleInquiry = Omit<RentalInquiry, keyof RentalTerms | "monthly_price_cents" | "move_in" | "duration_months"> & { asking_price_cents: number };
+export type SaleInquiryPage = { items: SaleInquiry[]; total: number; has_next: boolean };
 export const rentalStatus: Record<RentalInquiry["status"], string> = {
   open: "Otvoren upit",
   viewing_proposed: "Predložen termin",
@@ -43,7 +46,7 @@ export const rentalStatus: Record<RentalInquiry["status"], string> = {
 
 export interface RentalMessage {
   id: number;
-  sender: "owner" | "tenant";
+  sender: "owner" | "tenant" | "buyer";
   kind: "message" | "legacy_reply" | "propose" | "confirm" | "decline" | "close" | "withdraw";
   body: string;
   viewing_at: string | null;

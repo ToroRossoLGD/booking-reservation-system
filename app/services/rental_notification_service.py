@@ -3,7 +3,7 @@ from datetime import timezone
 from app.models.notification import Notification
 
 
-def add_rental_notification(db, inquiry, actor_id, action):
+def add_rental_notification(db, inquiry, actor_id, action, *, sale=False):
     """Persist milestone notifications in the inquiry's existing transaction."""
     titles = {
         "created": "Novi upit za dugoročni najam",
@@ -14,6 +14,14 @@ def add_rental_notification(db, inquiry, actor_id, action):
         "withdraw": "Zakupac je povukao upit",
     }
     owner = actor_id != inquiry.owner_id
+    if sale:
+        titles.update(
+            created="Novi upit za kupovinu",
+            close="Upit za kupovinu je zatvoren",
+            withdraw="Kupac je povukao upit",
+        )
+    path = "/sales" if sale else "/rentals"
+    prefix = "sale" if sale else "rental"
     recipient = inquiry.owner_id if owner else inquiry.user_id
     message = f"Upit #{inquiry.id}: {inquiry.title}."
     if action in {"propose", "confirm"} and inquiry.viewing_at:
@@ -27,9 +35,9 @@ def add_rental_notification(db, inquiry, actor_id, action):
             user_id=recipient,
             title=titles[action],
             message=message,
-            action_path="/owner/rentals" if owner else "/rentals",
+            action_path=f"/owner{path}" if owner else path,
             deduplication_key=(
-                f"rental:{inquiry.id}:{inquiry.version}:{action}:user:{recipient}"
+                f"{prefix}:{inquiry.id}:{inquiry.version}:{action}:user:{recipient}"
             ),
         )
     )
