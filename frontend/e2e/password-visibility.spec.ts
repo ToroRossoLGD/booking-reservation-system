@@ -14,7 +14,10 @@ for (const mobile of [false, true]) {
       return route.fulfill({ status: 401, json: { detail: "Invalid credentials" } });
     });
     await page.goto("/booking");
-    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    if (mobile) {
+      await page.getByRole("button", { name: "Sign up", exact: true }).click();
+      await page.getByRole("button", { name: "Already have an account? Sign in" }).click();
+    } else await page.getByRole("button", { name: "Log in", exact: true }).click();
     const password = page.getByLabel("Password", { exact: true });
     const toggle = page.getByRole("button", { name: "Show password", exact: true });
     await page.getByLabel("Email address").fill("buyer@example.com");
@@ -46,7 +49,10 @@ for (const mobile of [false, true]) {
     await expect(password).toHaveValue("Sample-secret-42!");
     await toggle.click();
     await page.getByRole("button", { name: "Close", exact: true }).click();
-    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    if (mobile) {
+      await page.getByRole("button", { name: "Sign up", exact: true }).click();
+      await page.getByRole("button", { name: "Already have an account? Sign in" }).click();
+    } else await page.getByRole("button", { name: "Log in", exact: true }).click();
     await expect(password).toHaveAttribute("type", "password");
     await expect(password).toHaveValue("");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
