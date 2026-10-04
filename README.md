@@ -153,6 +153,7 @@ Planned work is grouped by suggested priority, not promised release dates. Check
 - [x] Private listing reports, administrator suspension/review and owner appeals with audit history. See [property moderation](docs/property-moderation.md).
 - [ ] Consistent Serbian/English language selection and a keyboard/screen-reader accessibility review.
 - [x] Keyboard skip navigation to the main content across marketplace and account/owner pages.
+- [x] Accessible password visibility toggle for login and registration, with password-manager autocomplete hints. Passwords start hidden and are hidden again on submit or when switching forms.
 
 ### Larger booking and marketplace features
 
