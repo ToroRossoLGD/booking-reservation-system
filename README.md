@@ -82,6 +82,7 @@ The goal is one place for property discovery and owner management, with a reserv
 - Listings include city, description, floor area, room count, price, currency and a public contact email.
 - Optional property details include apartment/house type, neighborhood, floor, heating, furnishing, elevator, parking and terrace. Visitors can view and filter by these details; unspecified values stay unknown.
 - Visitors can search by city and offer type, filter by price, floor area and exact room count (including studios), and sort by newest, price or largest area.
+- Visitors can search an area on an optional map using the same filters and availability checks. Owners explicitly choose an approximate public location; existing listings remain off-map by default. Map bounds work in shared URLs and saved searches. See [map search and location privacy](docs/property-map-search.md).
 - Visitors can compare up to three listings of the same offer type and currency from search results. Selection survives filtering and pagination until the page is reloaded. The mobile-scrollable table compares asking/base prices, property details and relevant rental/stay terms; unknown values remain explicit. Comparison uses data from selection time, so current terms and date-specific nightly prices should be checked on the listing.
 - Price filters and sorting require an offer type and currency so nightly, monthly and sale prices are not mixed. Applied filters stay active across result pages and can be cleared together.
 - Search filters and pagination persist in the URL, survive reload and browser Back/Forward, and can be shared using **Kopiraj link pretrage**.
@@ -163,7 +164,7 @@ Planned work is grouped by suggested priority, not promised release dates. Check
 - [ ] External calendar synchronization, conflict reporting and last-sync status.
 - [ ] Online short-stay payments and deposits, including refunds and failed-payment recovery.
 - [ ] Email/push delivery and stay/viewing reminders with preferences and delivery tracking.
-- [ ] Property map search with deliberate address-privacy controls.
+- [x] Property map search with deliberate address-privacy controls, owner opt-in and approximate locations. See [map search](docs/property-map-search.md).
 - [x] Sales inquiries and viewing appointments inside Bookica. See [sales inquiries](docs/sales-inquiries.md).
 - [ ] Long-term leases and monthly rental payments.
 

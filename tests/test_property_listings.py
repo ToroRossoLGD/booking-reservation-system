@@ -178,6 +178,8 @@ def test_migration_upgrade_and_downgrade_preserve_existing_venues():
         assert {
             column["name"] for column in inspector.get_columns("property_listings")
         } == set(PropertyListing.__table__.columns.keys()) - {
+            "map_latitude",
+            "map_longitude",
             "deposit_cents",
             "monthly_bills_cents",
             "available_from",

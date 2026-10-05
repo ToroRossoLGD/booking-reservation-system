@@ -17,6 +17,15 @@ export function readPropertySearch(search: string): PropertySearchState {
   const offset = number("offset", 0, 2147483647);
   state.offset = offset === undefined ? 0 : Math.floor(offset / 12) * 12;
   const { filters } = state;
+  if (params.get("map_only") === "true") filters.map_only = true;
+  const bounds = ["map_south", "map_north", "map_west", "map_east"].map(key => {
+    const value = params.get(key);
+    return value !== null && value.trim() !== "" ? Number(value) : NaN;
+  });
+  const [south, north, west, east] = bounds;
+  if (bounds.every(Number.isFinite) && south >= -85 && north <= 85 && south < north && west >= -180 && east <= 180 && west < east) {
+    Object.assign(filters, { map_south: south, map_north: north, map_west: west, map_east: east });
+  }
   for (const key of ["property_type", "heating", "furnishing"] as const) {
     const value = params.get(key);
     if (value && Object.hasOwn(detailOptions[key], value)) Object.assign(filters, { [key]: value });
@@ -57,7 +66,7 @@ export function propertySearchPath(state: PropertySearchState): string {
   const params = new URLSearchParams();
   if (state.city) params.set("city", state.city);
   if (state.offer) params.set("offer_type", state.offer);
-  for (const key of [...detailKeys, "currency", "min_price_cents", "max_price_cents", "min_area_sqm", "max_area_sqm", "rooms", "sort", "check_in", "check_out", "guests"] as const) {
+  for (const key of [...detailKeys, "map_only", "map_south", "map_north", "map_west", "map_east", "currency", "min_price_cents", "max_price_cents", "min_area_sqm", "max_area_sqm", "rooms", "sort", "check_in", "check_out", "guests"] as const) {
     const value = state.filters[key];
     if (value !== undefined && value !== "newest") params.set(key, String(value));
   }

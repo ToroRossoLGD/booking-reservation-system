@@ -7,7 +7,9 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     DateTime,
+    Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -20,6 +22,13 @@ from app.db.base import Base
 class PropertyListing(Base):
     __tablename__ = "property_listings"
     __table_args__ = (
+        Index("ix_property_map_location", "map_latitude", "map_longitude"),
+        CheckConstraint(
+            "(map_latitude IS NULL AND map_longitude IS NULL) OR "
+            "(map_latitude IS NOT NULL AND map_longitude IS NOT NULL AND "
+            "map_latitude BETWEEN -85 AND 85 AND map_longitude BETWEEN -180 AND 180)",
+            name="ck_property_map_location",
+        ),
         CheckConstraint(
             "moderation_state IN ('clear', 'suspended', 'appealed')",
             name="ck_property_moderation_state",
@@ -40,6 +49,8 @@ class PropertyListing(Base):
     )
 
     deposit_cents: Mapped[int | None] = mapped_column(BigInteger)
+    map_latitude: Mapped[float | None] = mapped_column(Float)
+    map_longitude: Mapped[float | None] = mapped_column(Float)
     moderation_state: Mapped[str] = mapped_column(
         String(16), default="clear", server_default="clear"
     )

@@ -12,6 +12,7 @@ from pydantic import (
 )
 
 from app.schemas.property_details import PropertyDetails
+from app.schemas.property_location import PropertyMapLocation
 from app.schemas.property_photo import PropertyPhotoRead
 from app.schemas.rental_terms import RentalTerms
 from app.schemas.seasonal_rate import SeasonalRate
@@ -21,6 +22,11 @@ OfferType = Literal["short_stay", "long_term", "sale"]
 
 
 class PropertySearch(PropertyDetails):
+    map_only: bool = False
+    map_south: float | None = Field(default=None, ge=-85, le=85, allow_inf_nan=False)
+    map_north: float | None = Field(default=None, ge=-85, le=85, allow_inf_nan=False)
+    map_west: float | None = Field(default=None, ge=-180, le=180, allow_inf_nan=False)
+    map_east: float | None = Field(default=None, ge=-180, le=180, allow_inf_nan=False)
     city: str = Field(default="", max_length=100)
     offer_type: OfferType | None = None
     currency: Literal["EUR", "RSD", "USD"] | None = None
@@ -38,6 +44,14 @@ class PropertySearch(PropertyDetails):
 
     @model_validator(mode="after")
     def valid_ranges(self):
+        bounds = (self.map_south, self.map_north, self.map_west, self.map_east)
+        if any(value is not None for value in bounds):
+            if any(value is None for value in bounds):
+                raise ValueError("Provide all four map bounds")
+            if self.map_south >= self.map_north or self.map_west >= self.map_east:
+                raise ValueError(
+                    "Map bounds must be ordered and not cross the antimeridian"
+                )
         if any(
             value is not None for value in (self.check_in, self.check_out, self.guests)
         ):
@@ -67,7 +81,7 @@ class PropertySearch(PropertyDetails):
         return self
 
 
-class PropertyListingWrite(PropertyDetails, RentalTerms):
+class PropertyListingWrite(PropertyDetails, RentalTerms, PropertyMapLocation):
     seasonal_rates: list[SeasonalRate] = Field(default_factory=list, max_length=24)
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
