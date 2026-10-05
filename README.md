@@ -6,7 +6,7 @@ Bookica is a property marketplace **under active development**. It brings apartm
 
 The project started as a general booking platform. It is now being developed around real estate, reusing its authentication, owner tools and reservation infrastructure. The original hourly booking application remains available at `/booking`.
 
-[What works today](#what-works-today) · [Roadmap](#roadmap) · [Run locally](#run-locally) · [Documentation](#documentation)
+[What works today](#what-works-today) · [Hosting readiness](#hosting-readiness) · [Roadmap](#roadmap) · [Run locally](#run-locally) · [Documentation](#documentation)
 
 ## Preview
 
@@ -138,11 +138,72 @@ The goal is one place for property discovery and owner management, with a reserv
 
 Email/password login, Google OAuth, customer/owner/admin roles and database migrations are already part of the application. The original hourly platform also retains its reservations, payment workflows, reviews, favorites, notifications and operational tools. Those features are not all available for property listings yet.
 
+## Hosting readiness
+
+**Assessment: 5 October 2026, based on the repository at `6acfa46`.** The application is a working marketplace suitable for a portfolio demonstration after the launch preparation below. It is **not yet ready for unrestricted public registration and real customer operations**. This is a source/configuration review, not a penetration test or verification of a running hosting environment.
+
+| Target | Current assessment | Release gate |
+| --- | --- | --- |
+| Portfolio page with screenshots, description and GitHub link | Can be published now | Describe it as a project/demo; no running backend is needed |
+| Live interactive demo linked from your site | Feasible after P0 | Isolated sample data, secure deployment, controlled access and a tested demo flow |
+| Public beta with real owners, guests and inquiries | Not yet | Complete P0 and P1 and pass staging acceptance |
+| Online nightly payments / full commercial operation | Later scope | Beta readiness plus payment-specific integration and operational validation |
+
+For a live demo, use a dedicated subdomain such as `bookica.your-domain.example` and link to it from the portfolio. The app currently assumes root-relative routes (`/properties`, `/owner`, `/api`); hosting under a path such as `/projects/bookica/` needs router, asset and API-path work. Static frontend hosting alone does not run FastAPI, PostgreSQL, Redis, Celery or photo storage.
+
+The existing foundation includes backend/frontend builds, migrations, PostgreSQL concurrency tests, role checks, property moderation, `/health`, database `/ready`, and scheduled jobs. Passing CI verifies those tested behaviors; it does not prove production configuration, recovery or public abuse resistance.
+
+### Findings that drive the launch plan
+
+- **Public account provisioning needs correction first.** `UserCreate` accepts the `UserRole` enum, including `admin`, and `AuthService.register` persists the supplied role. The public `/auth/register` route has no administrative dependency. Restrict public signup before exposing the API; existing role checks cannot compensate for self-assigned privileges. See [schema](app/schemas/auth.py), [service](app/services/auth_service.py) and [route](app/api/routers/auth.py).
+- **The supplied Compose stack is for development.** It runs Uvicorn with `--reload`, Vite's development server, source bind mounts, MailHog and local storage credentials, and exposes database/cache/console ports. A backend [Dockerfile](Dockerfile) exists, but a production deployment configuration and release workflow are not supplied. See [Compose](docker-compose.yml) and [CI](.github/workflows/ci.yml).
+- **Image build isolation is incomplete.** The Dockerfile copies the build context; [.dockerignore](.dockerignore) excludes `.env` but not all `.env.*` files or local `.tools` artifacts. Tighten the context before building/distributing production images; Git ignore rules are not Docker build exclusions.
+- **Email and account recovery are partial.** Password-reset endpoints and single-use token handling exist, but the email currently contains a raw token, the frontend has no reset flow, and [EmailService](app/services/email_service.py) has no SMTP authentication/STARTTLS support. Choose a secure relay/provider integration rather than only changing the SMTP hostname.
+- **Operational evidence is missing.** The repository has no production backup/restore runbook, automated deployment/rollback workflow or staging acceptance run. `/ready` checks the database only; workers, scheduler, Redis and object storage need operational checks. Browser tests currently use mocked API responses.
+- **Public signup/abuse controls need a dedicated pass.** No application rate limiter was found for login, reset, inquiries or uploads. Password signup has no email-verification flow; Google identity verification is separate. Browser bearer tokens currently live in `localStorage`, so session/token handling and XSS defenses need review before real-user rollout.
+
 ## Roadmap
 
-Planned work is grouped by suggested priority, not promised release dates. Checkmarks describe shipped functionality; unchecked items are proposals.
+Launch preparation now takes priority over additional marketplace features. Check off an item only after its acceptance criterion is demonstrated. Infrastructure already configured outside this repository must be verified before marking it complete.
 
-### Next practical improvements
+### P0 — Before an internet-accessible interactive demo
+
+- [ ] **Secure registration and role provisioning (first PR).** Public signup must not grant privileged roles. Provide a controlled owner/admin provisioning process and regression tests proving a public caller cannot become an administrator. If an instance was already public, audit existing privileged accounts and sessions. Until fixed, keep the entire demo behind access control; hiding a registration button is insufficient.
+- [ ] **Create a production deployment profile.** Build frontend assets with `npm ci` / `npm run build`, serve `dist` with SPA fallback, and run the API without reload/source mounts. Define process restart policy, resource limits and private service networking; do not expose PostgreSQL, Redis, MailHog or storage administration consoles publicly. The existing Compose file remains a local-development setup.
+- [ ] **Protect build context and secrets.** Exclude `.env.*` (except intentional templates), credentials, `.tools` and local artifacts from images; run containers with a non-root application user. Supply secrets at runtime and fail production startup on placeholder secrets. Confirm that neither image contents nor frontend bundles contain secrets.
+- [ ] **Wire domain, HTTPS and routes.** Configure DNS/certificates, static-file caching, `/api` proxying and direct page reloads. Verify `FRONTEND_ORIGINS`, `FRONTEND_URL`, build-time `VITE_API_URL` and any Google callback URL. If Google login is enabled, verify secure OAuth state cookies and their path through the proxy; otherwise hide unconfigured providers.
+- [ ] **Provision persistent services and migrations.** Create PostgreSQL, Redis and private property-photo storage with dedicated credentials; run `alembic upgrade head` as a controlled release step. Run/supervise Celery worker and one Beat scheduler when background features are enabled. Confirm photos and database records survive container restarts, and saved-search alerts run outside a developer terminal.
+- [ ] **Prepare an isolated portfolio demo.** Seed realistic fictional listings, demo accounts and owned/licensed photos; display a demo label, disable real charges and outgoing production integrations, set upload/storage limits and document reset behavior. Do not share a production administrator account with visitors. Keep demo data and credentials separate from future customer data.
+- [ ] **Prove the hosted flow.** On the deployed HTTPS URL, exercise login, owner listing/photo publication, search/map, a nightly reservation, competing booking rejection, cancellation, a rental/sales inquiry and notification delivery against the real API/database. Check mobile layout, direct deep links and service restart recovery. Record the URL, commit and results before linking the interactive demo from the portfolio.
+
+**P0 exit:** a repeatable, access-controlled demo deployment with fictional data, functioning persistence, no self-service privilege escalation and a passing real-stack smoke run. A publicly browsable or writable demo still needs the applicable P1 abuse controls below.
+
+### P1 — Before inviting real users to a public beta
+
+- [ ] **Account recovery and verified contact ownership.** Add password-reset request/confirmation screens with expiring links, secure email transport, delivery/error handling and tested one-use behavior. Verify password-signup email ownership before enabling the agreed sensitive actions; test expired links and account-enumeration resistance.
+- [ ] **Abuse and session hardening.** Add tested limits for login/signup/reset, inquiries, messages, reports and uploads, including correct client-IP handling behind the chosen proxy. Review role/ownership boundaries across property and legacy APIs, token storage/logout/revocation, security headers and outbound integrations. Enforce limits at the API/edge, not only in the UI; document the chosen session approach and test it.
+- [ ] **Backup and restore.** Schedule protected database backups and object-storage recovery/versioning with explicit retention and acceptable recovery targets. Restore both into a separate environment and verify listing photos, bookings and conversations. A configured backup job without a successful restore test does not close this item.
+- [ ] **Monitoring and operational ownership.** Collect redacted API/worker logs and errors; alert on uptime, database failures, queue backlog, scheduler failure, email/storage errors and exhausted capacity. Define who handles incidents, how to contact support and how to stop new writes safely during recovery.
+- [ ] **Repeatable staging-to-production releases.** Add a deployment workflow with immutable build artifacts, environment separation, migration ordering, health checks and a documented rollback/recovery path. Include browser-to-real-API staging tests and a load/concurrency check using the deployed PostgreSQL setup; retain the existing mocked-browser tests as fast regression coverage.
+- [ ] **Owner onboarding and customer-facing policies.** Implement the agreed owner approval/provisioning flow; explain publication, moderation, cancellation, payment-at-property and support processes. Publish appropriate terms/privacy information and define retention/deletion handling for real user data before collection, including external maps, email and photo storage.
+- [ ] **Finish the core user experience.** Make the primary property/account flows consistently Serbian (or implement the language selector), review keyboard/screen-reader access, validate empty/error states and remove or clearly label unavailable social-login/legacy actions. Add production page titles/share metadata and verify mobile performance with real images and maps.
+
+**P1 exit:** successful account recovery, abuse-control checks, restore drill, monitored staging release and real-owner/guest acceptance. Initial beta scope may keep payment at the property and manual operational support; it does not require every P2 feature.
+
+### P2 — After a stable beta, driven by actual usage
+
+- [ ] External calendar synchronization, conflict reporting and last-sync status; prioritize before relying on Bookica alongside other booking channels.
+- [ ] Email/push delivery for nightly stays and viewings, reminders, preferences and delivery tracking. Basic account-recovery email belongs to P1; existing legacy reminders do not complete this property feature.
+- [ ] Online short-stay payments and deposits, including signed webhooks, idempotency, refunds, failed-payment recovery and reconciliation. The legacy hourly Stripe integration does not yet provide this nightly flow.
+- [ ] Long-term leases and monthly rental payments.
+- [ ] Complete Serbian/English language selection and extend accessibility coverage beyond the core beta flows.
+
+Online payments, lease generation and external calendars are **not prerequisites for a portfolio demo**. Prioritize registration safety, production configuration and a verified deployment first.
+
+Deployment guidance: [FastAPI deployment concepts](https://fastapi.tiangolo.com/deployment/concepts/), [Vite production/static deployment](https://vite.dev/guide/static-deploy.html) and [OWASP authorization guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html). Vite's development/preview servers are not the production hosting plan.
+
+<details>
+<summary>Completed milestones</summary>
 
 - [x] Private owner preview of saved drafts and published listings at `/owner/properties/{id}/preview`.
 - [x] Named saved searches in the current browser, with filter restoration, renaming and removal.
@@ -152,24 +213,13 @@ Planned work is grouped by suggested priority, not promised release dates. Check
 - [x] Clearer listing completeness hints for owners (photos, contact and rental terms).
 - [x] Guest-requested stay date changes with owner approval, explicit price consent, history and availability rechecks. See [date changes](docs/stay-date-changes.md).
 - [x] Private listing reports, administrator suspension/review and owner appeals with audit history. See [property moderation](docs/property-moderation.md).
-- [ ] Consistent Serbian/English language selection and a keyboard/screen-reader accessibility review.
 - [x] Keyboard skip navigation to the main content across marketplace and account/owner pages.
 - [x] Accessible password visibility toggle for login and registration, with password-manager autocomplete hints. Passwords start hidden and are hidden again on submit or when switching forms.
-
-### Larger booking and marketplace features
-
 - [x] Seasonal nightly rates with an itemized quote and preserved booked prices.
 - [x] Owner-defined advance-booking notice and departure windows for short stays, enforced in search, quotes and confirmation.
 - [x] Preparation gaps between stays, shared across booking-enabled listings for the same apartment.
-- [ ] External calendar synchronization, conflict reporting and last-sync status.
-- [ ] Online short-stay payments and deposits, including refunds and failed-payment recovery.
-- [ ] Email/push delivery and stay/viewing reminders with preferences and delivery tracking.
 - [x] Property map search with deliberate address-privacy controls, owner opt-in and approximate locations. See [map search](docs/property-map-search.md).
 - [x] Sales inquiries and viewing appointments inside Bookica. See [sales inquiries](docs/sales-inquiries.md).
-- [ ] Long-term leases and monthly rental payments.
-
-<details>
-<summary>Completed milestones</summary>
 
 - [x] Property photographs, cover selection and galleries.
 - [x] Structured property details and matching shareable search filters.
