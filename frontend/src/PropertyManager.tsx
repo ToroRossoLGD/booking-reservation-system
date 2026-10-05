@@ -13,6 +13,7 @@ import { readRentalTerms } from "./rental-terms";
 import SeasonalRateFields from "./SeasonalRateFields";
 import { readSeasonalRates } from "./seasonal-rates";
 import { readDetails } from "./property-details";
+import PropertyMapLocationFields from "./PropertyMapLocationFields";
 
 const StayBlockManager = lazy(() => import("./StayBlockManager"));
 const PropertyPhotoManager = lazy(() => import("./PropertyPhotoManager"));
@@ -86,6 +87,8 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
     try { seasonalRates = type === "short_stay" ? readSeasonalRates(fields) : []; }
     catch (err) { setError(err instanceof Error ? err.message : "Proveri sezonske cene."); return; }
     const data: PropertyInput = {
+      map_latitude: fields.get("map_enabled") === "on" ? Number(fields.get("map_latitude")) : null,
+      map_longitude: fields.get("map_enabled") === "on" ? Number(fields.get("map_longitude")) : null,
       seasonal_rates: seasonalRates,
       ...readDetails(fields),
       ...readRentalTerms(fields, type === "long_term"),
@@ -145,6 +148,7 @@ export default function PropertyManager({ venues }: { venues: OwnerVenue[] }) {
         <label className="ph-form-wide">Javna kontakt email adresa<input name="contact_email" type="email" maxLength={254} required defaultValue={current?.contact_email} /><small>Ova adresa će biti dostupna posetiocima kada objaviš oglas.</small></label>
         <label className="ph-publish ph-form-wide"><input name="is_published" type="checkbox" defaultChecked={current?.is_published ?? false} />Objavi oglas (isključi da ga povučeš iz javne ponude)</label>
         <PropertyDetailFields value={current ?? {}} />
+        <PropertyMapLocationFields key={current?.id ?? "new"} value={current ?? null} />
         {type === "long_term" && <RentalTermsFields value={current ?? {}} />}
         {type === "short_stay" && <>
           <SeasonalRateFields rates={current?.seasonal_rates ?? []} />

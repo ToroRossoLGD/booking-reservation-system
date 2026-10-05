@@ -69,8 +69,27 @@ class PropertyListingRepository:
         has_elevator=None,
         has_parking=None,
         has_terrace=None,
+        map_only=False,
+        map_south=None,
+        map_north=None,
+        map_west=None,
+        map_east=None,
     ):
         filters = []
+        if map_only or map_south is not None:
+            filters.extend(
+                [
+                    PropertyListing.map_latitude.is_not(None),
+                    PropertyListing.map_longitude.is_not(None),
+                ]
+            )
+        if map_south is not None:
+            filters.extend(
+                [
+                    PropertyListing.map_latitude.between(map_south, map_north),
+                    PropertyListing.map_longitude.between(map_west, map_east),
+                ]
+            )
         if property_id is not None:
             filters.append(PropertyListing.id == property_id)
         for field, value in (

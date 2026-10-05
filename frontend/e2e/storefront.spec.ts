@@ -83,7 +83,7 @@ test("owner can publish a property from the existing dashboard", async ({ page }
   await page.getByLabel("Cena / mesec").fill("850");
   await page.getByLabel("Opis", { exact: true }).fill("Udoban stan u centru grada sa terasom.");
   await page.getByLabel(/Javna kontakt email adresa/).fill("owner@example.com");
-  await page.getByRole("checkbox").check();
+  await page.getByRole("checkbox", { name: /Objavi oglas/ }).check();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("property-owner-mobile.png"), fullPage: true });

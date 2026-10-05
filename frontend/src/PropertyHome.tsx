@@ -3,7 +3,8 @@ import { comparisonRestriction } from "./property-comparison";
 import type { PropertyListing } from "./property-types";
 import PropertyShortcuts from "./PropertyShortcuts";
 import { detailEntries, detailKeys } from "./property-details";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
+import type { MapBounds } from "./PropertyMap";
 import { propertySearchPath, readPropertySearch } from "./property-search-url";
 import type { PropertySearchState } from "./property-search-url";
 import ShareSearchButton from "./ShareSearchButton";
@@ -18,6 +19,7 @@ import "./property-home.css";
 import "./property-refresh.css";
 
 const emptyPage: PropertyPage = { items: [], total: 0, limit: 12, offset: 0, has_next: false };
+const PropertyMap = lazy(() => import("./PropertyMap"));
 
 export default function PropertyHome() {
   const [compared, setCompared] = useState<PropertyListing[]>([]);
@@ -29,9 +31,11 @@ export default function PropertyHome() {
   }
   const [initial] = useState(() => readPropertySearch(window.location.search));
   const [filters, setFilters] = useState<Filters>(initial.filters);
+  const [showMap, setShowMap] = useState(false);
   const [filterReset, setFilterReset] = useState(0);
   const hasFilters = Object.entries(filters).some(([key, value]) => value !== undefined && !(key === "sort" && value === "newest"));
   const filterSummary = [
+    filters.map_south !== undefined ? "Izabrano područje mape" : filters.map_only ? "Oglasi sa lokacijom na mapi" : "",
     ...detailEntries(filters).map(([label, value]) => `${label}: ${value}`),
     filters.check_in ? `${filters.check_in} / ${filters.check_out} (${filters.guests})` : "",
     filters.min_price_cents !== undefined ? `Cena od ${filters.min_price_cents / 100} ${filters.currency}` : "",
@@ -94,7 +98,7 @@ export default function PropertyHome() {
 
   function search(city: string, type: OfferType | "" = offer, nextFilters = filters) {
     if (type !== offer) {
-      nextFilters = { ...Object.fromEntries(detailKeys.map(key => [key, filters[key]])), min_area_sqm: filters.min_area_sqm, max_area_sqm: filters.max_area_sqm, rooms: filters.rooms, sort: filters.sort === "area_desc" ? "area_desc" : "newest" };
+      nextFilters = { ...mapFilters(filters), ...Object.fromEntries(detailKeys.map(key => [key, filters[key]])), min_area_sqm: filters.min_area_sqm, max_area_sqm: filters.max_area_sqm, rooms: filters.rooms, sort: filters.sort === "area_desc" ? "area_desc" : "newest" };
       setFilterReset(value => value + 1);
     }
     apply({ city: city.trim(), offer: type, offset: 0, filters: nextFilters });
@@ -104,6 +108,11 @@ export default function PropertyHome() {
     apply({ city: "", offer: "", offset: 0, filters: {} }); setFilterReset(value => value + 1);
   }
   const searchPath = propertySearchPath({ city: query, offer, offset, filters });
+  function mapFilters(value: Filters) { return { map_only: value.map_only, map_south: value.map_south, map_north: value.map_north, map_west: value.map_west, map_east: value.map_east }; }
+  function clearMap() {
+    const next = { ...filters }; for (const key of ["map_only", "map_south", "map_north", "map_west", "map_east"] as const) delete next[key];
+    search(query, offer, next);
+  }
 
   return <div className="property-home">
     <header className="ph-header">
@@ -127,7 +136,7 @@ export default function PropertyHome() {
           <div className="ph-search-hint">Od gradskih adresa do mirnih obala.<br /><span>Pronađi mesto po svom ukusu.</span></div>
           <button className="ph-primary" type="submit">Pretraži ponudu <span>↗</span></button>
         </form>
-        <PropertySearchFilters key={`${offer}-${filterReset}`} offer={offer} value={filters} onApply={next => search(location, offer, next)} />
+        <PropertySearchFilters key={`${offer}-${filterReset}`} offer={offer} value={filters} onApply={next => search(location, offer, { ...next, ...mapFilters(filters) })} />
       </section>
       <ShareSearchButton key={searchPath} path={searchPath} />
       <SavedSearches path={searchPath} />
@@ -135,6 +144,12 @@ export default function PropertyHome() {
         <div className="ph-section-heading"><div><p className="ph-eyebrow">PROSTORI ZA TVOJE PLANOVE</p><h2>Mesto koje ti pristaje.</h2></div><a href="/owner" className="ph-outline">Dodaj svoju nekretninu</a></div>
         <PropertyComparison items={compared} onRemove={id => { setCompared(items => items.filter(item => item.id !== id)); setComparisonError(""); }} onClear={() => { setCompared([]); setComparisonError(""); }} />
         {comparisonError && <p role="alert">{comparisonError}</p>}
+        <div className="property-map-actions">
+          <button className="ph-outline" type="button" aria-expanded={showMap} onClick={() => { setShowMap(!showMap); if (!showMap && !filters.map_only && filters.map_south === undefined) search(query, offer, { ...filters, map_only: true }); }}>{showMap ? "Sakrij mapu" : "Prikaži mapu"}</button>
+          {(filters.map_only || filters.map_south !== undefined) && <button className="ph-outline" type="button" onClick={clearMap}>Ukloni ograničenje mape</button>}
+          <small>Mapa koristi OpenStreetMap i prikazuje samo oglase čiji su vlasnici uključili približnu lokaciju.</small>
+        </div>
+        {showMap && <Suspense fallback={<p role="status">Učitavanje mape…</p>}><PropertyMap stayDates={filters.check_in && filters.check_out && filters.guests ? { check_in: filters.check_in, check_out: filters.check_out, guests: filters.guests } : undefined} items={loading || error ? [] : page.items} busy={loading} bounds={filters.map_south !== undefined ? mapFilters(filters) as MapBounds : undefined} onSearch={bounds => search(query, offer, { ...filters, ...bounds, map_only: true })} /></Suspense>}
         {(query || offer || hasFilters) && <div className="ph-active-filters" aria-label="Aktivni filteri">{query && <button onClick={() => search("", offer)} aria-label={`Ukloni lokaciju ${query}`}>⌖ {query} <span>×</span></button>}{offer && <button onClick={() => search(query, "")} aria-label="Ukloni vrstu ponude">{offerLabels[offer]} <span>×</span></button>}{hasFilters && <span>{filterSummary}</span>}<button className="ph-clear-filters" onClick={clearFilters}>Obriši filtere</button></div>}
         {loading ? <><p role="status" className="ph-demo">Učitavanje oglasa…</p><div className="ph-grid" aria-hidden="true">{[0, 1, 2].map(item => <div className="ph-skeleton" key={item}><div /><span /><span /><span /></div>)}</div></> : error ? <div className="ph-empty" role="alert"><span className="ph-empty-icon" aria-hidden="true">↻</span><h3>Ponuda trenutno nije dostupna.</h3><p>Pokušaj ponovo za nekoliko trenutaka.</p><button className="ph-outline" onClick={() => search(query)}>Pokušaj ponovo</button></div> : <>
           <p className="ph-demo" role="status">Pronađeno oglasa: {page.total}{query ? ` · ${query}` : ""}</p>

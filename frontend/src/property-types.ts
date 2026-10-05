@@ -4,6 +4,11 @@ import type { SeasonalRate } from "./seasonal-rates";
 export type OfferType = "short_stay" | "long_term" | "sale";
 
 export type PropertySearchFilters = { [K in keyof PropertyDetails]?: NonNullable<PropertyDetails[K]> } & {
+  map_only?: boolean;
+  map_south?: number;
+  map_north?: number;
+  map_west?: number;
+  map_east?: number;
   check_in?: string;
   check_out?: string;
   guests?: number;
@@ -16,6 +21,8 @@ export type PropertySearchFilters = { [K in keyof PropertyDetails]?: NonNullable
   sort?: "newest" | "price_asc" | "price_desc" | "area_desc";
 };
 export type PropertyInput = PropertyDetails & RentalTerms & {
+  map_latitude?: number | null;
+  map_longitude?: number | null;
   seasonal_rates?: SeasonalRate[];
   venue_id: number;
   title: string;
