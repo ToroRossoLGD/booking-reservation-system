@@ -140,7 +140,7 @@ Email/password login, Google OAuth, customer/owner/admin roles and database migr
 
 ## Hosting readiness
 
-**Assessment: 5 October 2026, based on the repository at `6acfa46`.** The application is a working marketplace suitable for a portfolio demonstration after the launch preparation below. It is **not yet ready for unrestricted public registration and real customer operations**. This is a source/configuration review, not a penetration test or verification of a running hosting environment.
+**Initial assessment: 5 October 2026, based on `6acfa46`; registration/provisioning status updated 6 October 2026.** The application is a working marketplace suitable for a portfolio demonstration after the launch preparation below. It is **not yet ready for unrestricted public registration and real customer operations**. This is a source/configuration review, not a penetration test or verification of a running hosting environment.
 
 | Target | Current assessment | Release gate |
 | --- | --- | --- |
@@ -155,7 +155,7 @@ The existing foundation includes backend/frontend builds, migrations, PostgreSQL
 
 ### Findings that drive the launch plan
 
-- **Public account provisioning needs correction first.** `UserCreate` accepts the `UserRole` enum, including `admin`, and `AuthService.register` persists the supplied role. The public `/auth/register` route has no administrative dependency. Restrict public signup before exposing the API; existing role checks cannot compensate for self-assigned privileges. See [schema](app/schemas/auth.py), [service](app/services/auth_service.py) and [route](app/api/routers/auth.py).
+- **Public account provisioning is now restricted.** Public signup creates customers only; owner/admin input is rejected and the service cannot derive privileges from registration input. Trusted operators assign or revoke roles using a preview-first CLI that invalidates existing sessions/API keys. See [account provisioning](docs/account-provisioning.md). Existing deployments still require a review of privileged accounts created before this fix.
 - **The supplied Compose stack is for development.** It runs Uvicorn with `--reload`, Vite's development server, source bind mounts, MailHog and local storage credentials, and exposes database/cache/console ports. A backend [Dockerfile](Dockerfile) exists, but a production deployment configuration and release workflow are not supplied. See [Compose](docker-compose.yml) and [CI](.github/workflows/ci.yml).
 - **Image build isolation is incomplete.** The Dockerfile copies the build context; [.dockerignore](.dockerignore) excludes `.env` but not all `.env.*` files or local `.tools` artifacts. Tighten the context before building/distributing production images; Git ignore rules are not Docker build exclusions.
 - **Email and account recovery are partial.** Password-reset endpoints and single-use token handling exist, but the email currently contains a raw token, the frontend has no reset flow, and [EmailService](app/services/email_service.py) has no SMTP authentication/STARTTLS support. Choose a secure relay/provider integration rather than only changing the SMTP hostname.
@@ -168,7 +168,8 @@ Launch preparation now takes priority over additional marketplace features. Chec
 
 ### P0 — Before an internet-accessible interactive demo
 
-- [ ] **Secure registration and role provisioning (first PR).** Public signup must not grant privileged roles. Provide a controlled owner/admin provisioning process and regression tests proving a public caller cannot become an administrator. If an instance was already public, audit existing privileged accounts and sessions. Until fixed, keep the entire demo behind access control; hiding a registration button is insufficient.
+- [x] **Secure registration and role provisioning.** Customer-only public signup, service-level enforcement, regression tests and a controlled operator CLI for owner/admin changes are implemented. Applied changes invalidate existing sessions/API keys. See [operator instructions](docs/account-provisioning.md).
+- [ ] **Review pre-fix deployments, if any were exposed.** Audit existing privileged accounts and their activity; demote unapproved accounts and revoke compromised credentials. This is an environment-specific operator task, not an automatic migration.
 - [ ] **Create a production deployment profile.** Build frontend assets with `npm ci` / `npm run build`, serve `dist` with SPA fallback, and run the API without reload/source mounts. Define process restart policy, resource limits and private service networking; do not expose PostgreSQL, Redis, MailHog or storage administration consoles publicly. The existing Compose file remains a local-development setup.
 - [ ] **Protect build context and secrets.** Exclude `.env.*` (except intentional templates), credentials, `.tools` and local artifacts from images; run containers with a non-root application user. Supply secrets at runtime and fail production startup on placeholder secrets. Confirm that neither image contents nor frontend bundles contain secrets.
 - [ ] **Wire domain, HTTPS and routes.** Configure DNS/certificates, static-file caching, `/api` proxying and direct page reloads. Verify `FRONTEND_ORIGINS`, `FRONTEND_URL`, build-time `VITE_API_URL` and any Google callback URL. If Google login is enabled, verify secure OAuth state cookies and their path through the proxy; otherwise hide unconfigured providers.
@@ -198,7 +199,7 @@ Launch preparation now takes priority over additional marketplace features. Chec
 - [ ] Long-term leases and monthly rental payments.
 - [ ] Complete Serbian/English language selection and extend accessibility coverage beyond the core beta flows.
 
-Online payments, lease generation and external calendars are **not prerequisites for a portfolio demo**. Prioritize registration safety, production configuration and a verified deployment first.
+Online payments, lease generation and external calendars are **not prerequisites for a portfolio demo**. Registration hardening is implemented; prioritize any existing-account review, production configuration and a verified deployment next.
 
 Deployment guidance: [FastAPI deployment concepts](https://fastapi.tiangolo.com/deployment/concepts/), [Vite production/static deployment](https://vite.dev/guide/static-deploy.html) and [OWASP authorization guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html). Vite's development/preview servers are not the production hosting plan.
 
