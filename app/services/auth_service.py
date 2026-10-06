@@ -33,7 +33,8 @@ class AuthService:
         user = User(
             email=data.email,
             hashed_password=hash_password(data.password),
-            role=data.role.value,
+            # Never derive privileges from public registration input.
+            role="customer",
         )
 
         return await self.user_repository.create(user)
