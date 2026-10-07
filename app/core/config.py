@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int
 
     DATABASE_URL: str
+    SQL_ECHO: bool = False
 
     JWT_SECRET: str
     JWT_ALGORITHM: str
