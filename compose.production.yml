@@ -1,0 +1,122 @@
+name: bookica-production
+
+x-app: &app
+  image: bookica-api:${BOOKICA_IMAGE_TAG:-local}
+  build:
+    context: .
+    dockerfile: deploy/backend.Dockerfile
+  env_file: ${BOOKICA_ENV_FILE:-.env.production}
+  environment: &environment
+    DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+    JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: "5432"
+    REDIS_HOST: redis
+    REDIS_PORT: "6379"
+    CELERY_BROKER_URL: redis://redis:6379/1
+    CELERY_RESULT_BACKEND: redis://redis:6379/2
+    SQL_ECHO: "false"
+  networks: [data, outbound]
+  restart: unless-stopped
+  init: true
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  mem_limit: 512m
+  cpus: 1.0
+  stop_grace_period: 30s
+  logging: &logging
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    networks: [data]
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
+    logging: *logging
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes", --maxmemory, 192mb, --maxmemory-policy, noeviction]
+    volumes: [redis_data:/data]
+    networks: [data]
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+    logging: *logging
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  migrate:
+    <<: *app
+    command: [alembic, upgrade, head]
+    restart: "no"
+    depends_on:
+      postgres: {condition: service_healthy}
+  backend:
+    <<: *app
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+  worker:
+    <<: *app
+    command: [celery, -A, app.tasks.celery_app.celery_app, worker, --loglevel=info, --concurrency=2]
+    depends_on:
+      backend: {condition: service_healthy}
+  beat:
+    <<: *app
+    command: [celery, -A, app.tasks.celery_app.celery_app, beat, --loglevel=info, --schedule=/state/celerybeat-schedule]
+    volumes: [beat_state:/state]
+    depends_on:
+      backend: {condition: service_healthy}
+  frontend:
+    image: bookica-web:${BOOKICA_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: deploy/frontend.Dockerfile
+    ports: ["127.0.0.1:${BOOKICA_HTTP_PORT:-8080}:8080"]
+    networks: [outbound]
+    depends_on:
+      backend: {condition: service_healthy}
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    mem_limit: 128m
+    cpus: 0.5
+    logging: *logging
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+networks:
+  data: {internal: true}
+  outbound: {}
+volumes:
+  postgres_data: {}
+  redis_data: {}
+  beat_state: {}
