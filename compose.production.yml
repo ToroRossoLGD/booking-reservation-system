@@ -7,6 +7,7 @@ x-app: &app
     dockerfile: deploy/backend.Dockerfile
   env_file: ${BOOKICA_ENV_FILE:-.env.production}
   environment: &environment
+    APP_ENV: production
     DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
     JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
     POSTGRES_HOST: postgres

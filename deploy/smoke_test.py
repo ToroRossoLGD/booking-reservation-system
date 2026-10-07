@@ -19,7 +19,7 @@ def write_env(path):
         f"JWT_SECRET={secrets.token_hex(32)}\nJWT_ALGORITHM=HS256\n"
         "JWT_EXPIRE_MINUTES=60\nFRONTEND_URL=http://localhost:18080\n"
         "FRONTEND_ORIGINS=http://localhost:18080\nOAUTH_COOKIE_SECURE=true\n"
-        "GOOGLE_CLIENT_ID=smoke-only\nGOOGLE_CLIENT_SECRET=smoke-only\n"
+        f"GOOGLE_CLIENT_ID=smoke-only\nGOOGLE_CLIENT_SECRET={secrets.token_hex(24)}\n"
         "GOOGLE_REDIRECT_URI=https://example.invalid/api/auth/google/callback\n"
         "BOOKICA_HTTP_PORT=18080\n",
         encoding="utf-8",

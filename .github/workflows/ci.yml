@@ -12,6 +12,11 @@ jobs:
   frontend-tests:
     name: Frontend tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Keep this version aligned with @playwright/test in package-lock.json.
+    # Browsers and OS libraries are preinstalled; avoid apt mirror outages.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
 
     steps:
       - name: Checkout code
@@ -40,11 +45,12 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Install Chromium
+      - name: Check Playwright image compatibility
         working-directory: frontend
-        run: npx playwright install --with-deps chromium
+        run: node -e "if (require('@playwright/test/package.json').version !== '1.62.1') throw new Error('Update the CI Playwright image to match package-lock.json')"
 
       - name: Run browser smoke tests
+        timeout-minutes: 8
         working-directory: frontend
         run: npm run test:e2e
 

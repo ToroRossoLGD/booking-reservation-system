@@ -10,6 +10,12 @@ __pycache__
 **/__pycache__
 .tools
 .aws
+**/.aws
+**/.ssh
+**/.config
+**/credentials
+**/credentials.json
+**/service-account*.json
 .codex
 .agents
 frontend/test-results
