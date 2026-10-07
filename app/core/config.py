@@ -1,7 +1,12 @@
+from typing import Literal
+
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
 
 
 class Settings(BaseSettings):
+    APP_ENV: Literal["development", "test", "production"] = "development"
     APP_NAME: str
     FRONTEND_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
@@ -77,7 +82,77 @@ class Settings(BaseSettings):
     FREE_CANCELLATION_HOURS: int = 24
     LATE_CANCELLATION_REFUND_PERCENT: int = 50
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+    model_config = SettingsConfigDict(
+        env_file=".env", case_sensitive=True, hide_input_in_errors=True
+    )
+
+    @model_validator(mode="after")
+    def validate_production_secrets(self):
+        if self.APP_ENV != "production":
+            return self
+
+        def require_secret(name, value, minimum=16):
+            normalized = "".join(c for c in value.lower() if c.isalnum())
+            placeholders = (
+                "changeme",
+                "replaceme",
+                "yourpassword",
+                "yoursecret",
+                "example",
+                "placeholder",
+                "postgres123",
+                "password",
+                "minioadmin",
+                "smokeonly",
+            )
+            if (
+                len(value.strip()) < minimum
+                or len(set(value)) < 8
+                or any(marker in normalized for marker in placeholders)
+            ):
+                raise ValueError(
+                    f"Production configuration: {name} requires a generated secret."
+                )
+
+        require_secret("JWT_SECRET", self.JWT_SECRET, 32)
+        require_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
+        try:
+            database = make_url(self.DATABASE_URL)
+        except Exception:
+            raise ValueError(
+                "Production configuration: DATABASE_URL is invalid."
+            ) from None
+        if database.drivername != "postgresql+asyncpg" or not database.password:
+            raise ValueError(
+                "Production configuration: DATABASE_URL requires "
+                "PostgreSQL credentials."
+            )
+        require_secret("DATABASE_URL password", database.password)
+        if database.password != self.POSTGRES_PASSWORD:
+            raise ValueError("Production configuration: database passwords must match.")
+        if self.JWT_SECRET == self.POSTGRES_PASSWORD:
+            raise ValueError(
+                "Production configuration: JWT and database secrets must differ."
+            )
+        if self.SQL_ECHO:
+            raise ValueError("Production configuration: SQL_ECHO must be disabled.")
+        for public_name, secret_name in (
+            ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"),
+            ("S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"),
+        ):
+            public, secret = getattr(self, public_name), getattr(self, secret_name)
+            if bool(public.strip()) != bool(secret.strip()):
+                raise ValueError(
+                    f"Production configuration: configure both {public_name} "
+                    f"and {secret_name}, or neither."
+                )
+            if secret:
+                require_secret(secret_name, secret)
+        for name in ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"):
+            if value := getattr(self, name):
+                require_secret(name, value)
+        self.validate_stripe_safety()
+        return self
 
     def validate_stripe_safety(self) -> None:
         if (

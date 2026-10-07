@@ -18,8 +18,27 @@ jobs:
         run: python deploy/smoke_test.py --write-env .env.production
       - name: Validate production profile
         run: docker compose --env-file .env.production -f compose.production.yml config --quiet
+      - name: Inject build-isolation canaries
+        run: python deploy/check_image_secrets.py --prepare --marker "$RUNNER_TEMP/bookica-canary"
       - name: Build and start the real stack
         run: docker compose --env-file .env.production -f compose.production.yml up --build --wait --wait-timeout 180
+      - name: Verify build context, image layers and frontend bundle exclude secrets
+        run: |
+          printf 'FROM scratch\nCOPY . /context\n' | docker build -f - -t bookica-context-check .
+          docker build --target build -f deploy/frontend.Dockerfile -t bookica-frontend-build-check .
+          python deploy/check_image_secrets.py --marker "$RUNNER_TEMP/bookica-canary" bookica-context-check bookica-api:local bookica-web:local bookica-frontend-build-check
+      - name: Reject unsafe production startup without leaking configuration
+        run: |
+          python - <<'PY'
+          import subprocess
+          command = ['docker', 'compose', '--env-file', '.env.production', '-f', 'compose.production.yml', 'run', '--rm', '--no-deps', '-e', 'JWT_SECRET=change-me', 'backend', 'python', '-c', 'from app.core.config import settings']
+          result = subprocess.run(command, capture_output=True, text=True)
+          assert result.returncode != 0
+          assert 'JWT_SECRET requires a generated secret' in result.stderr
+          assert 'input_value' not in result.stderr
+          assert 'change-me' not in result.stderr
+          print('Unsafe production startup rejected with redacted diagnostics.')
+          PY
       - name: Check runtime user and image contents
         run: |
           docker compose --env-file .env.production -f compose.production.yml exec -T backend python -c "import os,pathlib; assert os.getuid() == 10001; assert not pathlib.Path('/app/.env.production').exists(); assert not pathlib.Path('/app/.tools').exists()"
