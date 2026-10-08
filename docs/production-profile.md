@@ -32,7 +32,7 @@ A host-level TLS/access-control proxy should forward the chosen domain to `http:
 - Docker DNS is re-resolved so an API container replacement does not permanently strand the proxy on its old IP.
 - Upload requests are capped at 12 MB by Nginx; application photo limits still apply. There is no automatic rate limiter in this profile.
 
-Health checks: `/healthz` checks the frontend process; `/api/ready` checks API/database reachability. Container restart policy handles process exits, but an unhealthy status alone does not trigger a restart. Worker/Beat supervision, queue health and external-storage/email monitoring remain operational requirements.
+Health checks: `/healthz` checks the frontend process; `/api/ready` checks API/database reachability. Container restart policy handles process exits, but an unhealthy status alone does not trigger a restart. Worker/Beat health probes are described below; queue backlog, external-storage/email monitoring and operator alerts remain operational requirements.
 
 ## Releases and data
 
@@ -85,3 +85,25 @@ Before checking off the domain/HTTPS roadmap item, use access-controlled staging
 4. Frontend origin, callback and forwarded headers agree with the chosen domain. The loopback application listener remains inaccessible directly from the internet.
 
 The container smoke test uses the non-resolving `https://bookica.test` configuration solely to exercise production validation and the proxied OAuth redirect/cookie; requests still use the isolated HTTP loopback listener. It does not obtain a TLS certificate or contact Google. Public hosting remains deferred until P0, P1 and P2 are complete, per the launch decision.
+
+## Background service checks and persistence
+
+Production Compose has health checks for worker and Beat. Inside each worker, `python -m app.runtime_health worker` sends a Celery inspect ping to that container's default `celery@hostname` node only. Another worker replying cannot hide its failure. If you change Celery node naming, update the probe as well. This checks the worker control process, not successful business-task execution.
+
+Beat schedules `record_scheduler_heartbeat` every 30 seconds on the regular queue. A worker executes it and writes an expiring marker in the Redis broker database, with no customer data and no result record. `python -m app.runtime_health scheduler` checks its value and positive TTL (at most 90 seconds). This demonstrates recent scheduling, broker delivery and worker execution together; it is not a PID check and does not isolate which component failed. Startup has a 90-second grace period. Messages expire after 60 seconds to bound delayed heartbeat execution, and stale markers expire automatically. A recent marker may temporarily survive a restart; repeated checks, not one initial green result, establish ongoing health. Queue saturation can make this probe fail, which should prompt investigation.
+
+Keep exactly one Beat per deployment and isolate broker databases across environments. Multiple schedulers sharing this key could mask each other's failure and duplicate business work. The probe intentionally does not delete markers, enqueue business tasks or print exception details/connection strings. Docker marks a container unhealthy after repeated failures; it does not automatically restart an unhealthy live process. Configure operator alerting and recovery under the P1 operations milestone.
+
+Read-only operator checks:
+
+```bash
+docker compose --env-file .env.production -f compose.production.yml ps
+docker compose --env-file .env.production -f compose.production.yml exec -T worker python -m app.runtime_health worker
+docker compose --env-file .env.production -f compose.production.yml exec -T beat python -m app.runtime_health scheduler
+```
+
+The isolated CI stack stops Beat and waits for heartbeat expiry, then recreates PostgreSQL/Redis and application containers with the same volumes. It requires the original account to already exist (409 on repeat registration plus successful login), checks a temporary Redis marker, and requires worker/scheduler recovery. These are graceful recreation tests, not crash/power-loss guarantees or backup/restore drills. The CI operations stop services and must not be copied into an active customer deployment as health probes.
+
+Private photo storage has not been provisioned. This change does not verify a real photo bucket, email delivery or the result of a scheduled saved-search notification; those require staging acceptance before the P0 service milestone can be checked off.
+
+References: [Celery inspect destinations](https://docs.celeryq.dev/en/stable/userguide/monitoring.html#specifying-destination-nodes), [periodic tasks and single scheduler](https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html).

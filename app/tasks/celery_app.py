@@ -12,6 +12,7 @@ celery_app = Celery(
         "app.tasks.webhook_tasks",
         "app.tasks.analytics_tasks",
         "app.tasks.saved_search_tasks",
+        "app.tasks.health_tasks",
     ],
 )
 
@@ -22,6 +23,11 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     beat_schedule={
+        "scheduler-heartbeat": {
+            "task": "record_scheduler_heartbeat",
+            "schedule": 30.0,
+            "options": {"expires": 60},
+        },
         "send-saved-search-alerts": {
             "task": "send_saved_search_alerts_task",
             "schedule": 60.0,
