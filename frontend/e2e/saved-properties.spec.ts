@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 for (const mobile of [false, true]) {
   test(`save and revisit property on ${mobile ? "mobile" : "desktop"}`, async ({ page }, testInfo) => {

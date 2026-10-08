@@ -82,6 +82,12 @@ def request_id_from_header(value: str | None) -> str:
 async def attach_request_id(request: Request, call_next):
     request_id = request_id_from_header(request.headers.get("X-Request-ID"))
     request.state.request_id = request_id
+    if settings.DEMO_MODE and request.headers.get(
+        "content-type", ""
+    ).lower().startswith("multipart/"):
+        return JSONResponse(
+            {"detail": "Uploads are disabled in demo mode"}, status_code=403
+        )
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
     return response
@@ -90,6 +96,13 @@ async def attach_request_id(request: Request, call_next):
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+
+@app.get("/runtime-config")
+async def runtime_config():
+    return JSONResponse(
+        {"demo": settings.DEMO_MODE}, headers={"Cache-Control": "no-store"}
+    )
 
 
 @app.get("/ready")

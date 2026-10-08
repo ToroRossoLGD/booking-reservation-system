@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import type { RentalMessage } from "../src/rental-types";
 
 for (const mobile of [false, true]) {

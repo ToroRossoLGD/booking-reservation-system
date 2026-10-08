@@ -11,6 +11,8 @@ __pycache__/
 .env
 .env.docker
 .env.production
+.env.demo
+.demo-ci-state.json
 
 
 celerybeat-schedule*

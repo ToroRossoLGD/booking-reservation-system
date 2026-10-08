@@ -22,6 +22,10 @@ class AuthService:
         self.user_repository = UserRepository(db)
 
     async def register(self, data: UserCreate) -> User:
+        if settings.DEMO_MODE:
+            raise HTTPException(
+                403, "Use the supplied demo account; signup is disabled"
+            )
         existing_user = await self.user_repository.get_by_email(data.email)
 
         if existing_user:
@@ -52,7 +56,7 @@ class AuthService:
 
     @staticmethod
     def google_oauth_configured() -> bool:
-        return bool(settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET)
+        return settings.google_login_enabled
 
     @staticmethod
     def create_google_authorization() -> tuple[str, str]:

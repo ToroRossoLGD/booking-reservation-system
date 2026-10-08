@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("saved search survives reload and reopens its filters on page one", async ({ page }, testInfo) => {
   const requests: URLSearchParams[] = [];

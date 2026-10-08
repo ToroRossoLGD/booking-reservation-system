@@ -57,6 +57,8 @@ class PropertyPhotoService:
         self.db = db
 
     def storage(self):
+        if settings.DEMO_MODE:
+            raise HTTPException(403, "External photo storage is disabled in demo mode")
         if not settings.PROPERTY_PHOTO_BUCKET:
             raise HTTPException(503, "Property photo storage is not configured")
         kwargs = dict(
@@ -143,6 +145,8 @@ class PropertyPhotoService:
         )
 
     async def cleanup(self, key):
+        if settings.DEMO_MODE:
+            return
         try:
             client = self.storage()
             for name in (key, key + ".thumb"):
@@ -155,6 +159,8 @@ class PropertyPhotoService:
             logger.exception("Property photo cleanup failed for key %s", key)
 
     async def upload(self, property_id, file, request_id, user):
+        if settings.DEMO_MODE:
+            raise HTTPException(403, "Uploads are disabled in demo mode")
         await self.listing(property_id, user, lock=True)
         data = await file.read(
             min(settings.MEDIA_MAX_UPLOAD_BYTES, 10 * 1024 * 1024) + 1
@@ -245,6 +251,10 @@ class PropertyPhotoService:
         )
         if photo is None:
             raise HTTPException(404, "Photo not found")
+        if settings.DEMO_MODE:
+            from app.demo_assets import illustration
+
+            return illustration(photo.object_key)
         key = photo.object_key + (".thumb" if thumbnail else "")
 
         def download():

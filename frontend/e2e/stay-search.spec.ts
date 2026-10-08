@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { propertyToday, shiftDate } from "../src/stay-types";
 
 test("availability search carries dates into inline and direct booking forms", async ({ page }, testInfo) => {

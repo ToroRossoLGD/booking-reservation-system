@@ -47,6 +47,8 @@ class WebhookService:
             )
 
     async def create(self, venue_id: int, data: WebhookCreate, user: User) -> dict:
+        if settings.DEMO_MODE:
+            raise HTTPException(403, "Webhooks are disabled in demo mode")
         await self._authorize(venue_id, user)
         if (
             await self.repository.count_active(venue_id)
@@ -176,6 +178,8 @@ class WebhookService:
         self, current_time: datetime | None = None, limit: int = 100
     ) -> dict:
         now = current_time or datetime.now(UTC)
+        if settings.DEMO_MODE:
+            return {"processed": 0, "delivered": 0, "retrying": 0, "failed": 0}
         deliveries = await self.repository.get_due_deliveries(now, limit)
         delivered = failed = retrying = 0
         async with httpx.AsyncClient(

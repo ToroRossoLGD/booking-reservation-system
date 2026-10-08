@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 for (const owner of [false, true]) {
   test(`${owner ? "owner" : "guest"} opens stay notifications and follows the reservation link`, async ({ page }, testInfo) => {

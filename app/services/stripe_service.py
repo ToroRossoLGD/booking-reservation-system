@@ -20,6 +20,8 @@ class StripeService:
 
     @staticmethod
     def _configure() -> None:
+        if settings.DEMO_MODE:
+            raise HTTPException(403, "Payments are disabled in demo mode")
         if not settings.STRIPE_SECRET_KEY:
             raise HTTPException(
                 status_code=503, detail="Stripe test mode is not configured"

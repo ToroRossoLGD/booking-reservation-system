@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("explicit transfer is available from a second browser without local storage", async ({ browser, baseURL }, testInfo) => {
   let saved: { id: number; name: string; path: string }[] = [];

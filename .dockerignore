@@ -4,6 +4,7 @@ __pycache__
 .git
 .gitignore
 .env
+.demo-ci-state.json
 **/.env*
 **/node_modules
 **/dist

@@ -11,6 +11,8 @@ class EmailService:
         subject: str,
         body: str,
     ) -> None:
+        if settings.DEMO_MODE:
+            return
         message = EmailMessage()
         message["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
         message["To"] = to_email

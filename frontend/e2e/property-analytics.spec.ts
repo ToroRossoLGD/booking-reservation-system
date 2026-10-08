@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("detail views share a session and owners inspect monthly analytics on mobile", async ({ page }, testInfo) => {
   const listing = { id: 7, venue_id: 1, title: "Stan pored reke", description: "Udoban stan uz reku i centar grada.", city: "Novi Sad", offer_type: "sale", price_cents: 15000000, currency: "EUR", area_sqm: 60, rooms: 2, contact_email: "host@example.com", is_published: true };

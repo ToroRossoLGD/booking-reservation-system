@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("owner completeness shortcuts work on mobile without blocking publication", async ({ page }, testInfo) => {
   let listing = { id: 7, venue_id: 1, title: "Stan", description: "Udoban stan u centru grada.", city: "Beograd", offer_type: "long_term", area_sqm: 60, rooms: 2, price_cents: 65000, currency: "EUR", contact_email: "owner@example.com", is_published: true, photos: [] };

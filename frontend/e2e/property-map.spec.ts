@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import type { PropertyListing } from "../src/property-types";
 
 const listing: PropertyListing = { id: 1, venue_id: 1, title: "Stan na mapi", city: "Beograd", description: "Svetao stan sa terasom i pogledom na park.", offer_type: "sale", area_sqm: 60, rooms: 2, price_cents: 15000000, currency: "EUR", contact_email: "owner@example.com", is_published: true, map_latitude: 44.81, map_longitude: 20.46 };

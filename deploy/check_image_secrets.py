@@ -42,7 +42,13 @@ def prepare(path):
 
 def verify(marker_path, env_path, images):
     values = [Path(marker_path).read_text(encoding="utf-8").strip()]
-    sensitive = {"JWT_SECRET", "POSTGRES_PASSWORD", "GOOGLE_CLIENT_SECRET"}
+    sensitive = {
+        "JWT_SECRET",
+        "POSTGRES_PASSWORD",
+        "GOOGLE_CLIENT_SECRET",
+        "DEMO_OWNER_PASSWORD",
+        "DEMO_GUEST_PASSWORD",
+    }
     for line in Path(env_path).read_text(encoding="utf-8").splitlines():
         key, sep, value = line.partition("=")
         if sep and key in sensitive and value:

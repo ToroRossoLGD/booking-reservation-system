@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("search links restore filters, pagination, reload and browser history", async ({ page }) => {
   const listing = { id: 7, venue_id: 1, title: "Stan za najam", city: "Novi Sad", description: "Svetao stan u mirnom delu grada.", offer_type: "long_term", area_sqm: 30, rooms: 0, price_cents: 60000, currency: "EUR", contact_email: "owner@example.com", is_published: true };
