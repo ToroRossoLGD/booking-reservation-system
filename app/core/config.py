@@ -8,6 +8,9 @@ from sqlalchemy.engine import make_url
 
 
 class Settings(BaseSettings):
+    DEMO_MODE: bool = False
+    DEMO_OWNER_PASSWORD: str = ""
+    DEMO_GUEST_PASSWORD: str = ""
     APP_ENV: Literal["development", "test", "production"] = "development"
     APP_NAME: str
     FRONTEND_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
@@ -90,6 +93,17 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_secrets(self):
+        if self.DEMO_MODE:
+            database = make_url(self.DATABASE_URL)
+            if (
+                database.drivername != "postgresql+asyncpg"
+                or not database.database
+                or not database.database.endswith("_demo")
+                or database.database != self.POSTGRES_DB
+            ):
+                raise ValueError(
+                    "Demo requires a dedicated PostgreSQL database ending in _demo."
+                )
         if self.APP_ENV != "production":
             return self
 
@@ -159,7 +173,9 @@ class Settings(BaseSettings):
 
     @property
     def google_login_enabled(self) -> bool:
-        return bool(self.GOOGLE_CLIENT_ID.strip() and self.GOOGLE_CLIENT_SECRET.strip())
+        return not self.DEMO_MODE and bool(
+            self.GOOGLE_CLIENT_ID.strip() and self.GOOGLE_CLIENT_SECRET.strip()
+        )
 
     def validate_production_origins(self) -> None:
         def check_origin(value, name):

@@ -10,12 +10,13 @@ import urllib.request
 from pathlib import Path
 
 
-def write_env(path):
+def write_env(path, demo=False):
     password = secrets.token_hex(24)
+    database = "bookica_demo" if demo else "bookica"
     Path(path).write_text(
         "APP_NAME=Bookica smoke\nPOSTGRES_USER=bookica\n"
-        f"POSTGRES_PASSWORD={password}\nPOSTGRES_DB=bookica\n"
-        f"DATABASE_URL=postgresql+asyncpg://bookica:{password}@postgres:5432/bookica\n"
+        f"POSTGRES_PASSWORD={password}\nPOSTGRES_DB={database}\n"
+        f"DATABASE_URL=postgresql+asyncpg://bookica:{password}@postgres:5432/{database}\n"
         f"JWT_SECRET={secrets.token_hex(32)}\nJWT_ALGORITHM=HS256\n"
         "JWT_EXPIRE_MINUTES=60\nFRONTEND_URL=https://bookica.test\n"
         "FRONTEND_ORIGINS=https://bookica.test\nOAUTH_COOKIE_SECURE=true\n"
@@ -24,6 +25,12 @@ def write_env(path):
         "BOOKICA_HTTP_PORT=18080\n",
         encoding="utf-8",
     )
+    if demo:
+        with Path(path).open("a", encoding="utf-8") as handle:
+            handle.write(
+                f"DEMO_MODE=true\nDEMO_OWNER_PASSWORD={secrets.token_hex(24)}\n"
+                f"DEMO_GUEST_PASSWORD={secrets.token_hex(24)}\n"
+            )
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -93,8 +100,9 @@ if __name__ == "__main__":
     parser.add_argument("--write-env")
     parser.add_argument("--base-url", default="http://127.0.0.1:18080")
     parser.add_argument("--expect-existing", action="store_true")
+    parser.add_argument("--demo", action="store_true")
     args = parser.parse_args()
     if args.write_env:
-        write_env(args.write_env)
+        write_env(args.write_env, args.demo)
     else:
         smoke(args.base_url, args.expect_existing)

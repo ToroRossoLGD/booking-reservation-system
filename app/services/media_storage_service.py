@@ -31,6 +31,8 @@ class MediaStorageService:
         self.resources = ResourceRepository(db)
 
     def _client(self):
+        if settings.DEMO_MODE:
+            raise HTTPException(403, "External media storage is disabled in demo mode")
         if not settings.S3_BUCKET:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -113,6 +115,8 @@ class MediaStorageService:
         sort_order: int = 0,
     ) -> dict:
         owner_id = await self._parent_owner(venue_id, resource_id)
+        if settings.DEMO_MODE:
+            raise HTTPException(403, "Uploads are disabled in demo mode")
         self._assert_owner(owner_id, current_user)
         data = await file.read(settings.MEDIA_MAX_UPLOAD_BYTES + 1)
         if len(data) > settings.MEDIA_MAX_UPLOAD_BYTES:

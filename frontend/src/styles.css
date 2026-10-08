@@ -67,3 +67,4 @@ footer{min-height:110px;padding:28px clamp(24px,6vw,96px);display:flex;align-ite
 @media(max-width:800px){.reservation-overview,.reservation-detail-grid{grid-template-columns:1fr}.reservation-workspace{width:calc(100% - 28px)}}
 @media(max-width:650px){.venue-map{height:420px;border-radius:14px}.view-toggle{margin-top:16px;width:max-content}.reservation-actions{flex-direction:column;align-items:stretch}.pay-button,.danger-button{min-height:44px}}
 @media(max-width:650px){.reservation-filters{grid-template-columns:1fr}.reservation-filters button{text-align:left;padding-left:0}}
+.demo-banner{padding:12px 20px;background:#fff0c2;color:#493600;border-bottom:1px solid #dbc070;font-size:14px;line-height:1.5;text-align:center}

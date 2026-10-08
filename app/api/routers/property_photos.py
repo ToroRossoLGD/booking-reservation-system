@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.dependencies import require_roles
 from app.db.session import get_db
 from app.models.user import User
@@ -15,7 +16,11 @@ router = APIRouter(tags=["Property photos"])
 def image_response(content):
     return Response(
         content,
-        media_type="image/jpeg",
+        media_type=(
+            "image/svg+xml"
+            if settings.DEMO_MODE and content.startswith(b"<svg")
+            else "image/jpeg"
+        ),
         headers={
             "Cache-Control": "private, no-store",
             "X-Content-Type-Options": "nosniff",

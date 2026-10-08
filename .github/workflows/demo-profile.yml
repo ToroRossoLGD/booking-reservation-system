@@ -1,0 +1,43 @@
+name: Isolated demo
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+jobs:
+  demo-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BOOKICA_ENV_FILE: .env.production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate disposable demo configuration
+        run: python deploy/smoke_test.py --write-env .env.production --demo
+      - name: Build isolated demo stack
+        run: docker compose --env-file .env.production -f compose.production.yml up --build --wait --wait-timeout 180
+      - name: Preview and seed fictional data
+        run: |
+          if docker compose --env-file .env.production -f compose.production.yml exec -T backend python -m app.demo reset --apply --confirm-database bookica_demo; then
+            echo 'Reset incorrectly accepted an unmarked database'; exit 1
+          fi
+          docker compose --env-file .env.production -f compose.production.yml exec -T backend python -m app.demo seed
+          docker compose --env-file .env.production -f compose.production.yml exec -T backend python -m app.demo seed --apply
+          docker compose --env-file .env.production -f compose.production.yml exec -T backend python -m app.demo seed --apply
+          python deploy/demo_smoke.py
+      - name: Reset with stopped writers and verify old sessions cannot return
+        run: |
+          docker compose --env-file .env.production -f compose.production.yml stop frontend backend worker beat
+          docker compose --env-file .env.production -f compose.production.yml run --rm --no-deps backend python -m app.demo reset
+          if docker compose --env-file .env.production -f compose.production.yml run --rm --no-deps backend python -m app.demo reset --apply --confirm-database wrong_demo; then
+            echo 'Reset incorrectly accepted a different database name'; exit 1
+          fi
+          docker compose --env-file .env.production -f compose.production.yml run --rm --no-deps backend python -m app.demo reset --apply --confirm-database bookica_demo
+          docker compose --env-file .env.production -f compose.production.yml up -d --wait --wait-timeout 180
+          python deploy/demo_smoke.py --after-reset
+      - name: Inspect failure
+        if: failure()
+        run: docker compose --env-file .env.production -f compose.production.yml logs --tail=60
+      - name: Remove isolated CI resources
+        if: always()
+        run: docker compose --env-file .env.production -f compose.production.yml down --volumes --remove-orphans
