@@ -14,6 +14,27 @@ from app.services.auth_service import AuthService
 client = TestClient(app)
 
 
+@pytest.mark.parametrize(
+    "client_id,secret,enabled",
+    [
+        ("", "", False),
+        ("id", "", False),
+        ("", "private-secret", False),
+        ("id", "private-secret", True),
+        (" ", "private-secret", False),
+    ],
+)
+def test_public_auth_providers_exposes_only_configuration_flag(
+    monkeypatch, client_id, secret, enabled
+):
+    monkeypatch.setattr(settings, "GOOGLE_CLIENT_ID", client_id)
+    monkeypatch.setattr(settings, "GOOGLE_CLIENT_SECRET", secret)
+    response = client.get("/auth/providers")
+    assert response.status_code == 200
+    assert response.json() == {"google": enabled}
+    assert response.headers["cache-control"] == "no-store"
+
+
 def test_login_with_invalid_credentials_returns_401():
     response = client.post(
         "/auth/login",

@@ -1,6 +1,14 @@
 from urllib.parse import quote
 
-from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, HTTPException, Query
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Cookie,
+    Depends,
+    HTTPException,
+    Query,
+    Response,
+)
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +32,12 @@ router = APIRouter(
     prefix="/auth",
     tags=["Auth"],
 )
+
+
+@router.get("/providers")
+async def auth_providers(response: Response) -> dict[str, bool]:
+    response.headers["Cache-Control"] = "no-store"
+    return {"google": settings.google_login_enabled}
 
 
 @router.get("/google/login")
