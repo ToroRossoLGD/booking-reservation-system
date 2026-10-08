@@ -15,6 +15,8 @@ def production(**overrides):
         POSTGRES_PASSWORD=password,
         DATABASE_URL=f"postgresql+asyncpg://bookica:{password}@postgres/bookica",
         SQL_ECHO=False,
+        FRONTEND_URL="https://bookica.test",
+        FRONTEND_ORIGINS="https://bookica.test",
         GOOGLE_CLIENT_ID="",
         GOOGLE_CLIENT_SECRET="",
         S3_ACCESS_KEY_ID="",
@@ -115,3 +117,73 @@ def test_development_keeps_existing_local_configuration():
 def test_invalid_environment_is_not_silently_treated_as_development():
     with pytest.raises(ValidationError):
         production(APP_ENV="prodution")
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://bookica.test",
+        "https://bookica.test/",
+        "https://bookica.test/app",
+        "https://user:private@bookica.test",
+        "https://bookica.test?x=1",
+        "https://bookica.test#fragment",
+        "https://bookica.your-domain.example",
+        "*",
+        "https://bookica.test:bad",
+        "https://bookica.test:0",
+        "",
+    ],
+)
+def test_production_rejects_invalid_frontend_origins(origin):
+    with pytest.raises(ValidationError, match="FRONTEND_URL"):
+        production(FRONTEND_URL=origin)
+
+
+@pytest.mark.parametrize(
+    "origins",
+    ["*", "http://bookica.test", "https://other.test", "https://bookica.test,"],
+)
+def test_production_rejects_invalid_or_mismatched_cors_origins(origins):
+    with pytest.raises(ValidationError, match="FRONTEND_ORIGINS"):
+        production(FRONTEND_ORIGINS=origins)
+
+
+def test_production_accepts_explicit_additional_https_origins():
+    assert production(FRONTEND_ORIGINS="https://bookica.test, https://other.test")
+
+
+@pytest.mark.parametrize(
+    "override,field",
+    [
+        ({"OAUTH_COOKIE_SECURE": False}, "OAUTH_COOKIE_SECURE"),
+        (
+            {"GOOGLE_REDIRECT_URI": "https://other.test/api/auth/google/callback"},
+            "GOOGLE_REDIRECT_URI",
+        ),
+        (
+            {"GOOGLE_REDIRECT_URI": "https://bookica.test/auth/google/callback"},
+            "GOOGLE_REDIRECT_URI",
+        ),
+    ],
+)
+def test_google_requires_secure_cookies_and_exact_proxy_callback(override, field):
+    values = dict(
+        GOOGLE_CLIENT_ID="configured",
+        GOOGLE_CLIENT_SECRET=secrets.token_hex(24),
+        GOOGLE_REDIRECT_URI="https://bookica.test/api/auth/google/callback",
+        OAUTH_COOKIE_SECURE=True,
+    )
+    values.update(override)
+    with pytest.raises(ValidationError, match=field):
+        production(**values)
+
+
+def test_production_google_configuration_and_disabled_callback():
+    assert production(
+        GOOGLE_CLIENT_ID="configured",
+        GOOGLE_CLIENT_SECRET=secrets.token_hex(24),
+        GOOGLE_REDIRECT_URI="https://bookica.test/api/auth/google/callback",
+        OAUTH_COOKIE_SECURE=True,
+    ).google_login_enabled
+    assert not production(GOOGLE_REDIRECT_URI="unused").google_login_enabled

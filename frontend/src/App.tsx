@@ -1,6 +1,7 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { api, googleLoginUrl } from "./api";
+import { api } from "./api";
+import { GoogleLoginOption } from "./GoogleLoginOption";
 import { AccountDashboard, OwnerDashboard } from "./Dashboard";
 import { VenueMap } from "./VenueMap";
 import { parseApplicationRoute } from "./routing";
@@ -277,27 +278,6 @@ function AuthModal({
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState(initialError);
   const [busy, setBusy] = useState(false);
-  const socialProviders = [
-    { name: "Google", mark: "G", url: googleLoginUrl },
-    {
-      name: "LinkedIn",
-      mark: "in",
-      url: import.meta.env.VITE_LINKEDIN_AUTH_URL,
-    },
-    { name: "X", mark: "X", url: import.meta.env.VITE_X_AUTH_URL },
-    {
-      name: "Facebook",
-      mark: "f",
-      url: import.meta.env.VITE_FACEBOOK_AUTH_URL,
-    },
-  ];
-  function socialLogin(provider: (typeof socialProviders)[number]) {
-    if (!provider.url) {
-      setError(`${provider.name} login is not configured yet.`);
-      return;
-    }
-    window.location.assign(provider.url);
-  }
   async function submit(event: FormEvent) {
     event.preventDefault();
     setPasswordVisible(false);
@@ -346,31 +326,7 @@ function AuthModal({
             ? "Sign in to manage reservations and saved places."
             : "Create an account to book in a few simple steps."}
         </p>
-        {mode === "login" && (
-          <>
-            <div className="social-grid">
-              {socialProviders.map((provider) => (
-                <button
-                  type="button"
-                  className="social-button"
-                  key={provider.name}
-                  onClick={() => socialLogin(provider)}
-                  aria-label={`Log in with ${provider.name}`}
-                >
-                  <span
-                    className={`social-mark ${provider.name.toLowerCase()}`}
-                  >
-                    {provider.mark}
-                  </span>
-                  <strong>{provider.name}</strong>
-                </button>
-              ))}
-            </div>
-            <div className="auth-divider">
-              <span>or log in with email</span>
-            </div>
-          </>
-        )}
+        {mode === "login" && <GoogleLoginOption />}
         <form onSubmit={submit} className="auth-form">
           <label>
             Email address

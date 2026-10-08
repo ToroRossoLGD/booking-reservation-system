@@ -1,4 +1,6 @@
+import re
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -152,7 +154,67 @@ class Settings(BaseSettings):
             if value := getattr(self, name):
                 require_secret(name, value)
         self.validate_stripe_safety()
+        self.validate_production_origins()
         return self
+
+    @property
+    def google_login_enabled(self) -> bool:
+        return bool(self.GOOGLE_CLIENT_ID.strip() and self.GOOGLE_CLIENT_SECRET.strip())
+
+    def validate_production_origins(self) -> None:
+        def check_origin(value, name):
+            try:
+                parsed = urlsplit(value)
+                valid = (
+                    parsed.scheme == "https"
+                    and parsed.hostname
+                    and "." in parsed.hostname
+                    and re.fullmatch(
+                        r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
+                        r"(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+",
+                        parsed.hostname,
+                    )
+                    and not parsed.hostname.endswith(
+                        (".example", ".invalid", ".localhost")
+                    )
+                    and not parsed.username
+                    and not parsed.password
+                    and not parsed.path
+                    and not parsed.query
+                    and not parsed.fragment
+                    and not any(c.isspace() for c in value)
+                    and "*" not in value
+                    and parsed.port != 0
+                )
+            except ValueError:
+                valid = False
+            if not valid:
+                raise ValueError(
+                    f"Production configuration: {name} requires an HTTPS origin "
+                    "without credentials, path, query or fragment."
+                )
+
+        check_origin(self.FRONTEND_URL, "FRONTEND_URL")
+        origins = [origin.strip() for origin in self.FRONTEND_ORIGINS.split(",")]
+        for origin in origins:
+            check_origin(origin, "FRONTEND_ORIGINS")
+        if self.FRONTEND_URL not in origins:
+            raise ValueError(
+                "Production configuration: FRONTEND_ORIGINS must include FRONTEND_URL."
+            )
+        if self.google_login_enabled:
+            if not self.OAUTH_COOKIE_SECURE:
+                raise ValueError(
+                    "Production configuration: Google login requires "
+                    "OAUTH_COOKIE_SECURE."
+                )
+            if self.GOOGLE_REDIRECT_URI != (
+                self.FRONTEND_URL + "/api/auth/google/callback"
+            ):
+                raise ValueError(
+                    "Production configuration: GOOGLE_REDIRECT_URI must use "
+                    "FRONTEND_URL followed by /api/auth/google/callback."
+                )
 
     def validate_stripe_safety(self) -> None:
         if (

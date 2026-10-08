@@ -17,10 +17,10 @@ def write_env(path):
         f"POSTGRES_PASSWORD={password}\nPOSTGRES_DB=bookica\n"
         f"DATABASE_URL=postgresql+asyncpg://bookica:{password}@postgres:5432/bookica\n"
         f"JWT_SECRET={secrets.token_hex(32)}\nJWT_ALGORITHM=HS256\n"
-        "JWT_EXPIRE_MINUTES=60\nFRONTEND_URL=http://localhost:18080\n"
-        "FRONTEND_ORIGINS=http://localhost:18080\nOAUTH_COOKIE_SECURE=true\n"
+        "JWT_EXPIRE_MINUTES=60\nFRONTEND_URL=https://bookica.test\n"
+        "FRONTEND_ORIGINS=https://bookica.test\nOAUTH_COOKIE_SECURE=true\n"
         f"GOOGLE_CLIENT_ID=smoke-only\nGOOGLE_CLIENT_SECRET={secrets.token_hex(24)}\n"
-        "GOOGLE_REDIRECT_URI=https://example.invalid/api/auth/google/callback\n"
+        "GOOGLE_REDIRECT_URI=https://bookica.test/api/auth/google/callback\n"
         "BOOKICA_HTTP_PORT=18080\n",
         encoding="utf-8",
     )
@@ -44,6 +44,9 @@ def smoke(base):
             return response.status, response.headers, response.read()
 
     assert request("/healthz")[0] == 200
+    status, headers, body = request("/api/auth/providers")
+    assert status == 200 and json.loads(body) == {"google": True}
+    assert headers["Cache-Control"] == "no-store"
     status, _, body = request("/api/ready")
     assert status == 200 and json.loads(body)["database"] == "available"
     status, headers, body = request("/properties/123")
