@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("guests and owners download confirmed stays and viewings, never cancelled or unconfirmed events", async ({ page }) => {
   const stay = { id: 7, property_id: 3, status: "confirmed", title: "Stan pored reke", city: "Novi Sad", contact_email: "owner@example.com", guest_email: "guest@example.com", timezone: "Europe/Belgrade", check_in: "2030-10-04", check_out: "2030-10-07", guests: 2, nightly_rate_cents: 6500, total_cents: 19500, currency: "EUR", payment_method: "pay_on_arrival", created_at: "2030-09-01T00:00:00Z" };

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 for (const mobile of [false, true]) {
   test(`demo notice stays visible on ${mobile ? "mobile" : "desktop"}`, async ({ page }) => {

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { propertyToday, shiftDate } from "../src/stay-types";
 
 test("only a completed stay offers review submission and the result is public on mobile", async ({ page }, testInfo) => {

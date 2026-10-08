@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("advanced filters serialize prices, survive pagination and reset on mobile", async ({ page }, testInfo) => {
   const requests: URLSearchParams[] = [];

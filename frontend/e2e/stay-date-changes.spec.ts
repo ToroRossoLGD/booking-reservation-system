@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { displayDate, propertyToday, shiftDate } from "../src/stay-types";
 import type { Stay, StayChange, StayQuote } from "../src/stay-types";
 

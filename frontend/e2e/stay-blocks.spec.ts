@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { propertyToday, shiftDate } from "../src/stay-types";
 
 test("owner creates and removes a private block from the listing manager", async ({ page }, testInfo) => {

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("keyboard skip link focuses the single main landmark without changing the search URL", async ({ page }, testInfo) => {
   await page.route("**/api/properties?*", route => route.fulfill({ json: { items: [], total: 0, offset: 0, limit: 12, has_next: false } }));

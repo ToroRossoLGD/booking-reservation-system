@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { propertyToday, shiftDate } from "../src/stay-types";
 import type { PropertyListing } from "../src/property-types";
 

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("compares across result pages and filters on mobile", async ({ page }, testInfo) => {
   const base = { venue_id: 1, city: "Beograd", description: "Stan u centru grada sa terasom.", offer_type: "sale", area_sqm: 50, rooms: 2, currency: "EUR", price_cents: 10000000, contact_email: "owner@example.com", is_published: true };

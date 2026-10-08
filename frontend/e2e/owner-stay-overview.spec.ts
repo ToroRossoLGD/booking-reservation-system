@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("owner filters all reservations and opens blocks for an unpublished property on mobile", async ({ page }, testInfo) => {
   const listing = { id: 7, venue_id: 1, title: "Stan pored reke", city: "Novi Sad", description: "Ceo stan blizu centra i reke.", offer_type: "short_stay", area_sqm: 50, rooms: 2, price_cents: 6500, currency: "EUR", contact_email: "host@example.com", is_published: false, timezone: "Europe/Belgrade" };

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import type { PropertyPhoto } from "../src/property-types";
 
 for (const mobile of [false, true]) {

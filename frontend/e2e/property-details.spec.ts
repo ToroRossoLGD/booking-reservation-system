@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("property details are searchable, shareable and visible on mobile listings", async ({ page }, testInfo) => {
   const listing = { id: 7, venue_id: 1, title: "Kuća uz park", description: "Porodična kuća sa terasom i parkingom.", city: "Novi Sad", offer_type: "sale", area_sqm: 100, rooms: 4, price_cents: 18000000, currency: "EUR", contact_email: "owner@example.com", is_published: true, property_type: "house", neighborhood: "Liman", floor: 0, heating: "gas", furnishing: "partial", has_elevator: false, has_parking: true, has_terrace: true };

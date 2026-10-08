@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("tenant opens a viewing notification and returns to rental inquiries on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });

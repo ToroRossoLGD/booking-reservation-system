@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("owner previews a private draft with protected photos on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -19,6 +19,10 @@ test("owner previews a private draft with protected photos on mobile", async ({ 
   await expect(page.getByText(/Nacrt — nije u javnoj ponudi/)).toBeVisible();
   await expect(page.getByRole("img", { name: "Fotografija 1" })).toBeVisible();
   await expect(page.getByText("Depozit: Bez depozita")).toBeVisible();
-  expect(requests.every(request => request.startsWith("GET /api/owner/properties/"))).toBe(true);
+  expect(requests).toContain("GET /api/runtime-config");
+  expect(requests.every(request =>
+    request === "GET /api/runtime-config" ||
+    request.startsWith("GET /api/owner/properties/")
+  )).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

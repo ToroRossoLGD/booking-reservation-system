@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import type { ModerationCase, PropertyReport } from "../src/moderation-types";
 
 test("report, admin suspension, owner appeal and restoration keep publication explicit", async ({ browser, baseURL }, testInfo) => {

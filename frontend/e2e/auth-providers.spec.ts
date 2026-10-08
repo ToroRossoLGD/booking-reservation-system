@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 for (const enabled of [false, true]) {
   test(`login offers only configured providers (Google: ${enabled})`, async ({ page }) => {
