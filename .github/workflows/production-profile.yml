@@ -49,7 +49,32 @@ jobs:
         run: |
           docker compose --env-file .env.production -f compose.production.yml up -d --no-deps --force-recreate --wait backend
           sleep 12
-          python deploy/smoke_test.py
+          python deploy/smoke_test.py --expect-existing
+      - name: Verify scheduler failure is detected
+        timeout-minutes: 4
+        run: |
+          docker compose --env-file .env.production -f compose.production.yml stop beat
+          docker compose --env-file .env.production -f compose.production.yml exec -T backend python - <<'PY'
+          import time
+          from app.services.background_health import scheduler_healthy
+          deadline = time.monotonic() + 180
+          while scheduler_healthy():
+              assert time.monotonic() < deadline, 'Stopped scheduler still appears healthy'
+              time.sleep(3)
+          print('Stopped scheduler detected through expired heartbeat.')
+          PY
+      - name: Verify data persistence and background recovery after service recreation
+        timeout-minutes: 5
+        run: |
+          docker compose --env-file .env.production -f compose.production.yml exec -T redis redis-cli SET bookica:ci:persistence retained EX 600
+          docker compose --env-file .env.production -f compose.production.yml stop frontend backend worker beat
+          docker compose --env-file .env.production -f compose.production.yml up -d --no-deps --force-recreate --wait postgres redis
+          test "$(docker compose --env-file .env.production -f compose.production.yml exec -T redis redis-cli GET bookica:ci:persistence)" = retained
+          docker compose --env-file .env.production -f compose.production.yml up -d --force-recreate --wait --wait-timeout 180 backend worker beat frontend
+          python deploy/smoke_test.py --expect-existing
+          docker compose --env-file .env.production -f compose.production.yml exec -T worker python -m app.runtime_health worker
+          docker compose --env-file .env.production -f compose.production.yml exec -T beat python -m app.runtime_health scheduler
+          docker compose --env-file .env.production -f compose.production.yml exec -T redis redis-cli DEL bookica:ci:persistence
       - name: Inspect failure
         if: failure()
         run: docker compose --env-file .env.production -f compose.production.yml logs --tail=80

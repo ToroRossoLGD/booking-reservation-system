@@ -31,7 +31,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-def smoke(base):
+def smoke(base, expect_existing=False):
     opener = urllib.request.build_opener(NoRedirect)
 
     def request(path, data=None, headers=None):
@@ -71,7 +71,7 @@ def smoke(base):
     )
     assert status == 422
     status, _, _ = request("/api/auth/register", json.dumps(payload).encode(), headers)
-    assert status in (201, 409)  # The second run verifies persistence after restart.
+    assert status == 409 if expect_existing else status in (201, 409)
     status, _, body = request(
         "/api/auth/login",
         urllib.parse.urlencode(
@@ -92,8 +92,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write-env")
     parser.add_argument("--base-url", default="http://127.0.0.1:18080")
+    parser.add_argument("--expect-existing", action="store_true")
     args = parser.parse_args()
     if args.write_env:
         write_env(args.write_env)
     else:
-        smoke(args.base_url)
+        smoke(args.base_url, args.expect_existing)

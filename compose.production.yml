@@ -83,12 +83,24 @@ services:
   worker:
     <<: *app
     command: [celery, -A, app.tasks.celery_app.celery_app, worker, --loglevel=info, --concurrency=2]
+    healthcheck:
+      test: [CMD, python, -m, app.runtime_health, worker]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       backend: {condition: service_healthy}
   beat:
     <<: *app
     command: [celery, -A, app.tasks.celery_app.celery_app, beat, --loglevel=info, --schedule=/state/celerybeat-schedule]
     volumes: [beat_state:/state]
+    healthcheck:
+      test: [CMD, python, -m, app.runtime_health, scheduler]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
     depends_on:
       backend: {condition: service_healthy}
   frontend:
