@@ -8,6 +8,8 @@ import SavedPropertiesPage from "./SavedPropertiesPage";
 import SkipToContent from "./SkipToContent";
 import { ForgotPasswordPage, ResetPasswordPage } from "./PasswordRecovery";
 import { initialPasswordResetToken } from "./passwordResetToken";
+import EmailVerification from "./EmailVerification";
+import { initialEmailVerificationToken } from "./emailVerificationToken";
 
 const PropertyDetailPage = lazy(() => import("./PropertyDetailPage"));
 const OwnerPropertyPreview = lazy(() => import("./OwnerPropertyPreview"));
@@ -20,6 +22,7 @@ export default function RootPage() {
 
 function PageContent() {
   const { pathname } = useLocation();
+  if (pathname === "/verify-email") return <EmailVerification token={initialEmailVerificationToken} />;
   if (pathname === "/forgot-password") return <ForgotPasswordPage />;
   if (pathname === "/reset-password") return <ResetPasswordPage token={initialPasswordResetToken} />;
   if (pathname === "/moderation") return <Suspense fallback={<main id="main-content" tabIndex={-1}><p role="status">Učitavanje moderacije…</p></main>}><PropertyModerationPage /></Suspense>;

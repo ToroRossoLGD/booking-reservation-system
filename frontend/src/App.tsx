@@ -887,6 +887,7 @@ export default function App() {
           )}
         </div>
       </header>
+      {user?.email_verified === false && <aside className="demo-banner" role="note">Email adresa nije potvrđena. <a href="/verify-email">Potvrdite email</a> pre nove rezervacije ili upita. U demo režimu potvrda nije potrebna.</aside>}
       {page === "account" && user ? (
         <AccountDashboard
           key={accountTab ?? "reservations"}

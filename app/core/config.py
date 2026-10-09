@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str
     JWT_EXPIRE_MINUTES: int
     PASSWORD_RESET_EXPIRE_MINUTES: int = Field(default=30, ge=1, le=1440)
+    EMAIL_VERIFICATION_EXPIRE_MINUTES: int = Field(default=60, ge=1, le=1440)
     MAX_ACTIVE_API_KEYS: int = 10
 
     GOOGLE_CLIENT_ID: str = ""

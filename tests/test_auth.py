@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.dependencies import get_current_user
 from app.core.security import create_access_token
 from app.main import app
+from app.models.user import User
 from app.services.auth_service import AuthService
 
 client = TestClient(app)
@@ -69,7 +70,8 @@ def test_google_authorization_uses_state_nonce_and_pkce(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_google_login_creates_customer_and_returns_access_token(monkeypatch):
+@pytest.mark.parametrize("existing", ["new", "email", "subject", "changed_email"])
+async def test_google_login_verifies_only_matching_email(monkeypatch, existing):
     monkeypatch.setattr(settings, "GOOGLE_CLIENT_ID", "google-client")
     monkeypatch.setattr(settings, "GOOGLE_CLIENT_SECRET", "google-secret")
     service = AuthService(AsyncMock())
@@ -77,6 +79,20 @@ async def test_google_login_creates_customer_and_returns_access_token(monkeypatc
     service.user_repository.get_by_email = AsyncMock(return_value=None)
     created_user = MagicMock(id=42, token_version=0)
     service.user_repository.create = AsyncMock(return_value=created_user)
+    local_user = User(
+        id=42,
+        email="person@example.com",
+        hashed_password="hash",
+        role="customer",
+        token_version=0,
+    )
+    if existing == "email":
+        service.user_repository.get_by_email.return_value = local_user
+    elif existing in {"subject", "changed_email"}:
+        service.user_repository.get_by_google_sub.return_value = local_user
+        if existing == "changed_email":
+            local_user.email = "previous@example.com"
+    service.user_repository.update = AsyncMock(side_effect=lambda user: user)
     token_response = MagicMock()
     token_response.json.return_value = {
         "id_token": "google-id-token",
@@ -115,10 +131,14 @@ async def test_google_login_creates_customer_and_returns_access_token(monkeypatc
         token = await service.login_with_google("code-1", "state-1", "cookie-1")
 
     assert token
-    created = service.user_repository.create.await_args.args[0]
-    assert created.email == "person@example.com"
-    assert created.google_sub == "google-user-1"
-    assert created.role == "customer"
+    if existing == "new":
+        created = service.user_repository.create.await_args.args[0]
+        assert created.email == "person@example.com"
+        assert created.google_sub == "google-user-1"
+        assert created.role == "customer"
+        assert created.email_verified
+    else:
+        assert local_user.email_verified is (existing != "changed_email")
     assert decode_id_token.call_args.kwargs["access_token"] == "google-access-token"
 
 

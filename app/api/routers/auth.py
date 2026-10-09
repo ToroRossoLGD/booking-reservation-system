@@ -19,6 +19,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import (
     AuthMessage,
+    EmailVerificationConfirm,
     PasswordResetConfirm,
     PasswordResetRequest,
     Token,
@@ -26,6 +27,7 @@ from app.schemas.auth import (
     UserRead,
 )
 from app.services.auth_service import AuthService
+from app.services.email_verification_service import EmailVerificationService
 from app.services.password_reset_service import PasswordResetService
 
 router = APIRouter(
@@ -85,10 +87,31 @@ async def google_callback(
 @router.post("/register", response_model=UserRead, status_code=201)
 async def register(
     data: UserCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     service = AuthService(db)
-    return await service.register(data)
+    user = await service.register(data)
+    result = UserRead.model_validate(user)
+    await EmailVerificationService(db).request(user, background_tasks, automatic=True)
+    return result
+
+
+@router.post("/email-verification/request", response_model=AuthMessage)
+async def request_email_verification(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await EmailVerificationService(db).request(current_user, background_tasks)
+
+
+@router.post("/email-verification/confirm", response_model=AuthMessage)
+async def confirm_email_verification(
+    data: EmailVerificationConfirm,
+    db: AsyncSession = Depends(get_db),
+):
+    return await EmailVerificationService(db).confirm(data.token)
 
 
 @router.post("/login", response_model=Token)

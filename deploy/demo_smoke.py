@@ -60,6 +60,19 @@ def smoke(after_reset=False):
         user = json.loads(request("/auth/me", token=tokens[role])[1])
         assert user["role"] == role
         users[role] = user["id"]
+    assert (
+        request("/auth/email-verification/request", b"", tokens["customer"])[0] == 503
+    )
+    assert (
+        request(
+            "/auth/email-verification/confirm",
+            json.dumps({"token": "a" * 43}).encode(),
+        )[0]
+        == 403
+    )
+    for action in ("stays", "rental-inquiries", "sale-inquiries"):
+        # Demo bypasses the ownership gate; an empty body reaches input validation.
+        assert request(f"/properties/1/{action}", b"{}", tokens["customer"])[0] == 422
     listings = json.loads(request("/properties?limit=10")[1])["items"]
     assert len(listings) == 3
     assert {item["offer_type"] for item in listings} == {
