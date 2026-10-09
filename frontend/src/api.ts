@@ -37,9 +37,11 @@ export const googleLoginUrl = `${API_URL}/auth/google/login`;
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
-    super(message);
+  retryAfter?: number;
+  constructor(message: string, status: number, retryAfter?: number) {
+    super(status === 429 ? `Previše pokušaja. ${retryAfter ? `Sačekajte ${retryAfter} sekundi pa pokušajte ponovo.` : "Sačekajte pre novog zahteva."}` : message);
     this.status = status;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -56,9 +58,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
+    const retry = Number(response.headers.get("Retry-After"));
     throw new ApiError(
       payload?.detail ?? "Something went wrong",
       response.status,
+      Number.isInteger(retry) && retry > 0 && retry <= 86400 ? retry : undefined,
     );
   }
   if (response.status === 204) return undefined as T;

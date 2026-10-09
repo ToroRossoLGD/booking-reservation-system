@@ -1,5 +1,7 @@
 # Production deployment profile
 
+Auth request limits are mandatory in this profile. Configure the exact TLS proxy peers and verify real client addresses before hosting; see [auth budgets, failure behavior and trusted proxy setup](auth-rate-limits.md). The default proxy configuration discards incoming client-IP headers and conservatively shares a budget among clients behind an unconfigured proxy.
+
 `compose.production.yml` is a standalone single-host profile. Do not combine it with the development `docker-compose.yml`: that would reintroduce development ports, mounts and commands. It builds immutable application images and serves compiled frontend assets through an unprivileged Nginx container. PostgreSQL and Redis have persistent volumes and no published ports. Backend, worker and scheduler run as UID 10001 without source bind mounts; frontend runs as UID 101. Application roots are read-only, with temporary directories and a dedicated Beat state volume where needed.
 
 This prepares deployment infrastructure; it does not provision a host, domain, certificate, storage account, backup system or access-controlled public demo. Remaining P0/P1 requirements still apply. In particular, keep an internet-facing demo behind a trusted access-control/TLS proxy until the launch gates are satisfied.

@@ -45,11 +45,14 @@ jobs:
           docker compose --env-file .env.production -f compose.production.yml exec -T frontend sh -c 'test "$(id -u)" != 0'
       - name: Exercise proxy, routing, cookies and real account persistence
         run: python deploy/smoke_test.py
+      - name: Verify auth limits reject spoofed client headers
+        run: python deploy/auth_limit_smoke.py exhaust
       - name: Recreate API and verify proxy DNS recovery
         run: |
           docker compose --env-file .env.production -f compose.production.yml up -d --no-deps --force-recreate --wait backend
           sleep 12
           python deploy/smoke_test.py --expect-existing
+          python deploy/auth_limit_smoke.py persisted
       - name: Verify scheduler failure is detected
         timeout-minutes: 4
         run: |
@@ -75,6 +78,12 @@ jobs:
           docker compose --env-file .env.production -f compose.production.yml exec -T worker python -m app.runtime_health worker
           docker compose --env-file .env.production -f compose.production.yml exec -T beat python -m app.runtime_health scheduler
           docker compose --env-file .env.production -f compose.production.yml exec -T redis redis-cli DEL bookica:ci:persistence
+      - name: Verify limiter failure does not bypass auth protection
+        run: |
+          docker compose --env-file .env.production -f compose.production.yml stop redis
+          python deploy/auth_limit_smoke.py unavailable
+          docker compose --env-file .env.production -f compose.production.yml up -d --no-deps --wait redis
+          python deploy/auth_limit_smoke.py persisted
       - name: Inspect failure
         if: failure()
         run: docker compose --env-file .env.production -f compose.production.yml logs --tail=80

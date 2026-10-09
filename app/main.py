@@ -51,10 +51,20 @@ from app.api.routers.venues import router as venues_router
 from app.api.routers.waitlist import router as waitlist_router
 from app.api.routers.waivers import router as waivers_router
 from app.api.routers.webhooks import router as webhooks_router
+from app.core.auth_rate_limit import enforce_auth_rate_limit
 from app.core.config import settings
 from app.db.session import get_db
 
 app = FastAPI(title=settings.APP_NAME)
+
+
+@app.middleware("http")
+async def limit_auth_requests(request: Request, call_next):
+    limited = await enforce_auth_rate_limit(request)
+    return limited if limited is not None else await call_next(request)
+
+
+# CORS wraps limiter responses too, so browsers can read Retry-After on 429/503.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -65,7 +75,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Request-ID"],
+    expose_headers=["X-Request-ID", "Retry-After"],
 )
 
 

@@ -22,7 +22,8 @@ export default function EmailVerification({ token }: { token: string }) {
       if (confirm) { await api.confirmEmailVerification(token); setDone(true); }
       else { await api.requestEmailVerification(); setSent(true); }
     } catch (error) {
-      if (error instanceof ApiError && [400, 409, 410, 422].includes(error.status)) setError("Link nije važeći, istekao je ili je već iskorišćen. Zatražite novi link.");
+      if (error instanceof ApiError && error.status === 429) setError(error.message);
+      else if (error instanceof ApiError && [400, 409, 410, 422].includes(error.status)) setError("Link nije važeći, istekao je ili je već iskorišćen. Zatražite novi link.");
       else if (error instanceof ApiError && error.status === 503) setError("Slanje trenutno nije dostupno. Pokušajte kasnije. U demo režimu potvrda nije potrebna.");
       else if (error instanceof ApiError && error.status === 403) setError("Potvrda nije dostupna u demo režimu i nije potrebna za demo rezervacije.");
       else if (error instanceof ApiError && error.status === 401) setError("Prijavite se da zatražite novi link.");

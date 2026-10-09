@@ -138,5 +138,6 @@ jobs:
       - name: Run tests
         env:
           STAY_TEST_POSTGRES: "1"
+          AUTH_TEST_REDIS: "1"
         run: |
           pytest

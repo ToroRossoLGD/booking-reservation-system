@@ -49,6 +49,15 @@ it("asks guests to log in and does not send automatically", async () => {
   expect(api.requestEmailVerification).not.toHaveBeenCalled();
 });
 
+it("shows the server wait after rate limiting instead of calling the link invalid", async () => {
+  vi.mocked(api.confirmEmailVerification).mockRejectedValue(new ApiError("Too many", 429, 20));
+  render(<MemoryRouter><EmailVerification token={"a".repeat(43)} /></MemoryRouter>);
+  await userEvent.click(screen.getByRole("button", { name: "Potvrdi email" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Sačekajte 20 sekundi");
+  expect(api.confirmEmailVerification).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole("button", { name: "Potvrdi email" })).toBeEnabled();
+});
+
 it("removes fragment secrets without storing them", () => {
   const token = "a".repeat(43);
   window.history.replaceState(null, "", `/verify-email#token=${token}`);
