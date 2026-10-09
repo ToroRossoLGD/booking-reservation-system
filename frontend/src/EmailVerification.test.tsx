@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import { api, ApiError } from "./api";
 import EmailVerification from "./EmailVerification";
-import { takeEmailVerificationToken } from "./emailVerificationToken";
+import { getEmailVerificationToken, subscribeEmailVerificationToken, syncEmailVerificationToken, takeEmailVerificationToken } from "./emailVerificationToken";
 
 vi.mock("./api", async importOriginal => {
   const actual = await importOriginal<typeof import("./api")>();
@@ -57,4 +57,27 @@ it("removes fragment secrets without storing them", () => {
   expect(localStorage.length).toBe(0);
   expect(takeEmailVerificationToken()).toBe("");
   window.history.replaceState(null, "", "/");
+});
+
+it("captures later fragment navigation and clears the token when leaving", () => {
+  window.history.replaceState(null, "", "/verify-email");
+  const changed = vi.fn();
+  const unsubscribe = subscribeEmailVerificationToken(changed);
+  try {
+    for (const token of ["a".repeat(43), "b".repeat(43)]) {
+      window.history.replaceState({ key: "router-state" }, "", `/verify-email#token=${token}`);
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+      expect(getEmailVerificationToken()).toBe(token);
+      expect(window.location.hash).toBe("");
+      expect(window.history.state).toEqual({ key: "router-state" });
+    }
+    expect(changed).toHaveBeenCalledTimes(2);
+    window.history.replaceState(null, "", "/account");
+    syncEmailVerificationToken();
+    expect(getEmailVerificationToken()).toBe("");
+    expect(localStorage.length).toBe(0);
+  } finally {
+    unsubscribe();
+    window.history.replaceState(null, "", "/");
+  }
 });
