@@ -14,6 +14,7 @@ class UserRead(BaseModel):
     id: int
     email: EmailStr
     role: str
+    email_verified: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -41,3 +42,7 @@ class PasswordResetConfirm(BaseModel):
 
 class AuthMessage(BaseModel):
     message: str
+
+
+class EmailVerificationConfirm(BaseModel):
+    token: str = Field(min_length=32, max_length=255)

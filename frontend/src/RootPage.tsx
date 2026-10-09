@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useSyncExternalStore } from "react";
 import { useLocation } from "react-router-dom";
 import App from "./App";
 import PropertyHome from "./PropertyHome";
@@ -8,6 +8,8 @@ import SavedPropertiesPage from "./SavedPropertiesPage";
 import SkipToContent from "./SkipToContent";
 import { ForgotPasswordPage, ResetPasswordPage } from "./PasswordRecovery";
 import { initialPasswordResetToken } from "./passwordResetToken";
+import EmailVerification from "./EmailVerification";
+import { getEmailVerificationToken, subscribeEmailVerificationToken, syncEmailVerificationToken } from "./emailVerificationToken";
 
 const PropertyDetailPage = lazy(() => import("./PropertyDetailPage"));
 const OwnerPropertyPreview = lazy(() => import("./OwnerPropertyPreview"));
@@ -19,7 +21,10 @@ export default function RootPage() {
 }
 
 function PageContent() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
+  const verificationToken = useSyncExternalStore(subscribeEmailVerificationToken, getEmailVerificationToken);
+  useEffect(() => { syncEmailVerificationToken(); }, [pathname, hash]);
+  if (pathname === "/verify-email") return <EmailVerification key={verificationToken} token={verificationToken} />;
   if (pathname === "/forgot-password") return <ForgotPasswordPage />;
   if (pathname === "/reset-password") return <ResetPasswordPage token={initialPasswordResetToken} />;
   if (pathname === "/moderation") return <Suspense fallback={<main id="main-content" tabIndex={-1}><p role="status">Učitavanje moderacije…</p></main>}><PropertyModerationPage /></Suspense>;

@@ -199,9 +199,14 @@ class AuthService:
                         hashed_password=hash_password(secrets.token_urlsafe(48)),
                         role="customer",
                         google_sub=google_sub,
+                        email_verified_at=datetime.now(UTC),
                     )
                 )
             else:
                 user.google_sub = google_sub
+                user.email_verified_at = datetime.now(UTC)
                 user = await self.user_repository.update(user)
+        elif user.email == email and user.email_verified_at is None:
+            user.email_verified_at = datetime.now(UTC)
+            user = await self.user_repository.update(user)
         return create_access_token(subject=user.id, token_version=user.token_version)

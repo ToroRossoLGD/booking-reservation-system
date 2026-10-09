@@ -66,6 +66,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  requestEmailVerification: () => request<{ message: string }>("/auth/email-verification/request", { method: "POST" }),
+  confirmEmailVerification: (token: string) => request<{ message: string }>("/auth/email-verification/confirm", { method: "POST", body: JSON.stringify({ token }) }),
   requestPasswordReset: (email: string) => request<{ message: string }>("/auth/password-reset/request", { method: "POST", body: JSON.stringify({ email }) }),
   confirmPasswordReset: (token: string, new_password: string) => request<{ message: string }>("/auth/password-reset/confirm", { method: "POST", body: JSON.stringify({ token, new_password }) }),
   reportProperty: (id: number, data: { request_id: string; category: PropertyReport["category"]; details: string }) => request<Omit<PropertyReport, "listing">>(`/properties/${id}/reports`, { method: "POST", body: JSON.stringify(data) }),

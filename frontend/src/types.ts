@@ -1,4 +1,4 @@
-export type User = { id: number; email: string; role: string };
+export type User = { id: number; email: string; role: string; email_verified?: boolean };
 
 export type Venue = {
   id: number;

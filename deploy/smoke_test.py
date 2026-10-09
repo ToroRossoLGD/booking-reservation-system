@@ -87,11 +87,21 @@ def smoke(base, expect_existing=False):
         {"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert status == 200
+    auth_headers = {"Authorization": "Bearer " + json.loads(body)["access_token"]}
     status, _, body = request(
         "/api/auth/me",
-        headers={"Authorization": "Bearer " + json.loads(body)["access_token"]},
+        headers=auth_headers,
     )
     assert status == 200 and json.loads(body)["role"] == "customer"
+    assert json.loads(body)["email_verified"] is False
+    assert request("/api/auth/email-verification/request", b"", auth_headers)[0] == 503
+    for action in ("stays", "rental-inquiries", "sale-inquiries"):
+        status, _, _ = request(
+            f"/api/properties/1/{action}",
+            b"{}",
+            {**auth_headers, "Content-Type": "application/json"},
+        )
+        assert status == 403
     print("Production-profile smoke checks passed (real API/PostgreSQL).")
 
 

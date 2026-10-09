@@ -4,7 +4,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_current_user, require_roles
+from app.core.dependencies import get_current_user, require_roles, require_verified_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.stay import (
@@ -94,7 +94,7 @@ async def create(
     property_id: int,
     data: StayCreate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_verified_user),
 ):
     return await StayService(db).create(property_id, data, user)
 

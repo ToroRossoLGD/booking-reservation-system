@@ -1,6 +1,7 @@
 import enum
+from datetime import datetime
 
-from sqlalchemy import Integer, String
+from sqlalchemy import DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -14,6 +15,12 @@ class UserRole(str, enum.Enum):
 
 class User(Base):
     __tablename__ = "users"
+
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def email_verified(self) -> bool:
+        return self.email_verified_at is not None
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
