@@ -2,7 +2,7 @@
 
 Password signup creates an **unverified** account and queues an email when SMTP is enabled. Login and browsing remain available. A signed-in user can request another link at `/verify-email`; the request endpoint only uses the authenticated account's stored email, never an arbitrary recipient supplied in the body.
 
-`POST /auth/email-verification/request` returns a generic message. A per-account 60-second cooldown serializes concurrent resends; a newly issued link invalidates previous links. This cooldown is not a substitute for the broader P1 IP/account rate limits.
+`POST /auth/email-verification/request` returns a generic message. A per-account 60-second cooldown serializes concurrent resends; a newly issued link invalidates previous links. [Shared auth IP budgets](auth-rate-limits.md) additionally limit request/confirmation attempts and expose a wait on 429. Broader distributed-abuse and session hardening remain open P1 work.
 
 The random link points to the configured `FRONTEND_URL/verify-email#token=...`. Only a SHA-256 hash is stored, along with the user ID, email snapshot and expiry. `EMAIL_VERIFICATION_EXPIRE_MINUTES` defaults to 60 (range 1-1440). The browser removes the fragment before React mounts, retains it only in memory and requires an explicit button click before sending `POST /auth/email-verification/confirm`. Opening a link or an email scanner's GET does not consume it. Reloading the cleaned page requires reopening the email link. Redact confirmation bodies in proxy/APM logging and avoid third-party scripts on this page.
 

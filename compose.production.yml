@@ -109,6 +109,8 @@ services:
       context: .
       dockerfile: deploy/frontend.Dockerfile
     ports: ["127.0.0.1:${BOOKICA_HTTP_PORT:-8080}:8080"]
+    volumes:
+      - ${BOOKICA_TRUSTED_PROXY_CONFIG:-./deploy/trusted-proxies.conf}:/etc/nginx/trusted-proxies.conf:ro
     networks: [outbound]
     depends_on:
       backend: {condition: service_healthy}

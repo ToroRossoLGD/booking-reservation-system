@@ -4,6 +4,7 @@ import { api, ApiError } from "./api";
 
 function failure(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.status === 429) return error.message;
     if ([400, 409, 410].includes(error.status)) return "Link nije važeći, istekao je ili je već iskorišćen. Zatražite novi link.";
     if (error.status === 403) return "Oporavak lozinke nije dostupan u demo režimu. Koristite dodeljeni demo nalog.";
     if (error.status === 503) return "Oporavak lozinke trenutno nije dostupan. Pokušajte kasnije.";
