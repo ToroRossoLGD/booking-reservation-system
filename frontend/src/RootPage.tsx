@@ -6,6 +6,8 @@ import StaysPage from "./StaysPage";
 import RentalInquiriesPage from "./RentalInquiriesPage";
 import SavedPropertiesPage from "./SavedPropertiesPage";
 import SkipToContent from "./SkipToContent";
+import { ForgotPasswordPage, ResetPasswordPage } from "./PasswordRecovery";
+import { initialPasswordResetToken } from "./passwordResetToken";
 
 const PropertyDetailPage = lazy(() => import("./PropertyDetailPage"));
 const OwnerPropertyPreview = lazy(() => import("./OwnerPropertyPreview"));
@@ -18,6 +20,8 @@ export default function RootPage() {
 
 function PageContent() {
   const { pathname } = useLocation();
+  if (pathname === "/forgot-password") return <ForgotPasswordPage />;
+  if (pathname === "/reset-password") return <ResetPasswordPage token={initialPasswordResetToken} />;
   if (pathname === "/moderation") return <Suspense fallback={<main id="main-content" tabIndex={-1}><p role="status">Učitavanje moderacije…</p></main>}><PropertyModerationPage /></Suspense>;
   const preview = pathname.match(/^\/owner\/properties\/([^/]+)\/preview\/?$/);
   if (preview) return <Suspense fallback={<main id="main-content" tabIndex={-1}><p role="status">Učitavanje pregleda…</p></main>}><OwnerPropertyPreview key={preview[1]} id={preview[1]} /></Suspense>;

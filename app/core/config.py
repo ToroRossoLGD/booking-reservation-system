@@ -2,7 +2,7 @@ import re
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     JWT_SECRET: str
     JWT_ALGORITHM: str
     JWT_EXPIRE_MINUTES: int
-    PASSWORD_RESET_EXPIRE_MINUTES: int = 30
+    PASSWORD_RESET_EXPIRE_MINUTES: int = Field(default=30, ge=1, le=1440)
     MAX_ACTIVE_API_KEYS: int = 10
 
     GOOGLE_CLIENT_ID: str = ""
@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
 
     SMTP_HOST: str = "localhost"
+    SMTP_MODE: Literal["disabled", "plain", "starttls", "tls"] = "plain"
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = Field(default="", repr=False)
+    SMTP_TIMEOUT_SECONDS: float = Field(default=10, ge=1, le=60)
     SMTP_PORT: int = 1025
     SMTP_FROM_EMAIL: str = "no-reply@booking.local"
     SMTP_FROM_NAME: str = "Booking Reservation System"
@@ -93,6 +97,18 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_secrets(self):
+        if bool(self.SMTP_USERNAME) != bool(self.SMTP_PASSWORD):
+            raise ValueError(
+                "Configure both SMTP_USERNAME and SMTP_PASSWORD or neither."
+            )
+        if self.SMTP_USERNAME and self.SMTP_MODE == "plain":
+            raise ValueError("SMTP authentication requires TLS.")
+        if (
+            self.APP_ENV == "production"
+            and not self.DEMO_MODE
+            and self.SMTP_MODE == "plain"
+        ):
+            raise ValueError("Production SMTP_MODE must be disabled, starttls or tls.")
         if self.DEMO_MODE:
             database = make_url(self.DATABASE_URL)
             if (

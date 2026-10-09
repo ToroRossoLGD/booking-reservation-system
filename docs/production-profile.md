@@ -9,7 +9,7 @@ This prepares deployment infrastructure; it does not provision a host, domain, c
 Requirements: a Linux Docker host, recent Docker Compose v2 supporting `--wait`, and enough memory for the configured limits (about 3 GB total container limits plus OS/build overhead). Limits are initial budgets, not measured capacity guarantees.
 
 1. Copy `.env.production.example` to `.env.production` and restrict file access to the operator. Fill the PostgreSQL password, database URL and a strong random JWT secret. Do not commit the file. The URL must point to `postgres:5432` and match the database name/user/password; URL-encode credentials in the URL. Compose rejects missing/empty required credentials. Production startup also validates these values; see the secret-validation section below.
-2. Set the real frontend URL/origins. Configure external private photo storage and any approved email relay. This profile does not start MinIO or MailHog. The current SMTP client still lacks authentication/TLS, so account email needs a trusted relay or the planned email integration. Leave Google credentials blank unless its real callback has been configured. Keep live payments disabled for a demo.
+2. Set the real frontend URL/origins. Configure external private photo storage and any approved email relay. This profile does not start MinIO or MailHog. Configure verified SMTP STARTTLS/TLS and optional authentication for account email; templates use SMTP_MODE=disabled until a provider is ready. See [account recovery](account-recovery.md). Leave Google credentials blank unless its real callback has been configured. Keep live payments disabled for a demo.
 3. Build and start from the repository root:
 
 ```bash

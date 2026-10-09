@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.api_key import APIKey
 from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User
 
@@ -14,6 +15,9 @@ class PasswordResetRepository:
     async def replace_active_token(
         self, token: PasswordResetToken, now: datetime
     ) -> PasswordResetToken:
+        await self.db.execute(
+            select(User.id).where(User.id == token.user_id).with_for_update()
+        )
         await self.db.execute(
             update(PasswordResetToken)
             .where(
@@ -38,6 +42,19 @@ class PasswordResetRepository:
     async def consume_and_change_password(
         self, token_hash: str, now: datetime, hashed_password: str
     ) -> bool:
+        user_id = await self.db.scalar(
+            select(PasswordResetToken.user_id).where(
+                PasswordResetToken.token_hash == token_hash
+            )
+        )
+        if user_id is None:
+            await self.db.rollback()
+            return False
+        # Same lock order as issuance prevents races and lock-order deadlocks.
+        await self.db.execute(
+            select(User.id).where(User.id == user_id).with_for_update()
+        )
+        now = max(now, datetime.now(UTC))
         result = await self.db.execute(
             update(PasswordResetToken)
             .where(
@@ -59,6 +76,22 @@ class PasswordResetRepository:
                 hashed_password=hashed_password,
                 token_version=User.token_version + 1,
             )
+        )
+        await self.db.execute(
+            update(PasswordResetToken)
+            .where(
+                PasswordResetToken.user_id == user_id,
+                PasswordResetToken.consumed_at.is_(None),
+            )
+            .values(consumed_at=now)
+        )
+        await self.db.execute(
+            update(APIKey)
+            .where(
+                APIKey.user_id == user_id,
+                APIKey.revoked_at.is_(None),
+            )
+            .values(revoked_at=now)
         )
         await self.db.commit()
         return True

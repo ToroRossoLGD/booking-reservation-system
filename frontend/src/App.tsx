@@ -1,5 +1,5 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api } from "./api";
 import { GoogleLoginOption } from "./GoogleLoginOption";
 import { AccountDashboard, OwnerDashboard } from "./Dashboard";
@@ -327,6 +327,7 @@ function AuthModal({
             : "Create an account to book in a few simple steps."}
         </p>
         {mode === "login" && <GoogleLoginOption />}
+        {mode === "login" && <Link to="/forgot-password" onClick={onClose}>Zaboravljena lozinka?</Link>}
         <form onSubmit={submit} className="auth-form">
           <label>
             Email address

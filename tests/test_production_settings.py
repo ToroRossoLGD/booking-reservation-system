@@ -15,6 +15,7 @@ def production(**overrides):
         POSTGRES_PASSWORD=password,
         DATABASE_URL=f"postgresql+asyncpg://bookica:{password}@postgres/bookica",
         SQL_ECHO=False,
+        SMTP_MODE="disabled",
         FRONTEND_URL="https://bookica.test",
         FRONTEND_ORIGINS="https://bookica.test",
         GOOGLE_CLIENT_ID="",
@@ -30,6 +31,26 @@ def production(**overrides):
 
 def test_production_accepts_generated_secrets_and_disabled_integrations():
     assert production().APP_ENV == "production"
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {"SMTP_MODE": "plain"},
+        {"SMTP_MODE": "starttls", "SMTP_USERNAME": "user", "SMTP_PASSWORD": ""},
+        {"SMTP_MODE": "plain", "SMTP_USERNAME": "user", "SMTP_PASSWORD": "secret"},
+    ],
+)
+def test_production_rejects_unsafe_email_configuration(values):
+    with pytest.raises(ValidationError):
+        production(**values)
+
+
+@pytest.mark.parametrize("mode", ["starttls", "tls"])
+def test_production_accepts_secure_email_transport(mode):
+    assert production(
+        SMTP_MODE=mode, SMTP_USERNAME="user", SMTP_PASSWORD="provider-secret"
+    )
 
 
 @pytest.mark.parametrize(

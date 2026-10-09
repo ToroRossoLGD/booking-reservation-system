@@ -48,6 +48,7 @@ def verify(marker_path, env_path, images):
         "GOOGLE_CLIENT_SECRET",
         "DEMO_OWNER_PASSWORD",
         "DEMO_GUEST_PASSWORD",
+        "SMTP_PASSWORD",
     }
     for line in Path(env_path).read_text(encoding="utf-8").splitlines():
         key, sep, value = line.partition("=")
