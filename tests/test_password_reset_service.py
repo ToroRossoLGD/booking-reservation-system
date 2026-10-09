@@ -1,6 +1,7 @@
 import hashlib
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from fastapi import BackgroundTasks, HTTPException
@@ -28,7 +29,7 @@ def reset_token(**overrides):
 
 
 @pytest.mark.asyncio
-async def test_request_stores_only_hash_and_emails_raw_token():
+async def test_request_stores_only_hash_and_emails_fragment_link():
     service = PasswordResetService(AsyncMock())
     service.user_repository.get_by_email = AsyncMock(return_value=user())
 
@@ -42,11 +43,45 @@ async def test_request_stores_only_hash_and_emails_raw_token():
     result = await service.request_reset("OWNER@example.com", tasks)
 
     stored = service.repository.replace_active_token.await_args.args[0]
-    emailed_token = tasks.tasks[0].args[2].split("password: ")[1].split("\n")[0]
+    link = tasks.tasks[0].args[2].splitlines()[1]
+    assert urlsplit(link).path == "/reset-password"
+    assert not urlsplit(link).query
+    emailed_token = parse_qs(urlsplit(link).fragment)["token"][0]
     assert stored.token_hash == hashlib.sha256(emailed_token.encode()).hexdigest()
     assert stored.token_hash != emailed_token
     assert "If an account exists" in result["message"]
     service.user_repository.get_by_email.assert_awaited_once_with("owner@example.com")
+
+
+@pytest.mark.asyncio
+async def test_delivery_error_is_redacted_and_does_not_change_response(caplog):
+    service = PasswordResetService(AsyncMock())
+    service.email_service.send_email = MagicMock(
+        side_effect=RuntimeError("private-token recipient@example.com")
+    )
+    service._deliver_reset("recipient@example.com", "subject", "private-token")
+    assert "delivery failed" in caplog.text
+    assert "private-token" not in caplog.text
+    assert "recipient@example.com" not in caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "demo,mode,status", [(True, "plain", 403), (False, "disabled", 503)]
+)
+async def test_unavailable_recovery_rejects_before_user_lookup(
+    monkeypatch, demo, mode, status
+):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "DEMO_MODE", demo)
+    monkeypatch.setattr(settings, "SMTP_MODE", mode)
+    service = PasswordResetService(AsyncMock())
+    service.user_repository.get_by_email = AsyncMock()
+    with pytest.raises(HTTPException) as error:
+        await service.request_reset("someone@example.com", BackgroundTasks())
+    assert error.value.status_code == status
+    service.user_repository.get_by_email.assert_not_awaited()
 
 
 @pytest.mark.asyncio

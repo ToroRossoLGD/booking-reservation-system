@@ -22,7 +22,7 @@ def write_env(path, demo=False):
         "FRONTEND_ORIGINS=https://bookica.test\nOAUTH_COOKIE_SECURE=true\n"
         f"GOOGLE_CLIENT_ID=smoke-only\nGOOGLE_CLIENT_SECRET={secrets.token_hex(24)}\n"
         "GOOGLE_REDIRECT_URI=https://bookica.test/api/auth/google/callback\n"
-        "BOOKICA_HTTP_PORT=18080\n",
+        "BOOKICA_HTTP_PORT=18080\nSMTP_MODE=disabled\n",
         encoding="utf-8",
     )
     if demo:

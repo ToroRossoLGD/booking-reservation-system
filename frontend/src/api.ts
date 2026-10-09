@@ -66,6 +66,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  requestPasswordReset: (email: string) => request<{ message: string }>("/auth/password-reset/request", { method: "POST", body: JSON.stringify({ email }) }),
+  confirmPasswordReset: (token: string, new_password: string) => request<{ message: string }>("/auth/password-reset/confirm", { method: "POST", body: JSON.stringify({ token, new_password }) }),
   reportProperty: (id: number, data: { request_id: string; category: PropertyReport["category"]; details: string }) => request<Omit<PropertyReport, "listing">>(`/properties/${id}/reports`, { method: "POST", body: JSON.stringify(data) }),
   propertyReports: (admin: boolean, status: string, offset: number, signal?: AbortSignal) => request<ModerationPageData<PropertyReport>>(`${admin ? "/admin/property-reports" : "/property-reports/mine"}?${new URLSearchParams({ offset: String(offset), limit: "20", ...(admin ? { status } : {}) })}`, { signal }),
   moderationCases: (admin: boolean, offset: number, signal?: AbortSignal, state = "") => request<ModerationPageData<ModerationCase>>(`${admin ? "/admin" : "/owner"}/property-moderation?${new URLSearchParams({ offset: String(offset), limit: "20", ...(admin && state ? { state } : {}) })}`, { signal }),
