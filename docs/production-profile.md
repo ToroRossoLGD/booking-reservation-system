@@ -25,6 +25,9 @@ PostgreSQL/Redis health checks gate startup. The one-shot `migrate` service runs
 
 ## Proxy contract
 
+The frontend image applies an enforced browser policy and common security headers,
+including error responses; see [browser security and TLS-boundary acceptance](browser-security.md).
+
 A host-level TLS/access-control proxy should forward the chosen domain to `http://127.0.0.1:8080`, preserve the original Host and overwrite forwarded headers with trusted values. Do not expose this HTTP listener publicly or accept arbitrary client-supplied forwarding headers at the outer proxy. The API trusts forwarding headers because it has no published port and is reachable only on the deployment's trusted container networks.
 
 - `/api/...` is forwarded to FastAPI with the prefix removed; Uvicorn uses `root_path=/api` for generated URLs.

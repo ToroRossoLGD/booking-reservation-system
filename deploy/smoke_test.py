@@ -38,6 +38,24 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def assert_security_headers(headers, *, api=False):
+    assert headers["X-Content-Type-Options"] == "nosniff"
+    assert headers["X-Frame-Options"] == "DENY"
+    assert headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+    assert headers["Permissions-Policy"] == (
+        "camera=(), microphone=(), geolocation=(), payment=()"
+    )
+    if api:
+        # API documentation has its own resource needs; do not apply SPA CSP.
+        assert headers["Content-Security-Policy"] is None
+    else:
+        csp = headers["Content-Security-Policy"]
+        assert "script-src 'self';" in csp
+        assert "frame-ancestors 'none';" in csp
+        assert "object-src 'none';" in csp
+        assert "base-uri 'none';" in csp
+
+
 def smoke(base, expect_existing=False):
     opener = urllib.request.build_opener(NoRedirect)
 
@@ -48,6 +66,7 @@ def smoke(base, expect_existing=False):
         except urllib.error.HTTPError as error:
             response = error
         with response:
+            assert_security_headers(response.headers, api=path.startswith("/api/"))
             return response.status, response.headers, response.read()
 
     assert request("/healthz")[0] == 200
@@ -63,6 +82,7 @@ def smoke(base, expect_existing=False):
     status, headers, _ = request(asset)
     assert status == 200 and "immutable" in headers["Cache-Control"]
     assert request("/assets/missing.js")[0] == 404
+    assert request("/api/auth/me")[0] == 401
     status, headers, _ = request("/api/does-not-exist")
     assert status == 404 and "application/json" in headers["Content-Type"]
     status, _, body = request("/api/properties?limit=1")

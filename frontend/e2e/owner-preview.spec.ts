@@ -18,6 +18,7 @@ test("owner previews a private draft with protected photos on mobile", async ({ 
   await expect(page.getByRole("heading", { name: "Nacrt sa terasom" })).toBeVisible();
   await expect(page.getByText(/Nacrt — nije u javnoj ponudi/)).toBeVisible();
   await expect(page.getByRole("img", { name: "Fotografija 1" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Fotografija 1" })).toHaveJSProperty("naturalWidth", 600);
   await expect(page.getByText("Depozit: Bez depozita")).toBeVisible();
   expect(requests).toContain("GET /api/runtime-config");
   expect(requests.every(request =>
