@@ -9,6 +9,7 @@ import SkipToContent from "./SkipToContent";
 import { ForgotPasswordPage, ResetPasswordPage } from "./PasswordRecovery";
 import { initialPasswordResetToken } from "./passwordResetToken";
 import EmailVerification from "./EmailVerification";
+import AccountSecurity from "./AccountSecurity";
 import { getEmailVerificationToken, subscribeEmailVerificationToken, syncEmailVerificationToken } from "./emailVerificationToken";
 
 const PropertyDetailPage = lazy(() => import("./PropertyDetailPage"));
@@ -24,6 +25,7 @@ function PageContent() {
   const { pathname, hash } = useLocation();
   const verificationToken = useSyncExternalStore(subscribeEmailVerificationToken, getEmailVerificationToken);
   useEffect(() => { syncEmailVerificationToken(); }, [pathname, hash]);
+  if (pathname === "/account/security") return <AccountSecurity />;
   if (pathname === "/verify-email") return <EmailVerification key={verificationToken} token={verificationToken} />;
   if (pathname === "/forgot-password") return <ForgotPasswordPage />;
   if (pathname === "/reset-password") return <ResetPasswordPage token={initialPasswordResetToken} />;

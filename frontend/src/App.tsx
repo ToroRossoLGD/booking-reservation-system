@@ -849,6 +849,7 @@ export default function App() {
                 <button onClick={() => navigate("account")}>
                   Favorites & notifications
                 </button>
+                <a href="/account/security">Bezbednost naloga</a>
                 {["owner", "admin"].includes(user.role) && (
                   <button onClick={() => navigate("owner")}>
                     Owner workspace
