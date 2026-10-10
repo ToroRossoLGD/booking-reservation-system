@@ -19,8 +19,9 @@ export function OwnerPhoto({ photo }: { photo: PropertyPhoto }) {
 
 type PendingPhoto = { file: File; requestId: string };
 function errorMessage(err: unknown) {
+  if (err instanceof ApiError && err.status === 429) return err.message;
   const status = err instanceof ApiError ? err.status : 0;
-  return status === 413 ? "Fotografija je prevelika: do 10 MB i 20 megapiksela." : status === 415 ? "Fajl nije ispravna JPEG, PNG ili WebP fotografija." : status === 409 ? "Lista fotografija se promenila ili je dostignut limit od 12. Osveži fotografije." : status === 503 ? "Čuvanje fotografija još nije podešeno na serveru." : status === 401 || status === 403 ? "Proveri prijavu i pristup ovom oglasu." : "Izmena nije uspela. Pokušaj ponovo.";
+  return status === 413 ? "Fotografija je prevelika: do 10 MB i 20 megapiksela." : status === 415 ? "Fajl nije ispravna JPEG, PNG ili WebP fotografija." : status === 409 ? "Lista fotografija se promenila ili je dostignut limit od 12. Osveži fotografije." : status === 503 && err instanceof ApiError && err.retryAfter !== undefined ? err.message : status === 503 ? "Čuvanje fotografija još nije podešeno na serveru." : status === 401 || status === 403 ? "Proveri prijavu i pristup ovom oglasu." : "Izmena nije uspela. Pokušaj ponovo.";
 }
 
 export default function PropertyPhotoManager({ propertyId, title, onPhotosChange }: { propertyId: number; title: string; onPhotosChange?: (id: number, photos: PropertyPhoto[]) => void }) {

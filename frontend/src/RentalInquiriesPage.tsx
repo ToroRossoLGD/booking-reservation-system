@@ -21,7 +21,7 @@ function InquiryCard({ inquiry, owner, reload }: { inquiry: RentalInquiry | Sale
   async function update(data: Omit<RentalUpdate, "version">) {
     setBusy(true); setError("");
     try { await (sale ? api.updateSaleInquiry : api.updateRentalInquiry)(inquiry.id, { ...data, version: inquiry.version }); reload(); }
-    catch (err) { setError(err instanceof ApiError && err.status === 409 ? "Upit je izmenjen. Osveži listu pre sledeće izmene." : "Izmena nije uspela. Proveri da li je termin u budućnosti i pokušaj ponovo."); }
+    catch (err) { setError(err instanceof ApiError && err.status === 429 ? err.message : err instanceof ApiError && err.status === 409 ? "Upit je izmenjen. Osveži listu pre sledeće izmene." : "Izmena nije uspela. Proveri da li je termin u budućnosti i pokušaj ponovo."); }
     finally { setBusy(false); }
   }
   return <article className="rental-form">

@@ -31,7 +31,7 @@ export default function RentalInquiryForm({ property }: { property: PropertyList
     } catch (err) {
       const status = err instanceof ApiError ? err.status : 0;
       setLogin(status === 401);
-      setError(status === 401 ? "Prijavi se da pošalješ upit." : status === 409 ? "Već imaš aktivan upit za ovaj stan. Proveri svoje upite." : status === 400 ? "Proveri dostupnost i minimalno trajanje najma. Osveži oglas ako su uslovi promenjeni. Upit za sopstveni oglas nije dozvoljen." : "Upit nije poslat. Pokušaj ponovo; uneti podaci su sačuvani u formi.");
+      setError(err instanceof ApiError && status === 429 ? err.message : status === 401 ? "Prijavi se da pošalješ upit." : status === 409 ? "Već imaš aktivan upit za ovaj stan. Proveri svoje upite." : status === 400 ? "Proveri dostupnost i minimalno trajanje najma. Osveži oglas ako su uslovi promenjeni. Upit za sopstveni oglas nije dozvoljen." : "Upit nije poslat. Pokušaj ponovo; uneti podaci su sačuvani u formi.");
     } finally { setBusy(false); }
   }
 

@@ -20,7 +20,7 @@ export default function SaleInquiryForm({ property }: { property: PropertyListin
     catch (err) {
       const status = err instanceof ApiError ? err.status : 0;
       setLogin(status === 401);
-      setError(status === 401 ? "Prijavi se da pošalješ upit za kupovinu." : status === 409 ? "Već imaš aktivan upit za ovu nekretninu. Proveri svoje upite." : [400, 404].includes(status) ? "Oglas nije dostupan za upite za kupovinu ili pripada tebi. Osveži oglas." : "Potvrda nije stigla. Pokušaj ponovo; isti upit neće biti dupliran.");
+      setError(err instanceof ApiError && status === 429 ? err.message : status === 401 ? "Prijavi se da pošalješ upit za kupovinu." : status === 409 ? "Već imaš aktivan upit za ovu nekretninu. Proveri svoje upite." : [400, 404].includes(status) ? "Oglas nije dostupan za upite za kupovinu ili pripada tebi. Osveži oglas." : "Potvrda nije stigla. Pokušaj ponovo; isti upit neće biti dupliran.");
     } finally { setBusy(false); }
   }
   if (sent) return <section className="stay-success" role="status"><h4>Upit za kupovinu je poslat</h4><p>Odgovor vlasnika i predlog razgledanja prati u svojim upitima.</p><a href="/sales">Moji upiti za kupovinu</a></section>;
