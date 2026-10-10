@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, require_roles, require_verified_user
+from app.core.property_rate_limit import limit_inquiry_reply, limit_property_account
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.rental_inquiry import RentalInquiryUpdate
@@ -38,6 +39,7 @@ async def messages(
 
 @router.post(
     "/sale-inquiries/{inquiry_id}/messages",
+    dependencies=[Depends(limit_property_account)],
     response_model=SaleMessageRead,
     status_code=201,
 )
@@ -64,6 +66,7 @@ async def read_messages(
 
 @router.post(
     "/properties/{property_id}/sale-inquiries",
+    dependencies=[Depends(limit_property_account)],
     response_model=SaleInquiryRead,
     status_code=201,
 )
@@ -104,7 +107,10 @@ async def owner_inquiries(
 async def update(
     inquiry_id: int,
     data: RentalInquiryUpdate,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    if data.action in {"reply", "propose"}:
+        await limit_inquiry_reply(request, user)
     return await RentalInquiryService(db, sale=True).update(inquiry_id, data, user)

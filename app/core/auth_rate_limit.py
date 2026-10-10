@@ -84,15 +84,28 @@ async def enforce_auth_rate_limit(request: Request) -> JSONResponse | None:
     # Never parse X-Forwarded-For here. The trusted server/proxy boundary sets
     # request.client; production Nginx overwrites incoming forwarding headers.
     host = request.client.host if request.client else "unknown"
+    return await enforce_budget(bucket_key(action, host), limit, seconds)
+
+
+async def enforce_budget(
+    key: str, limit: int, seconds: int, *, property_action: bool = False
+) -> JSONResponse | None:
+    """Consume the shared atomic budget without reading or logging request bodies."""
     try:
         allowed, ttl_ms = await redis_client.eval(
-            CONSUME, 1, bucket_key(action, host), limit, seconds * 1000
+            CONSUME, 1, key, limit, seconds * 1000
         )
     except (RedisError, OSError):
-        logger.warning("Auth rate limiter unavailable")
+        logger.warning(
+            "Property rate limiter unavailable"
+            if property_action
+            else "Auth rate limiter unavailable"
+        )
         return JSONResponse(
             {
-                "detail": "Prijava i potvrda naloga trenutno nisu dostupne. "
+                "detail": "Slanje trenutno nije dostupno. Pokušajte kasnije."
+                if property_action
+                else "Prijava i potvrda naloga trenutno nisu dostupne. "
                 "Pokušajte kasnije."
             },
             status_code=503,

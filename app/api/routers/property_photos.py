@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.dependencies import require_roles
+from app.core.property_rate_limit import limit_property_account
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.property_photo import PropertyPhotoOrder, PropertyPhotoRead
@@ -66,6 +67,7 @@ async def owner_photos(
 
 @router.post(
     "/owner/properties/{property_id}/photos",
+    dependencies=[Depends(limit_property_account)],
     response_model=PropertyPhotoRead,
     status_code=201,
 )

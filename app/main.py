@@ -53,14 +53,17 @@ from app.api.routers.waivers import router as waivers_router
 from app.api.routers.webhooks import router as webhooks_router
 from app.core.auth_rate_limit import enforce_auth_rate_limit
 from app.core.config import settings
+from app.core.property_rate_limit import enforce_property_ip_limit
 from app.db.session import get_db
 
 app = FastAPI(title=settings.APP_NAME)
 
 
 @app.middleware("http")
-async def limit_auth_requests(request: Request, call_next):
+async def limit_write_requests(request: Request, call_next):
     limited = await enforce_auth_rate_limit(request)
+    if limited is None:
+        limited = await enforce_property_ip_limit(request)
     return limited if limited is not None else await call_next(request)
 
 

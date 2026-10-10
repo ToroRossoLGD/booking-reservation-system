@@ -1,11 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
-import { api } from "./api";
+import { api, ApiError } from "./api";
 import RentalConversation from "./RentalConversation";
 import type { RentalMessage, RentalMessagePage } from "./rental-types";
 
-vi.mock("./api", () => ({ api: { rentalMessages: vi.fn(), sendRentalMessage: vi.fn(), readRentalMessages: vi.fn() }, ApiError: class extends Error {} }));
+vi.mock("./api", async importOriginal => ({ ...await importOriginal<typeof import("./api")>(), api: { rentalMessages: vi.fn(), sendRentalMessage: vi.fn(), readRentalMessages: vi.fn() } }));
 const message: RentalMessage = { id: 2, sender: "owner", kind: "message", body: "Slobodan je termin u subotu.", viewing_at: null, created_at: "2030-01-01T12:00:00Z", read_at: null };
 const page: RentalMessagePage = { items: [message], has_more: false, next_before_id: null, unread_count: 1 };
 beforeEach(() => {
@@ -60,6 +60,22 @@ it("keeps closed conversations readable without a composer", async () => {
   await screen.findByText(message.body);
   expect(screen.queryByLabelText("Nova poruka")).not.toBeInTheDocument();
   expect(screen.getByText(/Istorija razgovora ostaje dostupna/)).toBeInTheDocument();
+});
+
+it("shows the rate-limit wait and keeps the draft and request ID for manual retry", async () => {
+  vi.mocked(api.sendRentalMessage).mockRejectedValueOnce(new ApiError("limited", 429, 45)).mockResolvedValue({ ...message, id: 3 });
+  const user = userEvent.setup();
+  render(<RentalConversation inquiryId={7} owner={false} active />);
+  await user.click(screen.getByRole("button", { name: /Otvori razgovor/ }));
+  await screen.findByText(message.body);
+  await user.type(screen.getByLabelText("Nova poruka"), "Da li odgovara subota?");
+  await user.click(screen.getByRole("button", { name: "Pošalji poruku" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Sačekajte 45 sekundi");
+  expect(screen.getByLabelText("Nova poruka")).toHaveValue("Da li odgovara subota?");
+  expect(api.sendRentalMessage).toHaveBeenCalledTimes(1);
+  await user.click(screen.getByRole("button", { name: "Pošalji poruku" }));
+  await screen.findByText("Poruka je poslata.");
+  expect(vi.mocked(api.sendRentalMessage).mock.calls[0]).toEqual(vi.mocked(api.sendRentalMessage).mock.calls[1]);
 });
 
 it("does not interpret markup as HTML and keeps unread state on read failure", async () => {

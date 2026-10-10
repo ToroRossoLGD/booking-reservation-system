@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, require_roles
+from app.core.property_rate_limit import limit_property_account
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.property_moderation import (
@@ -22,6 +23,7 @@ router = APIRouter(tags=["Property moderation"])
 
 @router.post(
     "/properties/{property_id}/reports",
+    dependencies=[Depends(limit_property_account)],
     response_model=PropertyReportRead,
     status_code=201,
 )

@@ -18,7 +18,7 @@ export default function PropertyReportForm({ propertyId }: { propertyId: number 
     if (!requestId.current) requestId.current = crypto.randomUUID();
     try { await api.reportProperty(propertyId, { category, details: details.trim(), request_id: requestId.current }); setSent(true); }
     catch (err) {
-      setError(err instanceof ApiError && err.status === 401 ? "Prijavi se da pošalješ prijavu." : err instanceof ApiError && err.status === 409 ? "Za ovaj oglas već postoji tvoja prijava ili je zahtev promenjen. Proveri svoje prijave." : err instanceof ApiError && [400, 404, 429].includes(err.status) ? "Prijava nije moguća: oglas nije dostupan, pripada tebi ili je dostignut limit od 20 otvorenih prijava." : "Potvrda nije stigla. Pokušaj ponovo; isti zahtev neće biti dupliran.");
+      setError(err instanceof ApiError && err.status === 429 && err.retryAfter !== undefined ? err.message : err instanceof ApiError && err.status === 401 ? "Prijavi se da pošalješ prijavu." : err instanceof ApiError && err.status === 409 ? "Za ovaj oglas već postoji tvoja prijava ili je zahtev promenjen. Proveri svoje prijave." : err instanceof ApiError && [400, 404, 429].includes(err.status) ? "Prijava nije moguća: oglas nije dostupan, pripada tebi ili je dostignut limit od 20 otvorenih prijava." : "Potvrda nije stigla. Pokušaj ponovo; isti zahtev neće biti dupliran.");
     } finally { setBusy(false); }
   }
   return <section className="property-report" aria-label="Prijava oglasa">

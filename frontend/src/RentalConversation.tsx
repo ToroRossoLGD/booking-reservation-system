@@ -39,7 +39,7 @@ export default function RentalConversation({ inquiryId, owner, active, unreadCou
       setDraft(""); request.current = null; setNotice("Poruka je poslata.");
       await load();
     } catch (err) {
-      setError(err instanceof ApiError && err.status === 409 ? "Poruka nije poslata. Upit je možda zatvoren; osveži upite da proveriš status." : "Slanje nije uspelo. Poruka je sačuvana u formi; pokušaj ponovo.");
+      setError(err instanceof ApiError && err.status === 429 ? err.message : err instanceof ApiError && err.status === 409 ? "Poruka nije poslata. Upit je možda zatvoren; osveži upite da proveriš status." : "Slanje nije uspelo. Poruka je sačuvana u formi; pokušaj ponovo.");
     } finally { setBusy(false); }
   }
   async function markRead() {

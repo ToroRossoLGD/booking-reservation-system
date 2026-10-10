@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
     # Always enforced in production, including isolated demos.
     AUTH_RATE_LIMIT_ENABLED: bool = False
+    PROPERTY_RATE_LIMIT_ENABLED: bool = False
 
     SMTP_HOST: str = "localhost"
     SMTP_MODE: Literal["disabled", "plain", "starttls", "tls"] = "plain"
