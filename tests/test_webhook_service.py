@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import socket
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -11,7 +12,7 @@ from pydantic import ValidationError
 
 from app.core.config import settings
 from app.models.webhook import WebhookDeliveryStatus
-from app.schemas.webhook import WebhookCreate
+from app.schemas.webhook import WebhookCreate, WebhookUpdate
 from app.services.webhook_service import WebhookService
 
 
@@ -242,3 +243,124 @@ async def test_manual_retry_resets_the_attempt_budget():
     assert result.attempts == 0
     assert result.response_status is None
     assert result.last_error is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("missing", [False, True])
+async def test_inactive_or_deleted_subscription_never_sends(missing):
+    service = WebhookService(AsyncMock())
+    item = delivery(attempts=2)
+    service.repository.get_due_deliveries = AsyncMock(return_value=[item])
+    service.repository.get_subscription = AsyncMock(
+        return_value=None if missing else subscription(is_active=False)
+    )
+    service.repository.save_delivery = AsyncMock()
+    service._ensure_public_target = AsyncMock()
+    client = FakeClient()
+
+    with patch("app.services.webhook_service.httpx.AsyncClient", return_value=client):
+        result = await service.deliver_due()
+
+    assert result == {"processed": 1, "delivered": 0, "retrying": 0, "failed": 1}
+    assert item.status == "failed"
+    assert item.attempts == 2
+    assert client.request is None
+    service._ensure_public_target.assert_not_awaited()
+    service.repository.save_delivery.assert_awaited_once_with(item)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("private_ip", ["127.0.0.1", "::1"])
+async def test_mixed_public_and_private_dns_answers_prevent_http_delivery(private_ip):
+    service = WebhookService(AsyncMock())
+    item = delivery()
+    service.repository.get_due_deliveries = AsyncMock(return_value=[item])
+    service.repository.get_subscription = AsyncMock(return_value=subscription())
+    service.repository.save_delivery = AsyncMock()
+    addresses = [
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("9.9.9.9", 443)),
+        (
+            socket.AF_INET6 if ":" in private_ip else socket.AF_INET,
+            socket.SOCK_STREAM,
+            6,
+            "",
+            (private_ip, 443),
+        ),
+    ]
+    client = FakeClient()
+
+    with (
+        patch(
+            "app.services.webhook_service.socket.getaddrinfo", return_value=addresses
+        ),
+        patch("app.services.webhook_service.httpx.AsyncClient", return_value=client),
+    ):
+        result = await service.deliver_due()
+
+    assert client.request is None
+    assert item.status == "retrying"
+    assert "non-public address" in item.last_error
+    assert result["retrying"] == 1
+    service.repository.save_delivery.assert_awaited_once_with(item)
+
+
+@pytest.mark.asyncio
+async def test_one_timeout_does_not_abort_remaining_due_deliveries(monkeypatch):
+    monkeypatch.setattr(settings, "WEBHOOK_MAX_ATTEMPTS", 3)
+    monkeypatch.setattr(settings, "WEBHOOK_RETRY_BASE_SECONDS", 60)
+    service = WebhookService(AsyncMock())
+    items = [delivery(id=1), delivery(id=2), delivery(id=3)]
+    service.repository.get_due_deliveries = AsyncMock(return_value=items)
+    service.repository.get_subscription = AsyncMock(return_value=subscription())
+    service.repository.save_delivery = AsyncMock()
+    service._ensure_public_target = AsyncMock()
+    client = FakeClient()
+    client.post = AsyncMock(
+        side_effect=[
+            httpx.Response(204),
+            httpx.ReadTimeout("timeout"),
+            httpx.Response(200),
+        ]
+    )
+    now = datetime(2030, 1, 1, tzinfo=UTC)
+
+    with patch("app.services.webhook_service.httpx.AsyncClient", return_value=client):
+        result = await service.deliver_due(now, limit=3)
+
+    assert result == {"processed": 3, "delivered": 2, "retrying": 1, "failed": 0}
+    assert [item.status for item in items] == ["delivered", "retrying", "delivered"]
+    assert [item.attempts for item in items] == [1, 1, 1]
+    assert items[1].next_attempt_at == now + timedelta(seconds=60)
+    assert items[0].delivered_at == items[2].delivered_at == now
+    assert client.post.await_count == 3
+    assert [
+        call.args[0] for call in service.repository.save_delivery.await_args_list
+    ] == items
+    service.repository.get_due_deliveries.assert_awaited_once_with(now, 3)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("already_active", [False, True])
+async def test_full_quota_blocks_reactivation_but_allows_editing_active_hook(
+    already_active,
+):
+    service = WebhookService(AsyncMock())
+    item = subscription(is_active=already_active)
+    service.venue_repository.get_by_id = AsyncMock(return_value=MagicMock(owner_id=10))
+    service.repository.get_for_venue = AsyncMock(return_value=item)
+    service.repository.count_active = AsyncMock(
+        return_value=settings.MAX_ACTIVE_VENUE_WEBHOOKS
+    )
+    service.repository.update = AsyncMock(side_effect=lambda value: value)
+    data = WebhookUpdate(**create_data().model_dump(), is_active=True)
+
+    if already_active:
+        assert await service.update(7, 2, data, owner()) is item
+        service.repository.update.assert_awaited_once_with(item)
+        service.repository.count_active.assert_not_awaited()
+    else:
+        with pytest.raises(HTTPException) as error:
+            await service.update(7, 2, data, owner())
+        assert error.value.status_code == 409
+        assert item.is_active is False
+        service.repository.update.assert_not_awaited()
