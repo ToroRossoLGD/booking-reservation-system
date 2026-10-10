@@ -45,6 +45,18 @@ jobs:
           docker compose --env-file .env.production -f compose.production.yml exec -T frontend sh -c 'test "$(id -u)" != 0'
       - name: Exercise proxy, routing, cookies and real account persistence
         run: python deploy/smoke_test.py
+      - name: Verify browser security policy against production nginx
+        timeout-minutes: 6
+        run: |
+          docker run --rm --network host --ipc=host -e CI=true -v "$PWD/frontend:/work" -w /work mcr.microsoft.com/playwright:v1.62.1-noble /bin/bash -c 'npm ci && node -e "if (require(\"@playwright/test/package.json\").version !== \"1.62.1\") throw new Error(\"Update the production Playwright image\")" && npx playwright test --config playwright.production.config.ts'
+      - name: Upload browser failure traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-browser-traces
+          path: frontend/test-results
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Verify auth limits reject spoofed client headers
         run: python deploy/auth_limit_smoke.py exhaust
       - name: Verify property account and IP limits across listings

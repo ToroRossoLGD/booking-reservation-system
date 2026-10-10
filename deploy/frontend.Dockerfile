@@ -9,6 +9,7 @@ RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:1.28-alpine
 COPY deploy/nginx.conf /etc/nginx/nginx.conf
+COPY deploy/security-headers.conf /etc/nginx/security-headers.conf
 COPY deploy/trusted-proxies.conf /etc/nginx/trusted-proxies.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 USER 101:101
