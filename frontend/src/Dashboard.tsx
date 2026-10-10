@@ -234,6 +234,7 @@ export function AccountDashboard({
 
   return (
     <main id="main-content" tabIndex={-1} className="dashboard-page">
+      <p className="dashboard-message"><a href="/account/security">Bezbednost naloga — odjava sa svih uređaja</a></p>
       <p className="dashboard-message"><a href="/stays">Rezervacije stanova — moji boravci ↗</a></p>
       <section className="dashboard-hero">
         <div>

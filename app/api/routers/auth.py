@@ -29,6 +29,7 @@ from app.schemas.auth import (
 from app.services.auth_service import AuthService
 from app.services.email_verification_service import EmailVerificationService
 from app.services.password_reset_service import PasswordResetService
+from app.services.session_service import SessionService
 
 router = APIRouter(
     prefix="/auth",
@@ -150,6 +151,16 @@ async def get_me(
     current_user: User = Depends(get_current_user),
 ):
     return current_user
+
+
+@router.post("/logout-all", status_code=204)
+async def logout_all(
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await SessionService(db).revoke_all(current_user)
+    response.headers["Cache-Control"] = "no-store"
 
 
 @router.get("/owner-only", response_model=UserRead)

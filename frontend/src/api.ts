@@ -70,6 +70,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  logoutAllSessions: () => request<void>("/auth/logout-all", { method: "POST" }),
   requestEmailVerification: () => request<{ message: string }>("/auth/email-verification/request", { method: "POST" }),
   confirmEmailVerification: (token: string) => request<{ message: string }>("/auth/email-verification/confirm", { method: "POST", body: JSON.stringify({ token }) }),
   requestPasswordReset: (email: string) => request<{ message: string }>("/auth/password-reset/request", { method: "POST", body: JSON.stringify({ email }) }),
