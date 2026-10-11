@@ -5,8 +5,9 @@ import hmac
 import ipaddress
 import logging
 import math
+from html import escape
 
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 from starlette.requests import Request
@@ -32,6 +33,11 @@ POLICIES = {
     "/auth/password-reset/confirm": ("reset-confirm", 20, 60),
     "/auth/email-verification/request": ("verification-request", 5, 900),
     "/auth/email-verification/confirm": ("verification-confirm", 20, 60),
+}
+
+OAUTH_POLICIES = {
+    "/auth/google/login": ("google-start", 10, 60),
+    "/auth/google/callback": ("google-callback", 20, 60),
 }
 
 # Atomic first increment + TTL avoids immortal counters; rejected requests do
@@ -68,23 +74,67 @@ def bucket_key(action: str, host: str) -> str:
     return f"bookica:auth-limit:v1:{action}:{digest}"
 
 
-async def enforce_auth_rate_limit(request: Request) -> JSONResponse | None:
+async def enforce_auth_rate_limit(request: Request) -> Response | None:
     if settings.APP_ENV != "production" and not settings.AUTH_RATE_LIMIT_ENABLED:
         return None
-    if request.method != "POST":
+    if request.method not in ("POST", "GET"):
         return None
     path = request.scope["path"]
     root = request.scope.get("root_path", "")
     if root and path.startswith(root + "/"):
         path = path[len(root) :]
-    policy = POLICIES.get(path.rstrip("/"))
+    policies = POLICIES if request.method == "POST" else OAUTH_POLICIES
+    policy = policies.get(path.rstrip("/"))
     if policy is None:
         return None
     action, limit, seconds = policy
     # Never parse X-Forwarded-For here. The trusted server/proxy boundary sets
     # request.client; production Nginx overwrites incoming forwarding headers.
     host = request.client.host if request.client else "unknown"
-    return await enforce_budget(bucket_key(action, host), limit, seconds)
+    response = await enforce_budget(bucket_key(action, host), limit, seconds)
+    if response is not None and request.method == "GET":
+        return oauth_limit_response(request, response)
+    return response
+
+
+def oauth_limit_response(request: Request, response: JSONResponse) -> Response:
+    if "text/html" in request.headers.get("accept", "").lower():
+        wait = int(response.headers["Retry-After"])
+        message = (
+            f"Previše pokušaja Google prijave. Sačekajte {wait} sekundi."
+            if response.status_code == 429
+            else "Google prijava trenutno nije dostupna. Pokušajte ponovo kasnije."
+        )
+        destination = escape(settings.FRONTEND_URL.rstrip("/") + "/account", quote=True)
+        response = HTMLResponse(
+            '<!doctype html><html lang="sr-Latn"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width, initial-scale=1">'
+            "<title>Google prijava | Bookica</title></head><body><main>"
+            f'<h1>Google prijava</h1><p role="alert">{message}</p>'
+            "<p>Vratite se na prijavu i započnite novi pokušaj. "
+            "Postojeće sesije ostaju aktivne.</p>"
+            f'<a href="{destination}" rel="noreferrer">Vrati se na prijavu</a>'
+            "</main></body></html>",
+            status_code=response.status_code,
+            headers={
+                "Retry-After": response.headers["Retry-After"],
+                "Cache-Control": "no-store",
+                "Referrer-Policy": "no-referrer",
+                "X-Content-Type-Options": "nosniff",
+                "Content-Security-Policy": "default-src 'none'; base-uri 'none'; "
+                "frame-ancestors 'none'; form-action 'none'",
+            },
+        )
+    # A denied callback cannot be resumed automatically. Drop stale OAuth state
+    # and require a fresh flow, without touching bearer sessions or API keys.
+    response.delete_cookie(
+        "google_oauth_state",
+        path="/auth/google",
+        secure=settings.OAUTH_COOKIE_SECURE,
+        httponly=True,
+        samesite="lax",
+    )
+    return response
 
 
 async def enforce_budget(
