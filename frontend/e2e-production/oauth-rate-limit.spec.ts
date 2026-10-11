@@ -13,11 +13,12 @@ test("real OAuth callback budget returns a safe mobile page and clears stale sta
     expect(response.headers().location).not.toContain("ci-private");
   }
   await context.addCookies([{ name: "google_oauth_state", value: "stale-test-state", domain: "127.0.0.1", path: "/api/auth/google", httpOnly: true, secure: true, sameSite: "Lax" }]);
+  expect((await context.cookies()).some(cookie => cookie.name === "google_oauth_state")).toBe(true);
   const response = await page.goto("/api/auth/google/callback?code=ci-private&state=ci-state");
   expect(response?.status()).toBe(429);
   expect(Number(response?.headers()["retry-after"])).toBeGreaterThan(0);
   expect(response?.headers()["cache-control"]).toBe("no-store");
-  expect(response?.headers()["set-cookie"]).toContain("Path=/api/auth/google");
+  expect(await response?.headerValue("set-cookie")).toContain("Path=/api/auth/google");
   await expect(page.getByRole("alert")).toContainText("Previše pokušaja Google prijave");
   await expect(page.locator("body")).not.toContainText("ci-private");
   await expect(page.locator("body")).not.toContainText("ci-state");
