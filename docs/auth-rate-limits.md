@@ -11,6 +11,9 @@ The API enforces shared Redis budgets before parsing password-login, signup, rec
 | `/auth/email-verification/request` | 5 | 15 minutes |
 | `/auth/email-verification/confirm` | 20 | 60 seconds |
 
+Google login and callback GET routes also have independent IP budgets and a safe
+browser error page; see [OAuth request limits](oauth-request-limits.md).
+
 Each action has its own budget per IPv4 address or IPv6 /64. Mapped IPv4 addresses share the native IPv4 budget. Redis keys contain an HMAC of the normalized address, never the raw IP, email, password or token. Keys expire after the window, starting at the first request. A single Lua operation increments and assigns expiry atomically across API replicas. Rejected requests neither grow the counter nor extend the wait. This is a fixed window, not a sliding-window or distributed-botnet defense; two bursts around expiry are possible. Users sharing a NAT also share a budget. The existing verification resend cooldown is an additional per-account rule.
 
 An exhausted budget returns `429`, `Retry-After` in whole seconds and `Cache-Control: no-store`. CORS exposes the wait header to allowed origins, and the response retains its request ID. Login, password recovery and email confirmation show a Serbian wait message without automatically retrying or clearing the user's input. A manual retry before expiry still receives 429.
@@ -36,6 +39,6 @@ The limiter uses the configured Redis host/port/database, with one-second connec
 
 Tests cover endpoint/path normalization, mandatory production enforcement, IP normalization and header spoofing, 429/CORS/request IDs, redacted failure behavior, and real Redis concurrent callers, expiry and bounded counters. The production smoke workflow exercises actual Nginx/API/Redis limits with forged headers, checks budgets survive API and Redis recreation, then stops Redis to verify 503 without bypass. Desktop/mobile browser tests cover the wait message and explicit retry.
 
-This completes the auth-IP-budget portion of the P1 abuse item. [Property action budgets](property-action-limits.md) additionally protect inquiries, messages, reports and property-photo uploads by IP and account. [Account-targeted auth budgets](account-auth-limits.md) now supplement these IP limits. Distributed/multi-account abuse defenses, Google OAuth and legacy endpoint budgets, session/token storage review, broader ownership/security-header checks, monitoring and actual hosted proxy acceptance remain open. These limits do not justify public launch before the remaining P0/P1/P2 requirements.
+This completes the auth-IP-budget portion of the P1 abuse item. [Property action budgets](property-action-limits.md) additionally protect inquiries, messages, reports and property-photo uploads by IP and account. [Account-targeted auth budgets](account-auth-limits.md) now supplement these IP limits. [OAuth endpoint budgets](oauth-request-limits.md) are also implemented. Distributed/multi-account abuse defenses, legacy endpoint budgets, session/token storage review, broader ownership/security-header checks, monitoring and actual hosted proxy acceptance remain open. These limits do not justify public launch before the remaining P0/P1/P2 requirements.
 
 References: [Redis counter/rate-limit patterns](https://redis.io/docs/latest/commands/incr/), [Nginx trusted real-IP configuration](https://nginx.org/en/docs/http/ngx_http_realip_module.html).
