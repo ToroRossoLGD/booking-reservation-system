@@ -110,3 +110,14 @@ def test_method_mismatch_does_not_consume_oauth_budget(counter):
     response = TestClient(app).post("/auth/google/callback")
     assert response.status_code == 405
     counter.assert_not_awaited()
+
+
+def test_allowed_callback_without_cookie_keeps_existing_error_redirect(counter):
+    response = TestClient(app).get(
+        "/auth/google/callback?code=private-code&state=private-state",
+        follow_redirects=False,
+    )
+    assert response.status_code == 307
+    assert "#auth_error=" in response.headers["Location"]
+    assert "private" not in response.headers["Location"]
+    counter.assert_awaited_once()

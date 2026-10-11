@@ -8,7 +8,9 @@ test("real OAuth callback budget returns a safe mobile page and clears stale sta
     const response = await request.get(`/api/auth/google/callback?code=ci-private-${index}&state=ci-state-${index}`, {
       maxRedirects: 0, headers: { "X-Forwarded-For": `192.0.2.${index + 1}` },
     });
-    expect(response.status()).toBe(302);
+    expect(response.status()).toBe(307);
+    expect(response.headers().location).toContain("#auth_error=");
+    expect(response.headers().location).not.toContain("ci-private");
   }
   await context.addCookies([{ name: "google_oauth_state", value: "stale-test-state", domain: "127.0.0.1", path: "/api/auth/google", httpOnly: true, secure: true, sameSite: "Lax" }]);
   const response = await page.goto("/api/auth/google/callback?code=ci-private&state=ci-state");
