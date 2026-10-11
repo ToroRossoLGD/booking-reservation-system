@@ -13,6 +13,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.account_auth_rate_limit import limit_auth_target
 from app.core.config import settings
 from app.core.dependencies import get_current_user, require_roles
 from app.db.session import get_db
@@ -104,6 +105,7 @@ async def request_email_verification(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    await limit_auth_target("verification-request", str(current_user.id))
     return await EmailVerificationService(db).request(current_user, background_tasks)
 
 
@@ -120,6 +122,7 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
+    await limit_auth_target("login", form_data.username)
     service = AuthService(db)
     access_token = await service.login(
         email=form_data.username,
@@ -135,6 +138,7 @@ async def request_password_reset(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
+    await limit_auth_target("reset-request", data.email)
     return await PasswordResetService(db).request_reset(data.email, background_tasks)
 
 
