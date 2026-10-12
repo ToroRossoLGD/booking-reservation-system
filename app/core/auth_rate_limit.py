@@ -138,7 +138,12 @@ def oauth_limit_response(request: Request, response: JSONResponse) -> Response:
 
 
 async def enforce_budget(
-    key: str, limit: int, seconds: int, *, property_action: bool = False
+    key: str,
+    limit: int,
+    seconds: int,
+    *,
+    property_action: bool = False,
+    integration_action: bool = False,
 ) -> JSONResponse | None:
     """Consume the shared atomic budget without reading or logging request bodies."""
     try:
@@ -149,12 +154,14 @@ async def enforce_budget(
         logger.warning(
             "Property rate limiter unavailable"
             if property_action
+            else "Integration rate limiter unavailable"
+            if integration_action
             else "Auth rate limiter unavailable"
         )
         return JSONResponse(
             {
                 "detail": "Slanje trenutno nije dostupno. Pokušajte kasnije."
-                if property_action
+                if property_action or integration_action
                 else "Prijava i potvrda naloga trenutno nisu dostupne. "
                 "Pokušajte kasnije."
             },

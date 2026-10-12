@@ -61,6 +61,8 @@ jobs:
         run: python deploy/auth_limit_smoke.py exhaust
       - name: Verify property account and IP limits across listings
         run: python deploy/property_limit_smoke.py exhaust
+      - name: Verify integration write limits and emergency actions
+        run: python deploy/integration_limit_smoke.py exhaust
       - name: Recreate API and verify proxy DNS recovery
         run: |
           docker compose --env-file .env.production -f compose.production.yml up -d --no-deps --force-recreate --wait backend
@@ -68,6 +70,7 @@ jobs:
           python deploy/smoke_test.py --expect-existing
           python deploy/auth_limit_smoke.py persisted
           python deploy/property_limit_smoke.py persisted
+          python deploy/integration_limit_smoke.py persisted
       - name: Verify scheduler failure is detected
         timeout-minutes: 4
         run: |
@@ -98,9 +101,11 @@ jobs:
           docker compose --env-file .env.production -f compose.production.yml stop redis
           python deploy/auth_limit_smoke.py unavailable
           python deploy/property_limit_smoke.py unavailable
+          python deploy/integration_limit_smoke.py unavailable
           docker compose --env-file .env.production -f compose.production.yml up -d --no-deps --wait redis
           python deploy/auth_limit_smoke.py persisted
           python deploy/property_limit_smoke.py persisted
+          python deploy/integration_limit_smoke.py persisted
       - name: Inspect failure
         if: failure()
         run: docker compose --env-file .env.production -f compose.production.yml logs --tail=80
