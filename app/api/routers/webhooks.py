@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user
+from app.core.integration_rate_limit import limit_integration_account
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.webhook import (
@@ -17,7 +18,12 @@ from app.services.webhook_service import WebhookService
 router = APIRouter(prefix="/venues/{venue_id}/webhooks", tags=["Venue Webhooks"])
 
 
-@router.post("", response_model=WebhookCreated, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=WebhookCreated,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(limit_integration_account)],
+)
 async def create_webhook(
     venue_id: int,
     data: WebhookCreate,
@@ -36,7 +42,11 @@ async def list_webhooks(
     return await WebhookService(db).list(venue_id, current_user)
 
 
-@router.put("/{subscription_id}", response_model=WebhookRead)
+@router.put(
+    "/{subscription_id}",
+    response_model=WebhookRead,
+    dependencies=[Depends(limit_integration_account)],
+)
 async def update_webhook(
     venue_id: int,
     subscription_id: int,
@@ -80,7 +90,11 @@ async def list_webhook_deliveries(
     return await WebhookService(db).list_deliveries(venue_id, current_user)
 
 
-@router.post("/deliveries/{delivery_id}/retry", response_model=WebhookDeliveryRead)
+@router.post(
+    "/deliveries/{delivery_id}/retry",
+    response_model=WebhookDeliveryRead,
+    dependencies=[Depends(limit_integration_account)],
+)
 async def retry_webhook_delivery(
     venue_id: int,
     delivery_id: int,
