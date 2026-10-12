@@ -143,7 +143,7 @@ async def enforce_budget(
     seconds: int,
     *,
     property_action: bool = False,
-    integration_action: bool = False,
+    legacy_action: bool = False,
 ) -> JSONResponse | None:
     """Consume the shared atomic budget without reading or logging request bodies."""
     try:
@@ -154,14 +154,14 @@ async def enforce_budget(
         logger.warning(
             "Property rate limiter unavailable"
             if property_action
-            else "Integration rate limiter unavailable"
-            if integration_action
+            else "Legacy write rate limiter unavailable"
+            if legacy_action
             else "Auth rate limiter unavailable"
         )
         return JSONResponse(
             {
                 "detail": "Slanje trenutno nije dostupno. Pokušajte kasnije."
-                if property_action or integration_action
+                if property_action or legacy_action
                 else "Prijava i potvrda naloga trenutno nisu dostupne. "
                 "Pokušajte kasnije."
             },

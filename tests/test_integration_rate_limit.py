@@ -7,7 +7,7 @@ from redis.exceptions import ConnectionError
 from starlette.requests import Request
 
 from app.core import auth_rate_limit
-from app.core import integration_rate_limit as limits
+from app.core import legacy_write_rate_limit as limits
 from app.core.config import settings
 from app.core.dependencies import get_current_user
 from app.core.security import create_access_token
@@ -62,7 +62,7 @@ async def test_route_normalization_and_ip_policy(setup, method, path):
     counter, _ = setup
     for candidate, root in [(path, ""), (path + "/", ""), ("/api" + path, "/api")]:
         assert (
-            await limits.enforce_integration_ip_limit(request(method, candidate, root))
+            await limits.enforce_legacy_write_ip_limit(request(method, candidate, root))
             is None
         )
     assert all(call.args == counter.await_args.args for call in counter.await_args_list)
@@ -87,8 +87,8 @@ def test_account_rejection_precedes_validation_and_writes(setup, method, path):
 @pytest.mark.asyncio
 async def test_changing_venue_or_ip_cannot_reset_account_write_budget(setup):
     counter, user = setup
-    await limits.limit_integration_account(request("POST", "/venues/1/webhooks"), user)
-    await limits.limit_integration_account(
+    await limits.limit_legacy_write_account(request("POST", "/venues/1/webhooks"), user)
+    await limits.limit_legacy_write_account(
         request("PUT", "/venues/99/webhooks/77", host="203.0.113.1"), user
     )
     assert counter.await_args_list[0].args == counter.await_args_list[1].args
@@ -110,7 +110,7 @@ def test_redis_outage_fails_closed_with_redacted_error(setup, stage, caplog):
     assert response.status_code == 503
     assert response.headers["Retry-After"] == "30"
     assert "private-redis-secret" not in response.text + caplog.text
-    assert "Integration rate limiter unavailable" in caplog.text
+    assert "Legacy write rate limiter unavailable" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -130,8 +130,8 @@ async def test_reads_shutdown_rotation_and_provider_callbacks_are_not_throttled(
 ):
     counter, user = setup
     req = request(method, path)
-    assert await limits.enforce_integration_ip_limit(req) is None
-    await limits.limit_integration_account(req, user)
+    assert await limits.enforce_legacy_write_ip_limit(req) is None
+    await limits.limit_legacy_write_account(req, user)
     counter.assert_not_awaited()
 
 
@@ -167,10 +167,10 @@ async def test_production_cannot_disable_limit(setup, monkeypatch):
     counter, _ = setup
     monkeypatch.setattr(settings, "AUTH_RATE_LIMIT_ENABLED", False)
     req = request("POST", "/auth/api-keys")
-    assert await limits.enforce_integration_ip_limit(req) is None
+    assert await limits.enforce_legacy_write_ip_limit(req) is None
     counter.assert_not_awaited()
     monkeypatch.setattr(settings, "APP_ENV", "production")
-    await limits.enforce_integration_ip_limit(req)
+    await limits.enforce_legacy_write_ip_limit(req)
     counter.assert_awaited_once()
 
 
@@ -196,8 +196,8 @@ async def test_limit_boundaries_preserve_other_actions(setup):
     counter.side_effect = consume
     req = request("POST", "/auth/api-keys")
     for _ in range(5):
-        await limits.limit_integration_account(req, user)
+        await limits.limit_legacy_write_account(req, user)
     with pytest.raises(HTTPException) as denied:
-        await limits.limit_integration_account(req, user)
+        await limits.limit_legacy_write_account(req, user)
     assert denied.value.status_code == 429
-    await limits.limit_integration_account(request("POST", "/venues/1/webhooks"), user)
+    await limits.limit_legacy_write_account(request("POST", "/venues/1/webhooks"), user)
