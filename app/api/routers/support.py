@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, require_roles
+from app.core.legacy_write_rate_limit import limit_legacy_write_account
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.support_ticket import (
@@ -23,6 +24,7 @@ router = APIRouter(prefix="/support", tags=["Customer Support"])
     "/tickets",
     response_model=SupportTicketDetailRead,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(limit_legacy_write_account)],
 )
 async def create_support_ticket(
     data: SupportTicketCreate,
@@ -58,6 +60,7 @@ async def get_support_ticket(
     "/tickets/{ticket_id}/messages",
     response_model=SupportMessageRead,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(limit_legacy_write_account)],
 )
 async def add_support_message(
     ticket_id: int,
@@ -114,6 +117,7 @@ async def update_admin_support_ticket(
     "/admin/tickets/{ticket_id}/messages",
     response_model=SupportMessageRead,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(limit_legacy_write_account)],
 )
 async def add_admin_support_message(
     ticket_id: int,

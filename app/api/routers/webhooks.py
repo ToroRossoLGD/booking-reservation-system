@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user
-from app.core.integration_rate_limit import limit_integration_account
+from app.core.legacy_write_rate_limit import limit_legacy_write_account
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.webhook import (
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/venues/{venue_id}/webhooks", tags=["Venue Webhooks"]
     "",
     response_model=WebhookCreated,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(limit_integration_account)],
+    dependencies=[Depends(limit_legacy_write_account)],
 )
 async def create_webhook(
     venue_id: int,
@@ -45,7 +45,7 @@ async def list_webhooks(
 @router.put(
     "/{subscription_id}",
     response_model=WebhookRead,
-    dependencies=[Depends(limit_integration_account)],
+    dependencies=[Depends(limit_legacy_write_account)],
 )
 async def update_webhook(
     venue_id: int,
@@ -93,7 +93,7 @@ async def list_webhook_deliveries(
 @router.post(
     "/deliveries/{delivery_id}/retry",
     response_model=WebhookDeliveryRead,
-    dependencies=[Depends(limit_integration_account)],
+    dependencies=[Depends(limit_legacy_write_account)],
 )
 async def retry_webhook_delivery(
     venue_id: int,

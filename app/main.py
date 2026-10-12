@@ -53,7 +53,7 @@ from app.api.routers.waivers import router as waivers_router
 from app.api.routers.webhooks import router as webhooks_router
 from app.core.auth_rate_limit import enforce_auth_rate_limit
 from app.core.config import settings
-from app.core.integration_rate_limit import enforce_integration_ip_limit
+from app.core.legacy_write_rate_limit import enforce_legacy_write_ip_limit
 from app.core.property_rate_limit import enforce_property_ip_limit
 from app.db.session import get_db
 
@@ -66,7 +66,7 @@ async def limit_write_requests(request: Request, call_next):
     if limited is None:
         limited = await enforce_property_ip_limit(request)
     if limited is None:
-        limited = await enforce_integration_ip_limit(request)
+        limited = await enforce_legacy_write_ip_limit(request)
     return limited if limited is not None else await call_next(request)
 
 

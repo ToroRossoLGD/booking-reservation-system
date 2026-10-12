@@ -1,4 +1,4 @@
-"""Bound credential creation and user-triggered integration writes."""
+"""Shared budgets for legacy integration and customer-support writes."""
 
 import hashlib
 import hmac
@@ -24,7 +24,14 @@ class Policy:
 
 
 WEBHOOK_WRITE = Policy("webhook-write", 30, 10, 900)
+SUPPORT_MESSAGE = Policy("support-message", 120, 30, 60)
 POLICIES = (
+    ("POST", re.compile(r"/support/tickets"), Policy("support-ticket", 30, 5, 900)),
+    (
+        "POST",
+        re.compile(r"/support/(?:admin/)?tickets/[^/]+/messages"),
+        SUPPORT_MESSAGE,
+    ),
     ("POST", re.compile(r"/auth/api-keys"), Policy("key-create", 30, 5, 900)),
     ("POST", re.compile(r"/venues/[^/]+/webhooks"), WEBHOOK_WRITE),
     ("PUT", re.compile(r"/venues/[^/]+/webhooks/[^/]+"), WEBHOOK_WRITE),
@@ -50,6 +57,8 @@ def policy_for(request: Request) -> Policy | None:
 
 
 def account_key(action: str, user_id: int) -> str:
+    # Preserve the existing namespace so this refactor does not reset live
+    # integration counters. New support actions have distinct budget keys.
     digest = hmac.new(
         settings.JWT_SECRET.encode(),
         f"integration-account:{user_id}".encode(),
@@ -58,7 +67,7 @@ def account_key(action: str, user_id: int) -> str:
     return f"bookica:integration-limit:v1:account:{action}:{digest}"
 
 
-async def enforce_integration_ip_limit(request: Request):
+async def enforce_legacy_write_ip_limit(request: Request):
     policy = policy_for(request)
     if policy is None:
         return None
@@ -67,11 +76,11 @@ async def enforce_integration_ip_limit(request: Request):
         bucket_key(f"integration-{policy.action}", host),
         policy.ip_limit,
         policy.seconds,
-        integration_action=True,
+        legacy_action=True,
     )
 
 
-async def limit_integration_account(
+async def limit_legacy_write_account(
     request: Request, user: User = Depends(get_current_user)
 ) -> None:
     policy = policy_for(request)
@@ -81,7 +90,7 @@ async def limit_integration_account(
         account_key(policy.action, user.id),
         policy.account_limit,
         policy.seconds,
-        integration_action=True,
+        legacy_action=True,
     )
     if response is not None:
         raise HTTPException(

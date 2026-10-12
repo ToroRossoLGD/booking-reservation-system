@@ -1,4 +1,4 @@
-"""Integration write acceptance; run only against the disposable CI stack."""
+"""Legacy integration/support acceptance; disposable CI stack only."""
 
 import argparse
 import json
@@ -31,6 +31,8 @@ def main(mode):
     if mode == "unavailable":
         status, headers, _ = request("/auth/api-keys")
         assert status == 503 and headers["Retry-After"] == "30"
+        status, headers, _ = request("/support/tickets")
+        assert status == 503 and headers["Retry-After"] == "30"
         return
     status, _, data = request(
         "/auth/login",
@@ -42,6 +44,13 @@ def main(mode):
     assert status == 200
     token = data["access_token"]
     if mode == "exhaust":
+        for _ in range(5):
+            assert request("/support/tickets", token=token)[0] == 422
+        for index in range(30):
+            assert (
+                request(f"/support/tickets/{index + 1}/messages", token=token)[0] == 422
+            )
+        assert request("/support/tickets/999/messages", token=token)[0] == 429
         for _ in range(5):
             assert request("/auth/api-keys", token=token)[0] == 422
         for index in range(10):
@@ -78,7 +87,18 @@ def main(mode):
         ]
         == 404
     )
-    print(f"Integration budgets {mode}: shared limits and emergency actions passed.")
+    status, headers, _ = request("/support/tickets", token=token)
+    assert status == 429 and int(headers["Retry-After"]) > 0
+    assert (
+        request("/support/tickets/my", method="GET", body=None, token=token)[0] == 200
+    )
+    assert (
+        request(
+            "/support/tickets/99999999/close", method="PATCH", body=None, token=token
+        )[0]
+        == 404
+    )
+    print(f"Legacy write budgets {mode}: shared limits and emergency actions passed.")
 
 
 if __name__ == "__main__":
