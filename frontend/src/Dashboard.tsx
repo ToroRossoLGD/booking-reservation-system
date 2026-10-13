@@ -1,4 +1,5 @@
 import { notificationLinkLabel } from "./notification-link";
+import Modal from "./Modal";
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "./api";
 import PropertyManager from "./PropertyManager";
@@ -620,9 +621,10 @@ function ReservationDetail({
         )}
       </section>
       {confirmingCancel && workspace?.cancellation_preview && (
-        <div className="modal-backdrop">
-          <div className="management-modal" role="dialog" aria-modal="true" aria-labelledby="cancel-title">
+        <Modal label="Cancel reservation?" onClose={() => setConfirmingCancel(false)}>
+          <div className="management-modal">
             <h2 id="cancel-title">Cancel reservation?</h2>
+            {error && <p className="form-error" role="alert">{error}</p>}
             <p className="modal-copy">This applies the policy saved when you booked.</p>
             <div className="cancellation-preview">
               <span>Refund <strong>{money(workspace.cancellation_preview.refund_amount_cents, workspace.reservation.quoted_currency)}</strong></span>
@@ -630,10 +632,10 @@ function ReservationDetail({
             </div>
             <div className="modal-actions"><button className="button secondary" onClick={() => setConfirmingCancel(false)}>Keep reservation</button><button className="danger-button" disabled={busy} onClick={cancel}>Confirm cancellation</button></div>
           </div>
-        </div>
+        </Modal>
       )}
       {rescheduling && workspace && (
-        <FormModal title="Reschedule reservation" onClose={() => setRescheduling(false)} onSubmit={reschedule}>
+        <FormModal title="Reschedule reservation" error={error} onClose={() => setRescheduling(false)} onSubmit={reschedule}>
           <label>New date and time<input name="start" type="datetime-local" required /></label>
           <label>Duration<select name="duration" defaultValue={(new Date(workspace.reservation.end_time).getTime() - new Date(workspace.reservation.start_time).getTime()) / 60_000}><option value="60">1 hour</option><option value="90">1.5 hours</option><option value="120">2 hours</option><option value="180">3 hours</option></select></label>
         </FormModal>
@@ -806,13 +808,13 @@ export function OwnerDashboard({
         <div className="owner-actions">
           <button
             className="button cream"
-            onClick={() => setShowVenueForm(true)}
+            onClick={() => { setMessage(""); setShowVenueForm(true); }}
           >
             Add venue
           </button>
           <button
             className="button outline-light"
-            onClick={() => setShowResourceForm(true)}
+            onClick={() => { setMessage(""); setShowResourceForm(true); }}
             disabled={!venues.length}
           >
             Add resource
@@ -912,6 +914,7 @@ export function OwnerDashboard({
       {showVenueForm && (
         <FormModal
           title="Add a venue"
+          error={message}
           onClose={() => setShowVenueForm(false)}
           onSubmit={createVenue}
         >
@@ -945,6 +948,7 @@ export function OwnerDashboard({
       {showResourceForm && (
         <FormModal
           title="Add a resource"
+          error={message}
           onClose={() => setShowResourceForm(false)}
           onSubmit={createResource}
         >
@@ -1109,20 +1113,19 @@ function OwnerVenueManager({ venueId, onBack }: { venueId: number; onBack: () =>
 
 function FormModal({
   title,
+  error,
   onClose,
   onSubmit,
   children,
 }: {
   title: string;
+  error?: string;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className="modal-backdrop"
-      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
-    >
+    <Modal label={title} onClose={onClose}>
       <form className="management-modal" onSubmit={onSubmit}>
         <button
           type="button"
@@ -1134,9 +1137,10 @@ function FormModal({
         </button>
         <p className="eyebrow">Owner tools</p>
         <h2>{title}</h2>
+        {error && <p className="form-error" role="alert">{error}</p>}
         <div className="management-fields">{children}</div>
         <button className="button primary full">Save</button>
       </form>
-    </div>
+    </Modal>
   );
 }

@@ -2,6 +2,7 @@ import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api } from "./api";
 import { GoogleLoginOption } from "./GoogleLoginOption";
+import Modal from "./Modal";
 import { AccountDashboard, OwnerDashboard } from "./Dashboard";
 import { VenueMap } from "./VenueMap";
 import { parseApplicationRoute } from "./routing";
@@ -295,15 +296,9 @@ function AuthModal({
     }
   }
   return (
-    <div
-      className="modal-backdrop"
-      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
-    >
+    <Modal label="Account access" onClose={onClose}>
       <section
         className="auth-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Account access"
       >
         <button
           className="icon-button modal-close"
@@ -383,7 +378,7 @@ function AuthModal({
             : "Already have an account? Sign in"}
         </button>
       </section>
-    </div>
+    </Modal>
   );
 }
 
@@ -448,11 +443,8 @@ function BookingModal({
     }
   }
   return (
-    <div
-      className="modal-backdrop"
-      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <section className="booking-modal" role="dialog" aria-modal="true">
+    <Modal label={complete ? "Your space is on hold." : `Reserve: ${resource.name}`} onClose={onClose}>
+      <section className="booking-modal">
         <button
           className="icon-button modal-close"
           onClick={onClose}
@@ -561,7 +553,7 @@ function BookingModal({
           </>
         )}
       </section>
-    </div>
+    </Modal>
   );
 }
 
