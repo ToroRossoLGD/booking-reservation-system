@@ -10,6 +10,7 @@ import { ForgotPasswordPage, ResetPasswordPage } from "./PasswordRecovery";
 import { initialPasswordResetToken } from "./passwordResetToken";
 import EmailVerification from "./EmailVerification";
 import AccountSecurity from "./AccountSecurity";
+import { routeMetadata, usePageMetadata } from "./page-metadata";
 import { getEmailVerificationToken, subscribeEmailVerificationToken, syncEmailVerificationToken } from "./emailVerificationToken";
 
 const PropertyDetailPage = lazy(() => import("./PropertyDetailPage"));
@@ -18,6 +19,9 @@ const OwnerPropertyAnalytics = lazy(() => import("./OwnerPropertyAnalytics"));
 const PropertyModerationPage = lazy(() => import("./PropertyModerationPage"));
 
 export default function RootPage() {
+  const { pathname } = useLocation();
+  // Public listing pages own their loading/error/detail metadata.
+  usePageMetadata(pathname.startsWith("/properties/") ? null : routeMetadata(pathname));
   return <><SkipToContent /><PageContent /></>;
 }
 
