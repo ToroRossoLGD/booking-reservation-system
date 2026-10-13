@@ -7,6 +7,7 @@ import PropertyFacts from "./PropertyFacts";
 import SavePropertyButton from "./SavePropertyButton";
 import PropertyReportForm from "./PropertyReportForm";
 import { offerLabels, priceUnits, propertyPrice } from "./property-types";
+import { usePageMetadata } from "./page-metadata";
 import type { PropertyListing } from "./property-types";
 import "./property-home.css";
 import "./property-refresh.css";
@@ -44,11 +45,12 @@ export default function PropertyDetailPage({ id }: { id: string }) {
     return () => controller.abort();
   }, [id, retry, validId]);
 
-  useEffect(() => {
-    const previous = document.title;
-    document.title = property ? `${property.title} | Bookica` : "Oglas | Bookica";
-    return () => { document.title = previous; };
-  }, [property]);
+  usePageMetadata({
+    title: property ? `${property.title} | Bookica` : !validId || error === "missing" ? "Oglas nije dostupan | Bookica" : error ? "Oglas nije učitan | Bookica" : "Oglas | Bookica",
+    description: property
+      ? `${offerLabels[property.offer_type]} · ${property.city} · ${property.area_sqm} m². Pogledaj detalje nekretnine i kontaktiraj vlasnika na Bookici.`
+      : "Pregled javnog oglasa nekretnine na Bookici.",
+  });
 
   function reload() { setProperty(null); setError(null); setSaved(null); setSaveError(false); setRetry(value => value + 1); }
   async function copyLink() {
