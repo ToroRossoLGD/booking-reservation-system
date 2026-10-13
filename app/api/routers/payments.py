@@ -2,6 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user
+from app.core.legacy_write_rate_limit import limit_legacy_write_account
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.payment import CheckoutSessionRead, PaymentRead
@@ -35,6 +36,7 @@ async def get_reservation_payment(
     "/reservations/{reservation_id}/pay",
     response_model=PaymentRead,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(limit_legacy_write_account)],
 )
 async def pay_for_reservation(
     reservation_id: int,
@@ -55,6 +57,7 @@ async def pay_for_reservation(
     "/reservations/{reservation_id}/checkout",
     response_model=CheckoutSessionRead,
     status_code=201,
+    dependencies=[Depends(limit_legacy_write_account)],
 )
 async def create_checkout_session(
     reservation_id: int,

@@ -1,4 +1,4 @@
-"""Legacy integration/support/reservation acceptance; disposable CI stack only."""
+"""Legacy write acceptance; disposable CI stack only."""
 
 import argparse
 import json
@@ -34,6 +34,8 @@ def main(mode):
         status, headers, _ = request("/support/tickets")
         assert status == 503 and headers["Retry-After"] == "30"
         for method, path in [
+            ("POST", "/payments/reservations/invalid/pay"),
+            ("POST", "/payments/reservations/invalid/checkout"),
             ("POST", "/reservations"),
             ("POST", "/reservations/recurring"),
             ("PATCH", "/reservations/99999999/reschedule"),
@@ -51,6 +53,12 @@ def main(mode):
     assert status == 200
     token = data["access_token"]
     if mode == "exhaust":
+        # Invalid IDs fail validation before either payment service can run.
+        for action in ["pay", "checkout", "pay", "checkout", "pay"]:
+            assert (
+                request(f"/payments/reservations/invalid/{action}", token=token)[0]
+                == 422
+            )
         # Invalid bodies consume admission budgets without creating bookings.
         for index in range(10):
             method, path = (
@@ -85,6 +93,8 @@ def main(mode):
             == 429
         )
     for method, path in [
+        ("POST", "/payments/reservations/invalid/pay"),
+        ("POST", "/payments/reservations/invalid/checkout"),
         ("POST", "/reservations"),
         ("POST", "/reservations/recurring"),
         ("PATCH", "/reservations/99999999/reschedule"),
@@ -97,6 +107,12 @@ def main(mode):
         assert headers["Cache-Control"] == "no-store"
         assert headers["X-Request-ID"]
     assert request("/auth/api-keys", method="GET", body=None, token=token)[0] == 200
+    assert (
+        request(
+            "/payments/reservations/99999999", method="GET", body=None, token=token
+        )[0]
+        == 404
+    )
     assert request("/reservations/my", method="GET", body=None, token=token)[0] == 200
     assert (
         request(
