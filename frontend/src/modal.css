@@ -1,0 +1,20 @@
+dialog.accessible-dialog {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  color: inherit;
+}
+dialog.accessible-dialog:not([open]) { display: none; }
+dialog.accessible-dialog::backdrop { background: transparent; }
+dialog.accessible-dialog :focus-visible {
+  outline: 3px solid #276b51;
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.accessible-dialog,
+  dialog.accessible-dialog > * { animation: none; }
+}
