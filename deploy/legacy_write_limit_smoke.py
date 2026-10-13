@@ -1,4 +1,4 @@
-"""Legacy integration/support acceptance; disposable CI stack only."""
+"""Legacy integration/support/reservation acceptance; disposable CI stack only."""
 
 import argparse
 import json
@@ -33,6 +33,13 @@ def main(mode):
         assert status == 503 and headers["Retry-After"] == "30"
         status, headers, _ = request("/support/tickets")
         assert status == 503 and headers["Retry-After"] == "30"
+        for method, path in [
+            ("POST", "/reservations"),
+            ("POST", "/reservations/recurring"),
+            ("PATCH", "/reservations/99999999/reschedule"),
+        ]:
+            status, headers, _ = request(path, method=method)
+            assert status == 503 and headers["Retry-After"] == "30"
         return
     status, _, data = request(
         "/auth/login",
@@ -44,6 +51,16 @@ def main(mode):
     assert status == 200
     token = data["access_token"]
     if mode == "exhaust":
+        # Invalid bodies consume admission budgets without creating bookings.
+        for index in range(10):
+            method, path = (
+                ("POST", "/reservations")
+                if index % 2 == 0
+                else ("PATCH", f"/reservations/{index}/reschedule")
+            )
+            assert request(path, method=method, token=token)[0] == 422
+        for _ in range(2):
+            assert request("/reservations/recurring", token=token)[0] == 422
         for _ in range(5):
             assert request("/support/tickets", token=token)[0] == 422
         for index in range(30):
@@ -68,6 +85,9 @@ def main(mode):
             == 429
         )
     for method, path in [
+        ("POST", "/reservations"),
+        ("POST", "/reservations/recurring"),
+        ("PATCH", "/reservations/99999999/reschedule"),
         ("POST", "/auth/api-keys"),
         ("PUT", "/venues/999/webhooks/999"),
     ]:
@@ -77,6 +97,13 @@ def main(mode):
         assert headers["Cache-Control"] == "no-store"
         assert headers["X-Request-ID"]
     assert request("/auth/api-keys", method="GET", body=None, token=token)[0] == 200
+    assert request("/reservations/my", method="GET", body=None, token=token)[0] == 200
+    assert (
+        request(
+            "/reservations/99999999/cancel", method="PATCH", body=None, token=token
+        )[0]
+        == 404
+    )
     assert (
         request("/auth/api-keys/99999999", method="DELETE", body=None, token=token)[0]
         == 404

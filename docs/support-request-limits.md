@@ -45,5 +45,6 @@ shared atomic counter and expiry behavior.
 NAT users share IP limits. Fixed windows allow bursts at expiry; Redis data loss
 or JWT-secret rotation can reset counters. Do not flush shared Redis to unblock a
 user. Private staging still requires actual-client topology and workload tuning.
-Reservation/payment/media legacy limits and the other P1 acceptance tasks remain
-open. No database migration or new environment variable is needed.
+Legacy reservation creation/rescheduling now have [request budgets](reservation-request-limits.md).
+Payment/media legacy limits and the other P1 acceptance tasks remain open.
+No database migration or new environment variable is needed.
