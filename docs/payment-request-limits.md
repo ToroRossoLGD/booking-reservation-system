@@ -42,5 +42,6 @@ exhaustion and API/Redis recreation checks using invalid reservation IDs, so it
 cannot create payments or contact Stripe. Local unit tests do not replace this
 real-stack acceptance or actual HTTPS staging/client-IP validation.
 
-Media and other legacy endpoint protection, broader abuse defenses and hosted
-acceptance remain open P1 work.
+Legacy media uploads now have [request budgets](media-request-limits.md). Other
+legacy endpoint protection, broader abuse defenses and hosted acceptance remain
+open P1 work.

@@ -44,6 +44,7 @@ reservations. Local unit tests do not replace that real-stack acceptance.
 Shared NATs share IP budgets; fixed windows permit boundary bursts. Redis data
 loss or JWT-secret rotation can reset counters. Do not flush shared Redis as a
 routine way to unblock a user. Legacy payment initiation now has
-[shared request budgets](payment-request-limits.md). Media, other legacy actions
-and actual HTTPS staging acceptance remain separate P1 work. No migration or new
-environment variable is required.
+[shared request budgets](payment-request-limits.md), as do
+[legacy media uploads](media-request-limits.md). Other legacy actions and actual
+HTTPS staging acceptance remain separate P1 work. No migration or new environment
+variable is required.

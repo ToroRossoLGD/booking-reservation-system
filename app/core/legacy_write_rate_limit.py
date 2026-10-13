@@ -1,4 +1,4 @@
-"""Shared budgets for legacy integration, support, reservation and payment writes."""
+"""Shared budgets for legacy API writes."""
 
 import hashlib
 import hmac
@@ -27,6 +27,11 @@ WEBHOOK_WRITE = Policy("webhook-write", 30, 10, 900)
 SUPPORT_MESSAGE = Policy("support-message", 120, 30, 60)
 RESERVATION_WRITE = Policy("reservation-write", 60, 10, 900)
 POLICIES = (
+    (
+        "POST",
+        re.compile(r"/(?:venues|resources)/[^/]+/media"),
+        Policy("media-upload", 60, 20, 900),
+    ),
     (
         "POST",
         re.compile(r"/payments/reservations/[^/]+/(?:pay|checkout)"),
