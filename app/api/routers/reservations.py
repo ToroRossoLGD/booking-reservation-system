@@ -4,6 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, require_roles
+from app.core.legacy_write_rate_limit import limit_legacy_write_account
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.reservation import (
@@ -91,7 +92,12 @@ async def get_price_quote_with_add_ons(
     )
 
 
-@router.post("", response_model=ReservationRead, status_code=201)
+@router.post(
+    "",
+    response_model=ReservationRead,
+    status_code=201,
+    dependencies=[Depends(limit_legacy_write_account)],
+)
 async def create_reservation(
     data: ReservationCreate,
     background_tasks: BackgroundTasks,
@@ -118,6 +124,7 @@ async def create_reservation(
     "/recurring",
     response_model=RecurringReservationRead,
     status_code=201,
+    dependencies=[Depends(limit_legacy_write_account)],
 )
 async def create_recurring_reservations(
     data: RecurringReservationCreate,
@@ -340,6 +347,7 @@ async def get_check_in_pass(
 @router.patch(
     "/{reservation_id}/reschedule",
     response_model=ReservationRead,
+    dependencies=[Depends(limit_legacy_write_account)],
 )
 async def reschedule_reservation(
     reservation_id: int,

@@ -61,7 +61,7 @@ jobs:
         run: python deploy/auth_limit_smoke.py exhaust
       - name: Verify property account and IP limits across listings
         run: python deploy/property_limit_smoke.py exhaust
-      - name: Verify integration/support limits and emergency actions
+      - name: Verify integration/support/reservation limits and emergency actions
         run: python deploy/legacy_write_limit_smoke.py exhaust
       - name: Recreate API and verify proxy DNS recovery
         run: |

@@ -1,4 +1,4 @@
-"""Shared budgets for legacy integration and customer-support writes."""
+"""Shared budgets for legacy integration, support and reservation writes."""
 
 import hashlib
 import hmac
@@ -25,7 +25,15 @@ class Policy:
 
 WEBHOOK_WRITE = Policy("webhook-write", 30, 10, 900)
 SUPPORT_MESSAGE = Policy("support-message", 120, 30, 60)
+RESERVATION_WRITE = Policy("reservation-write", 60, 10, 900)
 POLICIES = (
+    ("POST", re.compile(r"/reservations"), RESERVATION_WRITE),
+    ("PATCH", re.compile(r"/reservations/[^/]+/reschedule"), RESERVATION_WRITE),
+    (
+        "POST",
+        re.compile(r"/reservations/recurring"),
+        Policy("reservation-recurring", 10, 2, 900),
+    ),
     ("POST", re.compile(r"/support/tickets"), Policy("support-ticket", 30, 5, 900)),
     (
         "POST",
