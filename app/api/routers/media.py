@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user
+from app.core.legacy_write_rate_limit import limit_legacy_write_account
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.media_asset import MediaAssetRead
@@ -19,6 +20,7 @@ async def list_venue_media(venue_id: int, db: AsyncSession = Depends(get_db)):
     "/venues/{venue_id}/media",
     response_model=MediaAssetRead,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(limit_legacy_write_account)],
 )
 async def upload_venue_media(
     venue_id: int,
@@ -42,6 +44,7 @@ async def list_resource_media(resource_id: int, db: AsyncSession = Depends(get_d
     "/resources/{resource_id}/media",
     response_model=MediaAssetRead,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(limit_legacy_write_account)],
 )
 async def upload_resource_media(
     resource_id: int,

@@ -47,5 +47,6 @@ or JWT-secret rotation can reset counters. Do not flush shared Redis to unblock 
 user. Private staging still requires actual-client topology and workload tuning.
 Legacy reservation creation/rescheduling now have [request budgets](reservation-request-limits.md).
 Legacy payment initiation now has [request budgets](payment-request-limits.md).
-Media legacy limits and the other P1 acceptance tasks remain open.
+Legacy media uploads now have [request budgets](media-request-limits.md).
+Other P1 acceptance tasks remain open.
 No database migration or new environment variable is needed.

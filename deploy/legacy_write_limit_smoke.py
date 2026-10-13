@@ -34,6 +34,8 @@ def main(mode):
         status, headers, _ = request("/support/tickets")
         assert status == 503 and headers["Retry-After"] == "30"
         for method, path in [
+            ("POST", "/venues/99999999/media"),
+            ("POST", "/resources/99999999/media"),
             ("POST", "/payments/reservations/invalid/pay"),
             ("POST", "/payments/reservations/invalid/checkout"),
             ("POST", "/reservations"),
@@ -53,6 +55,10 @@ def main(mode):
     assert status == 200
     token = data["access_token"]
     if mode == "exhaust":
+        # Missing multipart files consume admission budgets without storage calls.
+        for index in range(20):
+            parent = "venues" if index % 2 == 0 else "resources"
+            assert request(f"/{parent}/{index + 1}/media", token=token)[0] == 422
         # Invalid IDs fail validation before either payment service can run.
         for action in ["pay", "checkout", "pay", "checkout", "pay"]:
             assert (
@@ -93,6 +99,8 @@ def main(mode):
             == 429
         )
     for method, path in [
+        ("POST", "/venues/99999999/media"),
+        ("POST", "/resources/99999999/media"),
         ("POST", "/payments/reservations/invalid/pay"),
         ("POST", "/payments/reservations/invalid/checkout"),
         ("POST", "/reservations"),
@@ -107,6 +115,9 @@ def main(mode):
         assert headers["Cache-Control"] == "no-store"
         assert headers["X-Request-ID"]
     assert request("/auth/api-keys", method="GET", body=None, token=token)[0] == 200
+    for parent in ["venues", "resources"]:
+        assert request(f"/{parent}/99999999/media", method="GET", body=None)[0] == 200
+    assert request("/media/99999999", method="DELETE", body=None, token=token)[0] == 404
     assert (
         request(
             "/payments/reservations/99999999", method="GET", body=None, token=token
