@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api } from "./api";
 import { GoogleLoginOption } from "./GoogleLoginOption";
 import Modal from "./Modal";
-import { oauthRedirect } from "./oauthRedirect";
 import { accountAccessError } from "./account-access-error";
 import { AccountDashboard, OwnerDashboard } from "./Dashboard";
 import { VenueMap } from "./VenueMap";
@@ -251,12 +250,10 @@ function hasDismissedPageGuide() {
 
 function AuthModal({
   initialMode,
-  initialError = "",
   onClose,
   onAuthenticated,
 }: {
   initialMode: "login" | "register";
-  initialError?: string;
   onClose: () => void;
   onAuthenticated: (user: User) => void;
 }) {
@@ -264,7 +261,7 @@ function AuthModal({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [error, setError] = useState(initialError);
+  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -553,10 +550,7 @@ export default function App() {
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [booking, setBooking] = useState<Resource | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [authMode, setAuthMode] = useState<"login" | "register" | null>(
-    oauthRedirect.error ? "login" : null,
-  );
-  const [authError, setAuthError] = useState(oauthRedirect.error);
+  const [authMode, setAuthMode] = useState<"login" | "register" | null>(null);
   const [popularVenues, setPopularVenues] = useState<PopularVenue[]>([]);
   const [popularLoading, setPopularLoading] = useState(true);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
@@ -1499,10 +1493,8 @@ export default function App() {
       {authMode && (
         <AuthModal
           initialMode={authMode}
-          initialError={authError}
           onClose={() => {
             setAuthMode(null);
-            setAuthError("");
           }}
           onAuthenticated={setUser}
         />

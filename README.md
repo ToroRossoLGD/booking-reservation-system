@@ -207,6 +207,7 @@ Launch preparation now takes priority over additional marketplace features. **La
   - [x] Deferred account/booking/owner/stay/inquiry routes reduce initial entry JavaScript; accessible loading/error recovery and eager credential-fragment handling are preserved. Hosted mobile performance remains open. See [route loading and bundle measurements](docs/route-loading.md).
   - [x] Serbian login/registration copy, header account actions, Google option and controlled email-auth error feedback, with retained-input and browser regression coverage. Remaining legacy/provider copy still needs review. See [account-access language scope](docs/account-access-language.md).
   - [x] Property galleries share modal focus containment/restoration, add Home/End photo navigation and preserve focus after image retry, with desktop/mobile browser coverage. See [gallery accessibility scope](docs/gallery-accessibility.md).
+  - [x] Google callback failures show Serbian recovery guidance on the property home page, with explicit configured-provider retry, email fallback and safe unknown-error handling. See [OAuth return feedback](docs/oauth-return-feedback.md).
 
 **P1 exit:** successful account recovery, abuse-control checks, restore drill, monitored staging release and real-owner/guest acceptance. Initial beta scope may keep payment at the property and manual operational support; it does not require every P2 feature.
 
