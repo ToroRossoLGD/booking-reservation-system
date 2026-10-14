@@ -9,13 +9,13 @@ for (const enabled of [false, true]) {
     await page.route("**/api/auth/google/login", route => route.fulfill({ contentType: "text/html", body: "<h1>OAuth navigation reached</h1>" }));
     await page.goto("/booking");
     const discovery = page.waitForResponse("**/api/auth/providers");
-    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    await page.getByRole("button", { name: "Prijava", exact: true }).click();
     await discovery;
-    await expect(page.getByLabel("Email address")).toBeVisible();
+    await expect(page.getByLabel("Email adresa")).toBeVisible();
     for (const name of ["LinkedIn", "Facebook", "X"]) {
-      await expect(page.getByRole("button", { name: `Log in with ${name}`, exact: true })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: new RegExp(name) })).toHaveCount(0);
     }
-    const google = page.getByRole("button", { name: "Log in with Google" });
+    const google = page.getByRole("button", { name: "Prijavi se pomoću Google naloga" });
     if (enabled) {
       await expect(google).toBeVisible();
       await google.click();
@@ -23,7 +23,7 @@ for (const enabled of [false, true]) {
       await expect(page.getByRole("heading", { name: "OAuth navigation reached" })).toBeVisible();
     } else {
       await expect(google).toHaveCount(0);
-      await expect(page.getByText("or log in with email")).toHaveCount(0);
+      await expect(page.getByText("ili se prijavi email adresom")).toHaveCount(0);
     }
   });
 }

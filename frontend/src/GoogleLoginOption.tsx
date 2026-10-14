@@ -27,12 +27,12 @@ export function GoogleLoginOption() {
   return (
     <>
       <div className="social-grid">
-        <button type="button" className="social-button" aria-label="Log in with Google"
+        <button type="button" className="social-button" aria-label="Prijavi se pomoću Google naloga"
           onClick={() => window.location.assign(googleLoginUrl)}>
           <span className="social-mark google">G</span><strong>Google</strong>
         </button>
       </div>
-      <div className="auth-divider"><span>or log in with email</span></div>
+      <div className="auth-divider"><span>ili se prijavi email adresom</span></div>
     </>
   );
 }
