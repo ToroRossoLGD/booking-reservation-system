@@ -3,6 +3,8 @@
 .property-photo-count { position: absolute; right: 12px; bottom: 12px; background: #ffffffed; padding: 7px 12px; border-radius: 18px; font-size: 12px; }
 .property-photo-dialog { border: 0; padding: 0; width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; background: #18221d; color: white; }
 .property-photo-dialog::backdrop { background: #000b; }
+dialog.accessible-dialog.property-photo-dialog { padding: 0; display: block; height: 100dvh; background: #18221d; color: white; }
+dialog.accessible-dialog.property-photo-dialog :focus-visible { outline: 3px solid #f4c688; outline-offset: 3px; }
 .property-photo-dialog-panel { height: 100%; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
 .property-photo-dialog header, .property-photo-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .property-photo-dialog h2 { font: 400 24px Georgia, serif; margin: 0; }
