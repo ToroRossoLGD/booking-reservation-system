@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useSyncExternalStore } from "react";
 import { useLocation } from "react-router-dom";
 import "./oauthRedirect";
 import RouteBoundary from "./RouteBoundary";
+import OAuthFeedback from "./OAuthFeedback";
 import PropertyHome from "./PropertyHome";
 import SkipToContent from "./SkipToContent";
 import { initialPasswordResetToken } from "./passwordResetToken";
@@ -25,7 +26,7 @@ export default function RootPage() {
   const { pathname } = useLocation();
   // Public listing pages own their loading/error/detail metadata.
   usePageMetadata(pathname.startsWith("/properties/") ? null : routeMetadata(pathname));
-  return <><SkipToContent /><RouteBoundary key={pathname}>
+  return <><SkipToContent /><OAuthFeedback /><RouteBoundary key={pathname}>
     <Suspense fallback={<main id="main-content" tabIndex={-1}><p role="status">Učitavanje stranice…</p></main>}>
       <PageContent />
     </Suspense>

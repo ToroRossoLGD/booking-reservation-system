@@ -1,0 +1,6 @@
+.oauth-feedback { margin: 16px auto; padding: 20px; max-width: 640px; width: calc(100% - 32px); box-sizing: border-box; border: 1px solid #b7c9bf; border-radius: 12px; background: #f8faf7; color: #183c2c; }
+.oauth-feedback h2 { margin-top: 0; }
+.oauth-feedback p { line-height: 1.6; }
+.oauth-feedback-actions { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.oauth-feedback-actions button { border: 1px solid #638370; border-radius: 8px; padding: 10px; background: white; color: #183c2c; cursor: pointer; }
+.oauth-feedback :focus-visible { outline: 3px solid #276b51; outline-offset: 3px; }
