@@ -20,11 +20,11 @@ test("property storefront links to the existing booking and authentication flow"
   await expect(
     page.getByRole("heading", { name: /the right space/i }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Log in" }).click();
+  await page.getByRole("button", { name: "Prijava" }).click();
   await expect(
-    page.getByRole("heading", { name: /good to see you again/i }),
+    page.getByRole("heading", { name: /dobro došli nazad/i }),
   ).toBeVisible();
-  await expect(page.getByLabel("Email address")).toBeVisible();
+  await expect(page.getByLabel("Email adresa")).toBeVisible();
 });
 
 test("property search and contact work on desktop and mobile", async ({ page }, testInfo) => {

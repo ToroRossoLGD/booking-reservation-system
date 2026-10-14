@@ -11,8 +11,8 @@ it("shows Google only after the API confirms it is configured", async () => {
   render(<GoogleLoginOption />);
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
   await act(async () => resolve(new Response(JSON.stringify({ google: true }))));
-  expect(await screen.findByRole("button", { name: "Log in with Google" })).toBeVisible();
-  expect(screen.getByText("or log in with email")).toBeVisible();
+  expect(await screen.findByRole("button", { name: "Prijavi se pomoću Google naloga" })).toBeVisible();
+  expect(screen.getByText("ili se prijavi email adresom")).toBeVisible();
   expect(fetchMock).toHaveBeenCalledWith("/api/auth/providers", expect.objectContaining({ cache: "no-store" }));
 });
 
@@ -20,7 +20,7 @@ it.each([false, "true", null])("hides disabled or invalid provider flags: %s", a
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ google }))));
   await act(async () => { render(<GoogleLoginOption />); });
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
-  expect(screen.queryByText("or log in with email")).not.toBeInTheDocument();
+  expect(screen.queryByText("ili se prijavi email adresom")).not.toBeInTheDocument();
 });
 
 it.each(["network", "server", "json"])("hides unavailable providers on %s failure", async (failure) => {

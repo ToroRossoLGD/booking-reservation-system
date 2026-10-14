@@ -8,20 +8,20 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("account dialog contains keyboard focus and restores its opener on Escape", async ({ page }) => {
-  const opener = page.getByRole("button", { name: "Log in", exact: true });
+  const opener = page.getByRole("button", { name: "Prijava", exact: true });
   await opener.click();
-  const dialog = page.getByRole("dialog", { name: "Account access" });
-  const close = dialog.getByRole("button", { name: "Close", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Pristup nalogu" });
+  const close = dialog.getByRole("button", { name: "Zatvori", exact: true });
   await expect(close).toBeFocused();
   await expect(dialog).toHaveJSProperty("open", true);
   // Even a programmatic focus request cannot move focus to the inert page.
   await opener.evaluate(element => element.focus());
   await expect(close).toBeFocused();
   await page.keyboard.press("Shift+Tab");
-  await expect(dialog.getByRole("button", { name: "New here? Create an account" })).toBeFocused();
+  await expect(dialog.getByRole("button", { name: "Nemaš nalog? Registruj se" })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(close).toBeFocused();
-  await dialog.getByLabel("Email address").fill("guest@example.com");
+  await dialog.getByLabel("Email adresa").fill("guest@example.com");
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(opener).toBeFocused();
@@ -29,12 +29,12 @@ test("account dialog contains keyboard focus and restores its opener on Escape",
 });
 
 test("switching forms retains modal behavior and explicit close restores focus", async ({ page }) => {
-  const opener = page.getByRole("button", { name: "Log in", exact: true });
+  const opener = page.getByRole("button", { name: "Prijava", exact: true });
   await opener.click();
-  const dialog = page.getByRole("dialog", { name: "Account access" });
-  await dialog.getByRole("button", { name: "New here? Create an account" }).click();
-  await expect(dialog.getByRole("heading", { name: "Your next space is waiting." })).toBeVisible();
-  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Pristup nalogu" });
+  await dialog.getByRole("button", { name: "Nemaš nalog? Registruj se" }).click();
+  await expect(dialog.getByRole("heading", { name: "Napravi svoj nalog." })).toBeVisible();
+  await dialog.getByRole("button", { name: "Zatvori", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(opener).toBeFocused();
   await opener.click();
@@ -46,12 +46,12 @@ test("switching forms retains modal behavior and explicit close restores focus",
 
 test("small screens keep account fields and close action reachable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 664 });
-  await page.getByRole("button", { name: "Sign up", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Account access" });
+  await page.getByRole("button", { name: "Registracija", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Pristup nalogu" });
   await expect(dialog).toBeVisible();
-  await dialog.getByLabel("Email address").fill("mobile@example.com");
-  await dialog.getByRole("button", { name: "Already have an account? Sign in" }).click();
-  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await dialog.getByLabel("Email adresa").fill("mobile@example.com");
+  await dialog.getByRole("button", { name: "Već imaš nalog? Prijavi se" }).click();
+  await dialog.getByRole("button", { name: "Zatvori", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

@@ -15,7 +15,7 @@ test("home does not fetch deferred routes; opening booking loads them", async ({
   expect(scripts.some(path => /\/(App|Dashboard|StaysPage|RentalInquiriesPage|PasswordRecovery)\.tsx$/.test(path))).toBe(false);
   expect(scripts.some(path => path.includes("leaflet"))).toBe(false);
   await page.getByRole("link", { name: /postojeći sistem rezervacija/i }).click();
-  await expect(page.getByRole("button", { name: "Log in", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Prijava", exact: true })).toBeVisible();
   expect(scripts.some(path => path.endsWith("/App.tsx"))).toBe(true);
 });
 
@@ -25,7 +25,7 @@ test("failed route download shows a recoverable error", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Stranica nije učitana." })).toBeVisible();
   await expect(page.getByRole("link", { name: "Vrati se na početnu" })).toHaveAttribute("href", "/");
   await page.getByRole("button", { name: "Učitaj ponovo" }).click();
-  await expect(page.getByRole("button", { name: "Log in", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Prijava", exact: true })).toBeVisible();
 });
 
 test("OAuth fragment is consumed before the booking module finishes loading", async ({ page }) => {
@@ -38,5 +38,5 @@ test("OAuth fragment is consumed before the booking module finishes loading", as
     await expect(page).toHaveURL(/\/booking$/);
     expect(await page.evaluate(() => localStorage.getItem("bookica_token"))).toBe("test-only-oauth-token");
   } finally { release(); }
-  await expect(page.getByRole("button", { name: "Log in", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Prijava", exact: true })).toBeVisible();
 });

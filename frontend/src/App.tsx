@@ -4,6 +4,7 @@ import { api } from "./api";
 import { GoogleLoginOption } from "./GoogleLoginOption";
 import Modal from "./Modal";
 import { oauthRedirect } from "./oauthRedirect";
+import { accountAccessError } from "./account-access-error";
 import { AccountDashboard, OwnerDashboard } from "./Dashboard";
 import { VenueMap } from "./VenueMap";
 import { parseApplicationRoute } from "./routing";
@@ -276,51 +277,52 @@ function AuthModal({
       onAuthenticated(await api.me());
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to continue");
+      setError(accountAccessError(err));
     } finally {
       setBusy(false);
     }
   }
   return (
-    <Modal label="Account access" onClose={onClose}>
+    <Modal label="Pristup nalogu" onClose={onClose}>
       <section
         className="auth-modal"
       >
         <button
           className="icon-button modal-close"
           onClick={onClose}
-          aria-label="Close"
+          aria-label="Zatvori"
         >
           <Icon name="close" />
         </button>
         <div className="mini-mark">
           <span>B</span>
         </div>
-        <p className="eyebrow">Welcome to Bookica</p>
+        <p className="eyebrow">Dobro došli na Bookicu</p>
         <h2>
           {mode === "login"
-            ? "Good to see you again."
-            : "Your next space is waiting."}
+            ? "Dobro došli nazad."
+            : "Napravi svoj nalog."}
         </h2>
         <p className="modal-copy">
           {mode === "login"
-            ? "Sign in to manage reservations and saved places."
-            : "Create an account to book in a few simple steps."}
+            ? "Prijavi se da upravljaš rezervacijama i sačuvanim oglasima."
+            : "Napravi nalog za rezervacije smeštaja i upite za nekretnine."}
         </p>
         {mode === "login" && <GoogleLoginOption />}
         {mode === "login" && <Link to="/forgot-password" onClick={onClose}>Zaboravljena lozinka?</Link>}
         <form onSubmit={submit} className="auth-form">
           <label>
-            Email address
+            Email adresa
             <input
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
             />
           </label>
-          <label htmlFor="auth-password">Password</label>
+          <label htmlFor="auth-password">Lozinka</label>
           <div className="auth-password-control">
             <input
               id="auth-password"
@@ -330,7 +332,7 @@ function AuthModal({
               spellCheck={false}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
+              placeholder="Najmanje 8 znakova"
               minLength={8}
               required
             />
@@ -340,15 +342,15 @@ function AuthModal({
               aria-pressed={passwordVisible}
               disabled={busy}
               onClick={() => setPasswordVisible(visible => !visible)}
-            >Show password</button>
+            >Prikaži lozinku</button>
           </div>
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error" role="alert">{error}</p>}
           <button className="button primary full" disabled={busy}>
             {busy
-              ? "Please wait…"
+              ? "Sačekaj…"
               : mode === "login"
-                ? "Sign in"
-                : "Create account"}
+                ? "Prijavi se"
+                : "Napravi nalog"}
           </button>
         </form>
         <button
@@ -360,8 +362,8 @@ function AuthModal({
           }}
         >
           {mode === "login"
-            ? "New here? Create an account"
-            : "Already have an account? Sign in"}
+            ? "Nemaš nalog? Registruj se"
+            : "Već imaš nalog? Prijavi se"}
         </button>
       </section>
     </Modal>
@@ -844,7 +846,7 @@ export default function App() {
                   }}
                 >
                   <Icon name="logout" size={16} />
-                  Log out
+                  Odjavi se
                 </button>
               </div>
             </details>
@@ -854,13 +856,13 @@ export default function App() {
                 className="button ghost"
                 onClick={() => setAuthMode("login")}
               >
-                Log in
+                Prijava
               </button>
               <button
                 className="button dark"
                 onClick={() => setAuthMode("register")}
               >
-                Sign up
+                Registracija
               </button>
             </>
           )}
