@@ -1,12 +1,14 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type KeyboardEventHandler, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import "./modal.css";
 
 /** Mount only while open. Native modal dialogs make the background inert. */
-export default function Modal({ label, onClose, children }: {
+export default function Modal({ label, onClose, children, className = "", onKeyDown }: {
   label: string;
   onClose: () => void;
   children: ReactNode;
+  className?: string;
+  onKeyDown?: KeyboardEventHandler<HTMLDialogElement>;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useLayoutEffect(() => {
@@ -23,9 +25,11 @@ export default function Modal({ label, onClose, children }: {
   }, []);
 
   return createPortal(
-    <dialog ref={ref} className="modal-backdrop accessible-dialog" aria-label={label}
+    <dialog ref={ref} className={`modal-backdrop accessible-dialog ${className}`} aria-label={label}
       onCancel={event => { event.preventDefault(); onClose(); }}
       onKeyDown={event => {
+        onKeyDown?.(event);
+        if (event.defaultPrevented) return;
         if (event.key !== "Tab") return;
         const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
           'a[href], button, input, select, textarea, [tabindex]',
