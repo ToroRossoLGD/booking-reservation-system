@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api } from "./api";
 import { GoogleLoginOption } from "./GoogleLoginOption";
 import Modal from "./Modal";
+import { oauthRedirect } from "./oauthRedirect";
 import { AccountDashboard, OwnerDashboard } from "./Dashboard";
 import { VenueMap } from "./VenueMap";
 import { parseApplicationRoute } from "./routing";
@@ -239,21 +240,6 @@ async function getPopularVenues(venues: Venue[]): Promise<PopularVenue[]> {
     .slice(0, 3);
 }
 
-function consumeOAuthRedirect() {
-  const params = new URLSearchParams(window.location.hash.slice(1));
-  const token = params.get("auth_token");
-  const error = params.get("auth_error") ?? "";
-  if (token || error)
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}${window.location.search}`,
-    );
-  if (token) localStorage.setItem("bookica_token", token);
-  return { error };
-}
-
-const oauthRedirect = consumeOAuthRedirect();
 const pageGuideCookie = "bookica_page_guide_dismissed";
 
 function hasDismissedPageGuide() {

@@ -1,19 +1,22 @@
 import { lazy, Suspense, useEffect, useSyncExternalStore } from "react";
 import { useLocation } from "react-router-dom";
-import App from "./App";
+import "./oauthRedirect";
+import RouteBoundary from "./RouteBoundary";
 import PropertyHome from "./PropertyHome";
-import StaysPage from "./StaysPage";
-import RentalInquiriesPage from "./RentalInquiriesPage";
-import SavedPropertiesPage from "./SavedPropertiesPage";
 import SkipToContent from "./SkipToContent";
-import { ForgotPasswordPage, ResetPasswordPage } from "./PasswordRecovery";
 import { initialPasswordResetToken } from "./passwordResetToken";
-import EmailVerification from "./EmailVerification";
-import AccountSecurity from "./AccountSecurity";
 import { routeMetadata, usePageMetadata } from "./page-metadata";
 import { getEmailVerificationToken, subscribeEmailVerificationToken, syncEmailVerificationToken } from "./emailVerificationToken";
 
 const PropertyDetailPage = lazy(() => import("./PropertyDetailPage"));
+const App = lazy(() => import("./App"));
+const StaysPage = lazy(() => import("./StaysPage"));
+const RentalInquiriesPage = lazy(() => import("./RentalInquiriesPage"));
+const SavedPropertiesPage = lazy(() => import("./SavedPropertiesPage"));
+const EmailVerification = lazy(() => import("./EmailVerification"));
+const AccountSecurity = lazy(() => import("./AccountSecurity"));
+const ForgotPasswordPage = lazy(() => import("./PasswordRecovery").then(module => ({ default: module.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import("./PasswordRecovery").then(module => ({ default: module.ResetPasswordPage })));
 const OwnerPropertyPreview = lazy(() => import("./OwnerPropertyPreview"));
 const OwnerPropertyAnalytics = lazy(() => import("./OwnerPropertyAnalytics"));
 const PropertyModerationPage = lazy(() => import("./PropertyModerationPage"));
@@ -22,7 +25,11 @@ export default function RootPage() {
   const { pathname } = useLocation();
   // Public listing pages own their loading/error/detail metadata.
   usePageMetadata(pathname.startsWith("/properties/") ? null : routeMetadata(pathname));
-  return <><SkipToContent /><PageContent /></>;
+  return <><SkipToContent /><RouteBoundary key={pathname}>
+    <Suspense fallback={<main id="main-content" tabIndex={-1}><p role="status">Učitavanje stranice…</p></main>}>
+      <PageContent />
+    </Suspense>
+  </RouteBoundary></>;
 }
 
 function PageContent() {
