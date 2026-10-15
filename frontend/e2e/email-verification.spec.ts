@@ -15,8 +15,8 @@ for (const mobile of [false, true]) {
     await page.goto("/verify-email");
     await page.getByRole("button", { name: "Pošalji novi link" }).click();
     await expect(page.getByRole("status")).toContainText("spam folder");
-    await page.goto(`/verify-email#token=${token}`);
-    await expect(page).toHaveURL(/\/verify-email$/);
+    await page.goto(`/verify-email${mobile ? "/" : ""}#token=${token}`);
+    await expect(page).toHaveURL(/\/verify-email\/?$/);
     expect(confirmations).toBe(0);
     await page.getByRole("button", { name: "Potvrdi email" }).click();
     await expect(page.getByRole("status")).toContainText("Email adresa je potvrđena");

@@ -5,6 +5,27 @@ export type ApplicationRoute = {
   accountTab?: "notifications";
 };
 
+export function normalizePagePath(pathname: string): string {
+  return pathname === "/" || pathname.endsWith("//") ? pathname : pathname.replace(/\/$/, "");
+}
+
+const pagePaths = new Set([
+  "/", "/booking", "/account", "/account/security", "/account/notifications",
+  "/owner", "/owner/analytics", "/owner/stays", "/owner/rentals", "/owner/sales",
+  "/saved", "/stays", "/rentals", "/sales", "/moderation",
+  "/verify-email", "/forgot-password", "/reset-password",
+]);
+
+export function isKnownPage(pathname: string): boolean {
+  const path = normalizePagePath(pathname);
+  return pagePaths.has(path)
+    // Listing pages retain their own invalid-ID/unavailable feedback.
+    || path.startsWith("/properties/")
+    || /^\/owner\/properties\/[^/]+\/preview$/.test(path)
+    || /^\/account\/reservations\/\d+$/.test(path)
+    || /^\/owner\/venues\/\d+$/.test(path);
+}
+
 export function parseApplicationRoute(pathname: string): ApplicationRoute {
   if (/^\/account\/notifications\/?$/.test(pathname))
     return { page: "account", accountTab: "notifications" };

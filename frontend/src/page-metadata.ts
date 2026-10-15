@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { isKnownPage, normalizePagePath } from "./routing";
 
 export const SITE_TITLE = "Bookica — Nekretnine za život i odmor";
 export const SITE_DESCRIPTION = "Pronađi stan za prodaju, dugoročni najam ili odmor. Bookica — mesto za odmor, prostor za život.";
@@ -23,7 +24,8 @@ const pages: Record<string, [string, string]> = {
 };
 
 export function routeMetadata(pathname: string): PageMetadata {
-  const path = pathname.replace(/\/$/, "") || "/";
+  const path = normalizePagePath(pathname);
+  if (!isKnownPage(path)) return { title: "Stranica nije pronađena | Bookica", description: "Otvori ponudu nekretnina ili svoj Bookica nalog." };
   let page = pages[path];
   if (!page && /^\/owner\/properties\/[^/]+\/preview$/.test(path)) page = ["Pregled tvog oglasa", "Proveri izgled oglasa pre objavljivanja."];
   if (!page && /^\/account\/reservations\/\d+$/.test(path)) page = ["Detalji rezervacije", "Pregledaj i upravljaj svojom rezervacijom prostora."];
