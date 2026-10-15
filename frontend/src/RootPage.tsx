@@ -12,6 +12,7 @@ import { routeMetadata, usePageMetadata } from "./page-metadata";
 import { getEmailVerificationToken, subscribeEmailVerificationToken, syncEmailVerificationToken } from "./emailVerificationToken";
 
 const PropertyDetailPage = lazy(() => import("./PropertyDetailPage"));
+const HelpPage = lazy(() => import("./HelpPage"));
 const App = lazy(() => import("./App"));
 const StaysPage = lazy(() => import("./StaysPage"));
 const RentalInquiriesPage = lazy(() => import("./RentalInquiriesPage"));
@@ -41,6 +42,7 @@ function PageContent() {
   const verificationToken = useSyncExternalStore(subscribeEmailVerificationToken, getEmailVerificationToken);
   useEffect(() => { syncEmailVerificationToken(); }, [pathname, hash]);
   if (!isKnownPage(pathname)) return <NotFoundPage />;
+  if (pathname === "/help") return <HelpPage />;
   if (pathname === "/account/security") return <AccountSecurity />;
   if (pathname === "/verify-email") return <EmailVerification key={verificationToken} token={verificationToken} />;
   if (pathname === "/forgot-password") return <ForgotPasswordPage />;

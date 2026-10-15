@@ -1,0 +1,13 @@
+.help-page { background: #fbfaf6; color: #183c2c; min-height: 100vh; }
+.help-page header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px clamp(20px, 6vw, 80px); border-bottom: 1px solid #dce3d9; }
+.help-page main { max-width: 880px; margin: auto; padding: 40px 24px 64px; }
+.help-page h1 { font-size: clamp(30px, 5vw, 48px); line-height: 1.15; }
+.help-page p, .help-page li { line-height: 1.75; }
+.help-intro { font-size: 18px; }
+.help-page nav, .help-links { display: flex; flex-wrap: wrap; gap: 16px; margin: 20px 0; }
+.help-page a { text-decoration: underline; text-underline-offset: 4px; }
+.help-page section { padding: 24px 0; border-bottom: 1px solid #dce3d9; scroll-margin-top: 20px; }
+.help-page details { padding: 16px; margin: 16px 0; border: 1px solid #dce3d9; border-radius: 10px; background: white; }
+.help-page summary { cursor: pointer; font-weight: 600; line-height: 1.6; }
+.help-page :focus-visible { outline: 3px solid #276b51; outline-offset: 4px; }
+.help-note { padding: 20px 0; color: #4c6457; font-size: 14px; }

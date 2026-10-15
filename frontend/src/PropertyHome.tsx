@@ -163,6 +163,6 @@ export default function PropertyHome() {
       <section className="ph-destinations" id="destinacije"><div><p className="ph-eyebrow">PROMENI OKRUŽENJE</p><h2>Gde te vodi sledeći plan?</h2><p>Gradski ritam, planinska tišina ili dani uz more.</p></div><div className="ph-destination-links">{["Beograd", "Novi Sad", "Zlatibor", "Budva"].map(city => <a href="#ponuda" key={city} onClick={() => search(city, "")}>{city}<span>↗</span></a>)}</div></section>
       <section className="ph-owner-invite"><div><p className="ph-eyebrow">IMAŠ PROSTOR ZA NEČIJE PLANOVE?</p><h2>Svaki dom ima svoju priču.<br />Podeli svoju.</h2><p>Predstavi nekretninu, odredi cenu i poveži se sa budućim gostima ili kupcima.</p></div><a href="/owner" className="ph-primary">Kreiraj svoj oglas <span>↗</span></a></section>
     </main>
-    <footer className="ph-footer"><span className="ph-brand">bookica.</span><p>Mesto za odmor. Prostor za život.</p><a href="/booking">Postojeći sistem rezervacija ↗</a></footer>
+    <footer className="ph-footer"><span className="ph-brand">bookica.</span><p>Mesto za odmor. Prostor za život.</p><a href="/help">Kako funkcioniše Bookica?</a><a href="/booking">Postojeći sistem rezervacija ↗</a></footer>
   </div>;
 }
