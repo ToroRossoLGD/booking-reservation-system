@@ -16,8 +16,8 @@ for (const mobile of [false, true]) {
     await page.getByLabel("Email adresa").fill("user@example.com");
     await page.getByRole("button", { name: "Pošalji link" }).click();
     await expect(page.getByRole("status")).toContainText("Ako postoji nalog");
-    await page.goto(`/reset-password#token=${token}`);
-    await expect(page).toHaveURL(/\/reset-password$/);
+    await page.goto(`/reset-password${mobile ? "/" : ""}#token=${token}`);
+    await expect(page).toHaveURL(/\/reset-password\/?$/);
     await page.getByLabel("Nova lozinka", { exact: true }).fill("Changed-password-42");
     await page.getByLabel("Ponovite lozinku").fill("Changed-password-42");
     await page.getByRole("button", { name: "Sačuvaj lozinku" }).click();

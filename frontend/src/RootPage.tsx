@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import "./oauthRedirect";
 import RouteBoundary from "./RouteBoundary";
 import OAuthFeedback from "./OAuthFeedback";
+import NotFoundPage from "./NotFoundPage";
+import { isKnownPage, normalizePagePath } from "./routing";
 import PropertyHome from "./PropertyHome";
 import SkipToContent from "./SkipToContent";
 import { initialPasswordResetToken } from "./passwordResetToken";
@@ -23,7 +25,7 @@ const OwnerPropertyAnalytics = lazy(() => import("./OwnerPropertyAnalytics"));
 const PropertyModerationPage = lazy(() => import("./PropertyModerationPage"));
 
 export default function RootPage() {
-  const { pathname } = useLocation();
+  const pathname = normalizePagePath(useLocation().pathname);
   // Public listing pages own their loading/error/detail metadata.
   usePageMetadata(pathname.startsWith("/properties/") ? null : routeMetadata(pathname));
   return <><SkipToContent /><OAuthFeedback /><RouteBoundary key={pathname}>
@@ -34,9 +36,11 @@ export default function RootPage() {
 }
 
 function PageContent() {
-  const { pathname, hash } = useLocation();
+  const { pathname: rawPathname, hash } = useLocation();
+  const pathname = normalizePagePath(rawPathname);
   const verificationToken = useSyncExternalStore(subscribeEmailVerificationToken, getEmailVerificationToken);
   useEffect(() => { syncEmailVerificationToken(); }, [pathname, hash]);
+  if (!isKnownPage(pathname)) return <NotFoundPage />;
   if (pathname === "/account/security") return <AccountSecurity />;
   if (pathname === "/verify-email") return <EmailVerification key={verificationToken} token={verificationToken} />;
   if (pathname === "/forgot-password") return <ForgotPasswordPage />;
