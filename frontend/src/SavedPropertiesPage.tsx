@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "./api";
 import type { PropertyPage } from "./property-types";
 import PropertyCard from "./PropertyCard";
@@ -14,10 +14,24 @@ export default function SavedPropertiesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [login, setLogin] = useState(false);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const restoreFocus = useRef(false);
+  useEffect(() => {
+    if (!loading && restoreFocus.current) {
+      heading.current?.focus();
+      restoreFocus.current = false;
+    }
+  }, [loading]);
   useEffect(() => {
     const controller = new AbortController();
     api.savedProperties(offset, controller.signal).then(result => {
-      if (!controller.signal.aborted) { setPage(result); setLoading(false); }
+      if (controller.signal.aborted) return;
+      // Listings can be withdrawn or removed on another device between pages.
+      if (result.items.length === 0 && offset > 0) {
+        setOffset(Math.min(offset - 12, Math.max(0, Math.floor((result.total - 1) / 12) * 12)));
+        return;
+      }
+      setPage(result); setLoading(false);
     }).catch(err => {
       if (!controller.signal.aborted) {
         const unauthorized = err instanceof ApiError && err.status === 401;
@@ -27,12 +41,13 @@ export default function SavedPropertiesPage() {
     });
     return () => controller.abort();
   }, [offset, version]);
-  function reload(nextOffset = offset) { setLoading(true); setError(""); setLogin(false); setOffset(nextOffset); setVersion(value => value + 1); }
+  function reload(nextOffset = offset) { restoreFocus.current = true; setLoading(true); setError(""); setLogin(false); setOffset(nextOffset); setVersion(value => value + 1); }
   return <div className="property-home saved-properties-page">
     <header className="ph-header"><a href="/" className="ph-brand">bookica.</a><a className="ph-outline" href="/account">Moj nalog</a></header>
     <main id="main-content" tabIndex={-1}>
-      <div className="saved-properties-heading"><p className="ph-eyebrow">TVOJ IZBOR</p><h1>Sačuvani oglasi</h1><p>Stanovi koje želiš da pogledaš ponovo — za odmor, najam ili novi dom.</p><a href="/">Pronađi još nekretnina ↗</a></div>
+      <div className="saved-properties-heading"><p className="ph-eyebrow">TVOJ IZBOR</p><h1 ref={heading} tabIndex={-1}>Sačuvani oglasi</h1><p>Stanovi koje želiš da pogledaš ponovo — za odmor, najam ili novi dom.</p><a href="/">Pronađi još nekretnina ↗</a></div>
       <p className="saved-properties-note">Prikazujemo trenutno objavljene oglase i aktuelne cene. Čuvanje oglasa ne rezerviše nekretninu.</p>
+      <button className="ph-outline" disabled={loading} onClick={() => reload()}>Osveži oglase</button>
       {loading ? <p role="status">Učitavanje sačuvanih oglasa…</p> : error ? <div className="ph-empty" role="alert"><p>{error}</p>{login && <a className="ph-outline" href="/account">Prijavi se</a>}<button className="ph-outline" onClick={() => reload()}>Pokušaj ponovo</button></div> : page && <>
         <p role="status">Sačuvano oglasa: {page.total}</p>
         {page.items.length === 0 ? <div className="ph-empty"><h2>Još nema sačuvanih oglasa za prikaz.</h2><p>Izaberi „Sačuvaj oglas“ na nekretnini koja ti se dopada. Povučeni oglasi nisu vidljivi dok ih vlasnik ponovo ne objavi.</p><a className="ph-primary" href="/">Istraži ponudu</a></div> : <div className="ph-grid">{page.items.map(property => <PropertyCard key={property.id} property={property} saveAction={<SavePropertyButton propertyId={property.id} title={property.title} saved onChange={() => reload(page.items.length === 1 && offset > 0 ? Math.max(0, offset - 12) : offset)} />} />)}</div>}
