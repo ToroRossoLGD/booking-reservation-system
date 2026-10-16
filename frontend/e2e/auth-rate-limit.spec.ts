@@ -12,8 +12,16 @@ for (const mobile of [false, true]) {
         : route.fulfill({ json: { message: "generic" } });
     });
     await page.goto("/verify-email");
+    await page.clock.install();
     await page.getByRole("button", { name: "Pošalji novi link" }).click();
     await expect(page.getByRole("alert")).toContainText("Sačekajte 900 sekundi");
+    expect(attempts).toBe(1);
+    await expect(page.getByRole("button", { name: "Pošalji novi link" })).toBeDisabled();
+    await page.clock.fastForward(899000);
+    await expect(page.getByRole("button", { name: "Pošalji novi link" })).toBeDisabled();
+    expect(attempts).toBe(1);
+    await page.clock.fastForward(1000);
+    await expect(page.getByRole("button", { name: "Pošalji novi link" })).toBeEnabled();
     expect(attempts).toBe(1);
     await page.getByRole("button", { name: "Pošalji novi link" }).click();
     await expect(page.getByRole("status")).toContainText("spam folder");
