@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "./api";
 
@@ -43,15 +43,19 @@ export function ForgotPasswordPage() {
 }
 
 export function ResetPasswordPage({ token }: { token: string }) {
+  const passwordInput = useRef<HTMLInputElement>(null);
+  const confirmationInput = useRef<HTMLInputElement>(null);
+  const [visible, setVisible] = useState(false);
+  const [invalidField, setInvalidField] = useState<"password" | "confirmation" | null>(null);
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
   async function submit(event: FormEvent) {
-    event.preventDefault(); setError("");
-    if (password !== confirmation) { setError("Lozinke se ne poklapaju."); return; }
-    if (new TextEncoder().encode(password).length > 72) { setError("Lozinka je preduga. Koristite kraću lozinku."); return; }
+    event.preventDefault(); setError(""); setInvalidField(null); setVisible(false);
+    if (password !== confirmation) { setError("Lozinke se ne poklapaju."); setInvalidField("confirmation"); confirmationInput.current?.focus(); return; }
+    if (new TextEncoder().encode(password).length > 72) { setError("Lozinka je preduga. Koristite kraću lozinku."); setInvalidField("password"); passwordInput.current?.focus(); return; }
     setBusy(true);
     try {
       await api.confirmPasswordReset(token, password);
@@ -64,16 +68,17 @@ export function ResetPasswordPage({ token }: { token: string }) {
     <Link to="/">Bookica</Link>
     <h1>Nova lozinka</h1>
     {done ? <p role="status">Lozinka je promenjena. Prijavite se novom lozinkom; prethodne sesije i API ključevi više ne važe.</p> : !token ? <p role="alert">Link nedostaje ili nije važeći. Otvorite link iz emaila ili zatražite novi.</p> : <>
-      <p>Unesite novu lozinku od najmanje 8 znakova. Link možete iskoristiti samo jednom.</p>
+      <p id="password-guidance">Unesite novu lozinku od najmanje 8 znakova. Link možete iskoristiti samo jednom.</p>
       <form onSubmit={submit} className="auth-form">
         <label htmlFor="new-password">Nova lozinka</label>
-        <input id="new-password" type="password" autoComplete="new-password" minLength={8} maxLength={72} required value={password} onChange={event => setPassword(event.target.value)} disabled={busy} />
+        <input ref={passwordInput} id="new-password" type={visible ? "text" : "password"} autoComplete="new-password" autoCapitalize="none" spellCheck={false} aria-invalid={invalidField === "password"} aria-describedby={invalidField === "password" ? "password-guidance reset-error" : "password-guidance"} minLength={8} maxLength={72} required value={password} onChange={event => { setPassword(event.target.value); setInvalidField(null); setError(""); }} disabled={busy} />
         <label htmlFor="confirm-password">Ponovite lozinku</label>
-        <input id="confirm-password" type="password" autoComplete="new-password" minLength={8} maxLength={72} required value={confirmation} onChange={event => setConfirmation(event.target.value)} disabled={busy} />
+        <input ref={confirmationInput} id="confirm-password" type={visible ? "text" : "password"} autoComplete="new-password" autoCapitalize="none" spellCheck={false} aria-invalid={invalidField === "confirmation"} aria-describedby={invalidField === "confirmation" ? "reset-error" : undefined} minLength={8} maxLength={72} required value={confirmation} onChange={event => { setConfirmation(event.target.value); setInvalidField(null); setError(""); }} disabled={busy} />
+        <button type="button" aria-controls="new-password confirm-password" aria-pressed={visible} disabled={busy} onClick={() => setVisible(value => !value)}>Prikaži lozinke</button>
         <button type="submit" disabled={busy}>{busy ? "Čuvanje…" : "Sačuvaj lozinku"}</button>
       </form>
     </>}
-    {error && <p role="alert">{error}</p>}
+    {error && <p id="reset-error" role="alert">{error}</p>}
     {!done && <Link to="/forgot-password">Zatraži novi link</Link>}
     <Link to="/account">Nazad na prijavu</Link>
   </main>;
