@@ -52,6 +52,27 @@ it("does not submit when the link has no token", () => {
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 
+it("focuses an overlong UTF-8 password and hides retained values after a failed request", async () => {
+  vi.mocked(api.confirmPasswordReset).mockRejectedValue(new ApiError("internal", 503));
+  render(<MemoryRouter><ResetPasswordPage token={"a".repeat(43)} /></MemoryRouter>);
+  const password = screen.getByLabelText("Nova lozinka");
+  const confirmation = screen.getByLabelText("Ponovite lozinku");
+  for (const field of [password, confirmation]) fireEvent.change(field, { target: { value: "ž".repeat(40) } });
+  await userEvent.click(screen.getByRole("button", { name: "Sačuvaj lozinku" }));
+  expect(password).toHaveFocus();
+  expect(password).toHaveAttribute("aria-invalid", "true");
+  expect(api.confirmPasswordReset).not.toHaveBeenCalled();
+  for (const field of [password, confirmation]) fireEvent.change(field, { target: { value: "new-password-42" } });
+  await userEvent.click(screen.getByRole("button", { name: "Prikaži lozinke" }));
+  expect(password).toHaveAttribute("type", "text");
+  await userEvent.click(screen.getByRole("button", { name: "Sačuvaj lozinku" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("trenutno nije dostupan");
+  for (const field of [password, confirmation]) {
+    expect(field).toHaveAttribute("type", "password");
+    expect(field).toHaveValue("new-password-42");
+  }
+});
+
 it("takes the fragment token out of the URL and never stores it", () => {
   const token = "a".repeat(43);
   window.history.replaceState(null, "", `/reset-password#token=${token}`);
