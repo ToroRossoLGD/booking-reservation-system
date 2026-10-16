@@ -56,6 +56,16 @@ it("requires login before offering revocation", async () => {
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 
+it("handles an expired session on retry without offering revocation or claiming logout", async () => {
+  vi.mocked(api.me).mockRejectedValueOnce(new Error("offline")).mockRejectedValueOnce(new ApiError("expired", 401));
+  render(<AccountSecurity />);
+  await userEvent.click(await screen.findByRole("button", { name: "Pokušaj ponovo" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Prijavi se");
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Bezbednost naloga" })).toHaveFocus();
+  expect(api.logoutAllSessions).not.toHaveBeenCalled();
+});
+
 it("disables confirmation while pending and retains credentials until completion", async () => {
   let complete!: () => void;
   vi.mocked(api.logoutAllSessions).mockReturnValue(new Promise<void>(resolve => { complete = resolve; }));
