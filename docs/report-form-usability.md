@@ -10,6 +10,13 @@ The description references its hint and validation error with unique IDs and
 stale validation errors. The counter is not a live region, avoiding announcements
 on every keystroke. Pending submission still disables the fieldset.
 
+**Zatvori obrazac** closes the form without submitting and restores focus to
+**Prijavi oglas**. Reopening retains input and any retry request ID while the
+component stays mounted; nothing is persisted to browser storage. Leaving or
+reloading the page discards the draft. The trigger references its panel through
+`aria-controls`; successful submission focuses the confirmation and its history
+link. Browser coverage verifies keyboard closing, retained text and success focus.
+
 Privacy guidance, authenticated server validation, rate limits and idempotent retry
 are unchanged. Invalid input sends no report; a failed valid request retains the
 description and request ID for retry. No migration or configuration is required.

@@ -45,8 +45,16 @@ test("report, admin suspension, owner appeal and restoration keep publication ex
     await expect(guestPage.getByLabel("Opis problema")).toHaveAttribute("aria-invalid", "true");
     await expect(guestPage.getByRole("alert")).toContainText("najmanje 10 znakova");
     await guestPage.getByLabel("Opis problema").fill("Fotografije i adresa ne odgovaraju opisu.");
+    await guestPage.getByRole("button", { name: "Zatvori obrazac" }).focus();
+    await guestPage.keyboard.press("Enter");
+    await expect(guestPage.getByRole("button", { name: "Prijavi oglas" })).toBeFocused();
+    await expect(guestPage.getByRole("button", { name: "Prijavi oglas" })).toHaveAttribute("aria-expanded", "false");
+    expect(report).toBeNull();
+    await guestPage.keyboard.press("Enter");
+    await expect(guestPage.getByLabel("Opis problema")).toHaveValue("Fotografije i adresa ne odgovaraju opisu.");
     await guestPage.getByRole("button", { name: "Pošalji prijavu" }).click();
     await expect(guestPage.getByText("Prijava je poslata administratoru.")).toBeVisible();
+    await expect(guestPage.getByRole("status")).toBeFocused();
     const adminPage = await admin.newPage();
     await adminPage.goto("/moderation");
     await adminPage.getByLabel("Radnja").selectOption("hide");

@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { api, ApiError } from "./api";
 import { reportCategories } from "./moderation-types";
 import "./moderation.css";
@@ -12,9 +12,13 @@ export default function PropertyReportForm({ propertyId }: { propertyId: number 
   const [sent, setSent] = useState(false);
   const requestId = useRef("");
   const description = useRef<HTMLTextAreaElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const confirmation = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { if (sent && open) confirmation.current?.focus(); }, [sent, open]);
   const fieldId = useId();
   const [invalid, setInvalid] = useState(false);
   function changed() { requestId.current = ""; setError(""); setInvalid(false); }
+  function close() { setOpen(false); trigger.current?.focus(); }
   async function submit() {
     if (busy) return;
     if (details.length > 2000) {
@@ -32,14 +36,17 @@ export default function PropertyReportForm({ propertyId }: { propertyId: number 
     } finally { setBusy(false); }
   }
   return <section className="property-report" aria-label="Prijava oglasa">
-    <button className="ph-outline" disabled={busy} aria-expanded={open} onClick={() => setOpen(value => !value)}>Prijavi oglas</button>
-    {open && (sent ? <p role="status">Prijava je poslata administratoru. <a href="/moderation">Moje prijave</a></p> : <form noValidate onSubmit={event => { event.preventDefault(); void submit(); }}>
+    <button ref={trigger} className="ph-outline" disabled={busy} aria-expanded={open} aria-controls={`${fieldId}-panel`} onClick={() => setOpen(value => !value)}>Prijavi oglas</button>
+    <div id={`${fieldId}-panel`} hidden={!open}>
+    {open && (sent ? <p ref={confirmation} tabIndex={-1} role="status">Prijava je poslata administratoru. <a href="/moderation">Moje prijave</a></p> : <form noValidate onSubmit={event => { event.preventDefault(); void submit(); }}>
       <p>Prijavu pregleda administrator. Vlasnik ne dobija tvoje podatke ni tekst prijave. Ne unosi osetljive lične podatke.</p>
       <fieldset disabled={busy}><label>Razlog prijave<select value={category} onChange={event => { setCategory(event.target.value as typeof category); changed(); }}>{Object.entries(reportCategories).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label>Opis problema<textarea ref={description} required minLength={10} maxLength={2000} aria-invalid={invalid} aria-describedby={`${fieldId}-hint${invalid ? ` ${fieldId}-error` : ""}`} value={details} onChange={event => { setDetails(event.target.value); changed(); }} /></label>
         <p id={`${fieldId}-hint`}>Najmanje 10 znakova bez početnih i završnih razmaka; najviše 2000 znakova. Uneto: {details.length}/2000.</p>
         <button className="ph-primary" type="submit">Pošalji prijavu</button>
+        <button className="ph-outline" type="button" onClick={close}>Zatvori obrazac</button>
       </fieldset>{error && <p id={`${fieldId}-error`} role="alert">{error} {!invalid && <><a href="/account">Moj nalog</a> · <a href="/moderation">Moje prijave</a></>}</p>}
     </form>)}
+    </div>
   </section>;
 }
