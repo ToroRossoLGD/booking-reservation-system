@@ -13,6 +13,7 @@ from app.models.favorite_resource import FavoriteResource
 from app.models.maintenance import MaintenanceActivity, MaintenanceWorkOrder
 from app.models.media_asset import MediaAsset as MediaAsset
 from app.models.notification import Notification
+from app.models.owner_access_request import OwnerAccessRequest
 from app.models.password_reset_token import PasswordResetToken
 from app.models.payment import Payment
 from app.models.promotion import Promotion
@@ -47,6 +48,7 @@ from app.models.waiver import WaiverAcceptance, WaiverTemplate, WaiverVersion
 from app.models.webhook import WebhookDelivery, WebhookSubscription
 
 __all__ = [
+    "OwnerAccessRequest",
     "EmailVerificationToken",
     "SaleInquiry",
     "SaleMessage",

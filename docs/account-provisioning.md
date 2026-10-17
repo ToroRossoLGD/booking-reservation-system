@@ -2,7 +2,7 @@
 
 Public `POST /auth/register` creates customers only. An omitted role or explicit `customer` is accepted; `owner`, `admin` and unknown fields are rejected with 422. The registration service also hard-codes the customer role so bypassing schema validation cannot grant privileges. Google signup continues to create customers.
 
-Owner/admin provisioning is a trusted operator operation, not a public API. An authorized operator with shell access and the target database credentials must verify the person's identity and authorization before changing a role. Do not give visitors shell access or database credentials.
+Owner access can now be requested by verified customers and approved by administrators through the [owner access workflow](owner-access-requests.md). Registration never grants privileges automatically. The operator command below remains available for trusted role changes, including administrator creation and demotion. An authorized operator must verify identity and authority before changing a role; never give visitors shell access or database credentials.
 
 ## Provision an existing account
 
@@ -32,4 +32,4 @@ Successful output is JSON containing user ID, previous/target role, whether a ch
 
 This release does not automatically downgrade existing owners or administrators: legitimate privileged accounts cannot be distinguished from unapproved ones without an operator review. If registration was internet-accessible before this fix, keep access restricted while reviewing all privileged accounts and relevant activity. Demote unapproved accounts with the command and review their listings, keys and other changes. Rotate compromised credentials through the operational recovery process if exposure is confirmed.
 
-The new registration rule does not implement email verification, rate limiting, production deployment or a self-service owner approval UI. Those remain separate roadmap items. Do not mark an existing deployment reviewed merely because this code was deployed.
+Email verification, request limits and the owner approval UI now have separate implementations and guides. Production deployment and existing-account review remain separate acceptance tasks. Do not mark an existing deployment reviewed merely because this code was deployed.

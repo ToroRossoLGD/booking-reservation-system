@@ -890,6 +890,8 @@ export default function App() {
             routerNavigate("/owner");
           }}
         />
+      ) : page === "owner" ? (
+        <main id="main-content" tabIndex={-1} className="recovery-page"><h1>Vlasnički pristup</h1><p>Za objavljivanje nekretnina potreban je odobren vlasnički nalog.</p><a href="/owner-access">Zatraži pristup ili proveri odluku</a></main>
       ) : (
         <main id="main-content" tabIndex={-1}><span id="top" aria-hidden="true" />
           <section className="hero">

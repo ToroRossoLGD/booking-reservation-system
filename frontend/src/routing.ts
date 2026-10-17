@@ -13,7 +13,7 @@ const pagePaths = new Set([
   "/", "/booking", "/account", "/account/security", "/account/notifications",
   "/owner", "/owner/analytics", "/owner/stays", "/owner/rentals", "/owner/sales",
   "/saved", "/stays", "/rentals", "/sales", "/moderation", "/help",
-  "/verify-email", "/forgot-password", "/reset-password",
+  "/verify-email", "/forgot-password", "/reset-password", "/owner-access", "/admin/owner-access",
 ]);
 
 export function isKnownPage(pathname: string): boolean {
