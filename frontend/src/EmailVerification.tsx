@@ -23,6 +23,7 @@ export default function EmailVerification({ token }: { token: string }) {
     setRetryAt(Date.now() + seconds * 1000);
   }
   const [error, setError] = useState("");
+  const [statusVersion, setStatusVersion] = useState(0);
   const [account, setAccount] = useState<"loading" | "guest" | "unverified" | "verified" | "error">("loading");
   useEffect(() => {
     if (token) return;
@@ -30,7 +31,12 @@ export default function EmailVerification({ token }: { token: string }) {
     api.me().then(user => { if (active) setAccount(user.email_verified ? "verified" : "unverified"); })
       .catch(error => { if (active) setAccount(error instanceof ApiError && error.status === 401 ? "guest" : "error"); });
     return () => { active = false; };
-  }, [token]);
+  }, [token, statusVersion]);
+  function refreshStatus() {
+    if (busy || account === "loading") return;
+    setAccount("loading"); setError(""); setSent(false);
+    setStatusVersion(value => value + 1);
+  }
 
   async function submit(confirm: boolean) {
     if (busy || (!confirm && remaining > 0)) return;
@@ -56,14 +62,15 @@ export default function EmailVerification({ token }: { token: string }) {
     <h1>Potvrda email adrese</h1>
     {done || account === "verified" ? <p role="status">Email adresa je potvrđena. Možete nastaviti sa rezervacijama i upitima.</p> : <>
       <p>Potvrdite adresu za nove rezervacije stana na dan i upite za izdavanje ili prodaju.</p>
-      {token ? <button disabled={busy} onClick={() => void submit(true)}>{busy ? "Potvrđivanje…" : "Potvrdi email"}</button> : account === "loading" ? <p role="status">Učitavanje…</p> : account === "unverified" ? <button disabled={busy || remaining > 0} onClick={() => void submit(false)}>{busy ? "Slanje…" : "Pošalji novi link"}</button> : account === "guest" ? <p>Prijavite se da zatražite novi link za svoj nalog.</p> : <p role="alert">Nalog nije učitan. Osvežite stranicu i pokušajte ponovo.</p>}
+      {token ? <button disabled={busy} onClick={() => void submit(true)}>{busy ? "Potvrđivanje…" : "Potvrdi email"}</button> : account === "loading" ? <p role="status">Učitavanje…</p> : account === "unverified" ? <button disabled={busy || remaining > 0} onClick={() => void submit(false)}>{busy ? "Slanje…" : "Pošalji novi link"}</button> : account === "guest" ? <p>Prijavite se da zatražite novi link za svoj nalog.</p> : <p role="alert">Nalog nije učitan. Proverite vezu i pokušajte ponovo.</p>}
       {sent && <p role="status">Ako je potvrda potrebna, link će biti poslat na adresu vašeg naloga. Proverite i spam folder.</p>}
-      {!token && retryAt > 0 && <>
+      {!token && account === "unverified" && retryAt > 0 && <>
         {remaining > 0 && <p>Ponovno slanje za {remaining} s.</p>}
         {remaining === 0 ? <p role="status">Možete ponovo zatražiti link.</p> : <p>Sačekajte pre ponovnog slanja. Stranicu nije potrebno osvežavati.</p>}
       </>}
       {token && <a href="/verify-email">Zatraži novi link</a>}
     </>}
+    {!token && <button aria-disabled={busy || account === "loading"} onClick={refreshStatus}>Proveri status potvrde</button>}
     {error && <p role="alert">{error}</p>}
     <a href="/account">Nazad na nalog</a>
   </main>;
