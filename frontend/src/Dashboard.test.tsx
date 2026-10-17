@@ -110,13 +110,13 @@ describe("AccountDashboard notification inbox", () => {
     apiMock.dismissNotification.mockResolvedValue(undefined);
     const user = userEvent.setup();
     renderNotifications();
-    await user.click(await screen.findByRole("button", { name: "Older notifications" }));
+    await user.click(await screen.findByRole("button", { name: "Starija obaveštenja" }));
     await screen.findByText("Payment received");
     expect(apiMock.notifications).toHaveBeenLastCalledWith(50);
-    await user.click(screen.getByRole("button", { name: "Dismiss" }));
+    await user.click(screen.getByRole("button", { name: "Ukloni" }));
     await screen.findByText("Booking confirmed");
     expect(apiMock.notifications).toHaveBeenLastCalledWith(0);
-    expect(screen.getByRole("button", { name: "Newer notifications" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Novija obaveštenja" })).toBeDisabled();
   });
 
   it("refreshes after an inbox failure and keeps a notification when marking fails", async () => {
@@ -125,14 +125,14 @@ describe("AccountDashboard notification inbox", () => {
     apiMock.markNotificationRead.mockRejectedValue(new Error("Update unavailable"));
     const user = userEvent.setup();
     renderNotifications();
-    await screen.findByText("Inbox unavailable");
-    expect(screen.queryByText("You’re all caught up")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Refresh notifications" }));
+    await screen.findByText("Obaveštenja nisu učitana. Pokušaj ponovo.");
+    expect(screen.queryByText("Nema obaveštenja za prikaz")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Osveži obaveštenja" }));
     await screen.findByText("Booking confirmed");
-    await user.click(screen.getByRole("button", { name: "Mark read" }));
-    await screen.findByText("Update unavailable");
-    expect(screen.getByText("1 unread on this page")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Mark read" })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Označi kao pročitano" }));
+    await screen.findByText("Obaveštenje nije izmenjeno. Pokušaj ponovo.");
+    expect(screen.getByText("Nepročitano na ovoj stranici: 1")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Označi kao pročitano" })).toBeEnabled();
   });
 
   it("marks an individual notification as read and updates the unread count", async () => {
@@ -141,13 +141,13 @@ describe("AccountDashboard notification inbox", () => {
     renderNotifications();
 
     await screen.findByText("Booking confirmed");
-    expect(screen.getByText("1 unread on this page")).toBeInTheDocument();
+    expect(screen.getByText("Nepročitano na ovoj stranici: 1")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Mark read" }));
+    await user.click(screen.getByRole("button", { name: "Označi kao pročitano" }));
 
     await waitFor(() => expect(apiMock.markNotificationRead).toHaveBeenCalledWith(11));
-    expect(screen.getByText("0 unread on this page")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Mark read" })).not.toBeInTheDocument();
+    expect(screen.getByText("Nepročitano na ovoj stranici: 0")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Označi kao pročitano" })).not.toBeInTheDocument();
   });
 
   it("dismisses one notification and clears only read notifications", async () => {
@@ -159,7 +159,7 @@ describe("AccountDashboard notification inbox", () => {
     const payment = await screen.findByText("Payment received");
     const paymentCard = payment.closest("article");
     expect(paymentCard).not.toBeNull();
-    await user.click(within(paymentCard!).getByRole("button", { name: "Dismiss" }));
+    await user.click(within(paymentCard!).getByRole("button", { name: "Ukloni" }));
 
     await waitFor(() => {
       expect(apiMock.dismissNotification).toHaveBeenCalledWith(12);
@@ -167,7 +167,7 @@ describe("AccountDashboard notification inbox", () => {
     });
 
     apiMock.dismissReadNotifications.mockResolvedValue({ dismissed_count: 0 });
-    expect(screen.getByRole("button", { name: "Clear read" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Ukloni pročitana" })).toBeDisabled();
     expect(screen.getByText("Booking confirmed")).toBeInTheDocument();
   });
 
@@ -178,16 +178,16 @@ describe("AccountDashboard notification inbox", () => {
     renderNotifications();
 
     await screen.findByText("Booking confirmed");
-    await user.click(screen.getByRole("button", { name: "Mark all read" }));
+    await user.click(screen.getByRole("button", { name: "Označi sve kao pročitano" }));
 
     await waitFor(() => expect(apiMock.markAllNotificationsRead).toHaveBeenCalledOnce());
-    expect(screen.getByText("0 unread on this page")).toBeInTheDocument();
+    expect(screen.getByText("Nepročitano na ovoj stranici: 0")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Clear read" }));
+    await user.click(screen.getByRole("button", { name: "Ukloni pročitana" }));
 
     await waitFor(() => expect(apiMock.dismissReadNotifications).toHaveBeenCalledOnce());
-    expect(screen.getByText("You’re all caught up")).toBeInTheDocument();
-    expect(screen.getByText("2 read notifications cleared.")).toBeInTheDocument();
+    expect(screen.getByText("Nema obaveštenja za prikaz")).toBeInTheDocument();
+    expect(screen.getByText("Uklonjeno pročitanih obaveštenja: 2.")).toBeInTheDocument();
   });
 });
 

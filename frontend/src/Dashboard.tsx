@@ -85,7 +85,7 @@ export function AccountDashboard({
         if (!active) return;
         if (tab === "notifications") { setNotifications([]); setNotificationHasNext(false); setNotificationLoadFailed(true); }
         setMessage(
-          error instanceof Error ? error.message : "Unable to load this page",
+          tab === "notifications" ? "Obaveštenja nisu učitana. Pokušaj ponovo." : error instanceof Error ? error.message : "Unable to load this page",
         );
       })
       .finally(() => { if (active) setLoading(false); });
@@ -167,9 +167,9 @@ export function AccountDashboard({
       setNotifications((items) =>
         items.map((item) => (item.id === id ? updated : item)),
       );
-    } catch (error) {
+    } catch {
       setMessage(
-        error instanceof Error ? error.message : "Unable to update notification",
+        "Obaveštenje nije izmenjeno. Pokušaj ponovo.",
       );
     } finally { setNotificationBusy(false); }
   }
@@ -181,10 +181,10 @@ export function AccountDashboard({
       setNotifications((items) =>
         items.map((item) => ({ ...item, is_read: true })),
       );
-      setMessage("All notifications marked as read.");
-    } catch (error) {
+      setMessage("Sva obaveštenja su označena kao pročitana.");
+    } catch {
       setMessage(
-        error instanceof Error ? error.message : "Unable to update notifications",
+        "Obaveštenja nisu izmenjena. Pokušaj ponovo.",
       );
     } finally { setNotificationBusy(false); }
   }
@@ -194,12 +194,12 @@ export function AccountDashboard({
     try {
       await api.dismissNotification(id);
       setNotifications((items) => items.filter((item) => item.id !== id));
-      setMessage("Notification dismissed.");
+      setMessage("Obaveštenje je uklonjeno.");
       if (notificationHasNext || (notifications.length === 1 && notificationOffset > 0))
         refreshNotifications(notifications.length === 1 ? Math.max(0, notificationOffset - 50) : notificationOffset);
-    } catch (error) {
+    } catch {
       setMessage(
-        error instanceof Error ? error.message : "Unable to dismiss notification",
+        "Obaveštenje nije uklonjeno. Pokušaj ponovo.",
       );
     } finally { setNotificationBusy(false); }
   }
@@ -210,12 +210,12 @@ export function AccountDashboard({
       const result = await api.dismissReadNotifications();
       setNotifications((items) => items.filter((item) => !item.is_read));
       setMessage(
-        `${result.dismissed_count} read notification${result.dismissed_count === 1 ? "" : "s"} cleared.`,
+        `Uklonjeno pročitanih obaveštenja: ${result.dismissed_count}.`,
       );
       if (notificationHasNext || notificationOffset > 0) refreshNotifications(0);
-    } catch (error) {
+    } catch {
       setMessage(
-        error instanceof Error ? error.message : "Unable to clear notifications",
+        "Pročitana obaveštenja nisu uklonjena. Pokušaj ponovo.",
       );
     } finally { setNotificationBusy(false); }
   }
@@ -239,39 +239,39 @@ export function AccountDashboard({
       <p className="dashboard-message"><a href="/stays">Rezervacije stanova — moji boravci ↗</a></p>
       <section className="dashboard-hero">
         <div>
-          <p className="eyebrow">Your Bookica</p>
-          <h1>Plans, places, and updates.</h1>
+          <p className="eyebrow">{tab === "notifications" ? "Tvoja Bookica" : "Your Bookica"}</p>
+          <h1>{tab === "notifications" ? "Tvoja obaveštenja na jednom mestu." : "Plans, places, and updates."}</h1>
           <p>{user.email}</p>
         </div>
         <button className="button cream" onClick={onExplore}>
-          Explore more spaces
+          {tab === "notifications" ? "Istraži ponudu" : "Explore more spaces"}
         </button>
       </section>
       <div className="dashboard-layout">
-        <aside className="dashboard-nav" aria-label="Account sections">
+        <aside className="dashboard-nav" aria-label={tab === "notifications" ? "Sekcije naloga" : "Account sections"}>
           <button
             className={tab === "reservations" ? "active" : ""}
             onClick={() => chooseTab("reservations")}
           >
-            Reservations
+            {tab === "notifications" ? "Rezervacije po satu" : "Reservations"}
           </button>
           <button
             className={tab === "favorites" ? "active" : ""}
             onClick={() => chooseTab("favorites")}
           >
-            Favorites
+            {tab === "notifications" ? "Omiljeni resursi" : "Favorites"}
           </button>
           <button
             className={tab === "notifications" ? "active" : ""}
             onClick={() => chooseTab("notifications")}
           >
-            Notifications
+            Obaveštenja
           </button>
         </aside>
         <section className="dashboard-content" aria-live="polite">
           {message && <p className="dashboard-message">{message}</p>}
           {loading ? (
-            <div className="dashboard-loading">Loading your {tab}…</div>
+            <div className="dashboard-loading">{tab === "notifications" ? "Učitavanje obaveštenja…" : `Loading your ${tab}…`}</div>
           ) : tab === "reservations" ? (
             <>
               <div className="dashboard-title">
@@ -421,11 +421,11 @@ export function AccountDashboard({
             <>
               <div className="dashboard-title">
                 <div>
-                  <p className="eyebrow">Inbox</p>
-                  <h2>Notifications</h2>
+                  <p className="eyebrow">Prijemno sanduče</p>
+                  <h2>Obaveštenja</h2>
                 </div>
                 <span>
-                  {notifications.filter((item) => !item.is_read).length} unread on this page
+                  Nepročitano na ovoj stranici: {notifications.filter((item) => !item.is_read).length}
                 </span>
               </div>
               {notifications.length > 0 && (
@@ -435,14 +435,14 @@ export function AccountDashboard({
                     disabled={notificationBusy || notifications.every((item) => item.is_read)}
                     onClick={markAllNotificationsRead}
                   >
-                    Mark all read
+                    Označi sve kao pročitano
                   </button>
                   <button
                     className="button secondary"
                     disabled={notificationBusy || notifications.every((item) => !item.is_read)}
                     onClick={clearReadNotifications}
                   >
-                    Clear read
+                    Ukloni pročitana
                   </button>
                 </div>
               )}
@@ -457,17 +457,17 @@ export function AccountDashboard({
                       <div className="notification-body">
                         <h3>{item.title}</h3>
                         <p>{item.message}</p>
-                        <small>{when(item.created_at)}</small>
+                        <small>{new Intl.DateTimeFormat("sr-Latn-RS", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.created_at))}</small>
                         {item.action_path && notificationLinkLabel(item.action_path) && <p><a href={item.action_path}>{notificationLinkLabel(item.action_path)} ↗</a></p>}
                       </div>
                       <div className="notification-actions">
                         {!item.is_read && (
                           <button disabled={notificationBusy} onClick={() => markNotificationRead(item.id)}>
-                            Mark read
+                            Označi kao pročitano
                           </button>
                         )}
                         <button disabled={notificationBusy} onClick={() => dismissNotification(item.id)}>
-                          Dismiss
+                          Ukloni
                         </button>
                       </div>
                     </article>
@@ -475,14 +475,14 @@ export function AccountDashboard({
                 </div>
               ) : !notificationLoadFailed && (
                 <Empty
-                  title="You’re all caught up"
-                  copy="Booking updates and reminders will appear here."
+                  title="Nema obaveštenja za prikaz"
+                  copy="Ovde će se pojaviti obaveštenja o rezervacijama i upitima."
                 />
               )}
-              <nav className="ph-pagination" aria-label="Notification pages">
-                <button className="button secondary" disabled={notificationBusy || notificationOffset === 0} onClick={() => refreshNotifications(Math.max(0, notificationOffset - 50))}>Newer notifications</button>
-                <button className="button secondary" disabled={notificationBusy} onClick={() => refreshNotifications()}>Refresh notifications</button>
-                <button className="button secondary" disabled={notificationBusy || !notificationHasNext} onClick={() => refreshNotifications(notificationOffset + 50)}>Older notifications</button>
+              <nav className="ph-pagination" aria-label="Stranice obaveštenja">
+                <button className="button secondary" disabled={notificationBusy || notificationOffset === 0} onClick={() => refreshNotifications(Math.max(0, notificationOffset - 50))}>Novija obaveštenja</button>
+                <button className="button secondary" disabled={notificationBusy} onClick={() => refreshNotifications()}>Osveži obaveštenja</button>
+                <button className="button secondary" disabled={notificationBusy || !notificationHasNext} onClick={() => refreshNotifications(notificationOffset + 50)}>Starija obaveštenja</button>
               </nav>
             </>
           )}

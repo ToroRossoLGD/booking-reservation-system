@@ -19,11 +19,11 @@ for (const owner of [false, true]) {
     await page.getByRole("link", { name: "Obaveštenja", exact: true }).click();
     await expect(page).toHaveURL(/\/account\/notifications$/);
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
-    await page.getByRole("button", { name: "Mark read", exact: true }).click();
-    await expect(page.getByText("0 unread on this page")).toBeVisible();
-    await page.getByRole("button", { name: "Refresh notifications" }).click();
+    await page.getByRole("button", { name: "Označi kao pročitano", exact: true }).click();
+    await expect(page.getByText("Nepročitano na ovoj stranici: 0")).toBeVisible();
+    await page.getByRole("button", { name: "Osveži obaveštenja" }).click();
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Mark read", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Označi kao pročitano", exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`stay-notifications-${owner ? "mobile" : "desktop"}.png`), fullPage: true });
     await page.getByRole("link", { name: owner ? "Rezervacije tvojih stanova ↗" : "Moji boravci ↗", exact: true }).click();
