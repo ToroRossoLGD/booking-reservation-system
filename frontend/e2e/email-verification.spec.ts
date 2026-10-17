@@ -1,5 +1,40 @@
 import { expect, test } from "./fixtures";
 
+for (const mobile of [false, true]) {
+  test(`verification status refresh recovers and detects another tab on ${mobile ? "mobile" : "desktop"}`, async ({ page }) => {
+    if (mobile) await page.setViewportSize({ width: 390, height: 844 });
+    let state: "error" | "unverified" | "verified" | "guest" = "error";
+    let sends = 0;
+    await page.route("**/api/auth/me", route => state === "error" || state === "guest"
+      ? route.fulfill({ status: state === "guest" ? 401 : 503, json: { detail: "unavailable" } })
+      : route.fulfill({ json: { id: 5, email: "guest@example.com", role: "customer", email_verified: state === "verified" } }));
+    await page.route("**/api/auth/email-verification/request", route => { sends++; return route.fulfill({ json: { message: "generic" } }); });
+    await page.goto("/verify-email");
+    await expect(page.getByRole("alert")).toContainText("Nalog nije učitan");
+    const refresh = page.getByRole("button", { name: "Proveri status potvrde" });
+    state = "unverified";
+    await refresh.click();
+    const resend = page.getByRole("button", { name: "Pošalji novi link" });
+    await expect(resend).toBeEnabled();
+    expect(sends).toBe(0);
+    await resend.click();
+    await expect(resend).toBeDisabled();
+    await refresh.click();
+    await expect(resend).toBeDisabled();
+    expect(sends).toBe(1);
+    state = "verified";
+    await refresh.click();
+    await expect(page.getByRole("status")).toContainText("Email adresa je potvrđena");
+    await expect(resend).toHaveCount(0);
+    await expect(refresh).toBeFocused();
+    state = "guest";
+    await refresh.click();
+    await expect(page.getByText("Prijavite se da zatražite novi link za svoj nalog.")).toBeVisible();
+    await expect(resend).toHaveCount(0);
+    expect(sends).toBe(1);
+  });
+}
+
 test("resend respects server cooldown without automatically sending again", async ({ page }) => {
   await page.route("**/api/auth/me", route => route.fulfill({ json: { id: 5, email: "guest@example.com", role: "customer", email_verified: false } }));
   let requests = 0;

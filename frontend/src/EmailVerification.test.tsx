@@ -38,14 +38,14 @@ it("resends only to the authenticated account and prevents immediate repeated cl
   await userEvent.click(await screen.findByRole("button", { name: "Pošalji novi link" }));
   expect(await screen.findByRole("status")).toHaveTextContent("Proverite i spam folder");
   expect(api.requestEmailVerification).toHaveBeenCalledWith();
-  expect(screen.getByRole("button")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Pošalji novi link" })).toBeDisabled();
 });
 
 it("asks guests to log in and does not send automatically", async () => {
   vi.mocked(api.me).mockRejectedValue(new ApiError("unauthorized", 401));
   render(<MemoryRouter><EmailVerification token="" /></MemoryRouter>);
   expect(await screen.findByText(/Prijavite se da zatražite/)).toBeVisible();
-  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Pošalji novi link" })).not.toBeInTheDocument();
   expect(api.requestEmailVerification).not.toHaveBeenCalled();
 });
 
