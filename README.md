@@ -2,11 +2,25 @@
 
 **A place to stay. A space to call home.**
 
-Bookica is a property marketplace **under active development**. It brings apartment sales, long-term rentals and short stays into one application—from finding a new home to booking a few nights in the city, mountains or by the sea.
+Bookica is a property marketplace **under active development** for apartment sales, long-term rentals and short stays. Visitors can find a home, arrange a viewing or book an entire apartment for a city break, a mountain trip or a seaside holiday.
+
+Short stays use nightly reservations with payment at the property. Rentals and sales use private conversations and viewing appointments. Owners manage their listings, photos, availability and inquiries from one workspace.
 
 The project started as a general booking platform. It is now being developed around real estate, reusing its authentication, owner tools and reservation infrastructure. The original hourly booking application remains available at `/booking`.
 
 [What works today](#what-works-today) · [Hosting readiness](#hosting-readiness) · [Roadmap](#roadmap) · [Run locally](#run-locally) · [Documentation](#documentation)
+
+## At a glance
+
+| For | Current experience |
+| --- | --- |
+| Guests and property seekers | Search, filter, compare and save listings; book short stays or contact owners about rentals and sales |
+| Owners | Request access, publish listings, manage photos and nightly availability, and respond to inquiries |
+| Administrators | Review owner-access requests, investigate listing reports and record moderation decisions |
+
+**Current status:** the core marketplace flows are implemented and tested, but Bookica is not ready for public launch. Hosted acceptance, backup/restore, operational ownership and customer-facing policies remain open. The project also defers public hosting until the P2 scope is complete; see the [roadmap](#roadmap).
+
+The interface is primarily Serbian, with some legacy screens still in English. This README and the technical documentation are written in English.
 
 ## Preview
 
@@ -156,7 +170,7 @@ The existing foundation includes backend/frontend builds, migrations, PostgreSQL
 
 ### Findings that drive the launch plan
 
-- **Public account provisioning is now restricted.** Public signup creates customers only; owner/admin input is rejected and the service cannot derive privileges from registration input. Trusted operators assign or revoke roles using a preview-first CLI that invalidates existing sessions/API keys. See [account provisioning](docs/account-provisioning.md). Existing deployments still require a review of privileged accounts created before this fix.
+- **Public signup does not grant privileged roles.** New accounts are customers. Verified customers can [request owner access](docs/owner-access-requests.md), which an administrator approves or rejects with a recorded reason. Approval invalidates old sessions and API keys. Administrator provisioning and role removal remain trusted [operator actions](docs/account-provisioning.md). Existing deployments still require a review of previously created privileged accounts.
 - **Development and production profiles are now separate.** [Development Compose](docker-compose.yml) retains local tooling. The [production profile](compose.production.yml) uses built images, private services, controlled migrations and an unprivileged frontend proxy; see its [deployment guide](docs/production-profile.md). It has not provisioned or validated an actual public host.
 - **Production image isolation has an initial implementation.** Production Dockerfiles copy selected application files and use non-root users; [.dockerignore](.dockerignore) excludes environment files and local artifacts. Production placeholder-secret rejection and build-isolation canary checks are implemented. These checks do not replace credential rotation or a full repository/history secret audit.
 - **Account recovery and email ownership verification are implemented.** Expiring one-use links, recovery/verification pages, SMTP TLS/STARTTLS, redacted delivery failures and recovery session/API-key revocation are available. New nightly reservations and rental/sales inquiries require verified email outside demo mode. See [account recovery](docs/account-recovery.md) and [email verification](docs/email-verification.md). Real provider/staging delivery remains open.
@@ -289,17 +303,21 @@ Deployment guidance: [FastAPI deployment concepts](https://fastapi.tiangolo.com/
 | `/admin/owner-access` | Administrator queue for owner approval |
 | `/rentals` | Tenant rental inquiries and viewing confirmations |
 | `/owner/rentals` | Owner replies and viewing proposals |
+| `/sales` | Buyer inquiries and viewing appointments |
+| `/owner/sales` | Seller conversations and viewing proposals |
 | `/stays` | Guest's nightly reservations and cancellation |
 | `/account/notifications` | Private notification inbox, including nightly booking confirmations and cancellations |
 | `/owner/stays` | Owner's apartment reservations and guest contact |
 | `/owner/analytics` | Owner's listing views and monthly nightly-reservation analytics |
 | `/account` | Account access and original booking dashboard |
+| `/account/security` | Revoke sessions and API keys across all devices |
+| `/help` | Serbian guide to bookings, inquiries, owner access and listing reports |
 | `/booking` | Original hourly booking storefront |
 
 To publish your first property:
 
-1. Sign in with an existing `owner` or `admin` account and open `/owner`.
-2. Create an object using **Add venue**, then select **Novi oglas** under **Tvoji oglasi**.
+1. Register and verify your email, then submit a request at `/owner-access`. An administrator reviews it at `/admin/owner-access`. After approval, sign in again and open `/owner`. Existing owners and administrators can go directly to the owner workspace.
+2. Create a property container using **Add venue**, then select **Novi oglas** (new listing) under **Tvoji oglasi** (your listings).
 3. Enter the property details and save a draft or check **Objavi oglas** to publish it.
 4. For short stays, set the booking rules and explicitly enable whole-apartment reservations.
 5. Use **Fotografije** on the saved listing to upload images, choose the cover and arrange their order. Configure private photo storage first; see the [photo guide](docs/property-photos.md).
@@ -433,6 +451,10 @@ docs/                Feature guides and interface preview
 
 ## Documentation
 
+- [Owner access requests](docs/owner-access-requests.md): customer applications, administrator decisions, session revocation and deployment.
+- [Customer guide](docs/customer-help-guide.md): the public `/help` page and its current scope.
+- [Account recovery](docs/account-recovery.md) and [email verification](docs/email-verification.md): recovery links, contact ownership and rollout requirements.
+- [Production profile](docs/production-profile.md): deployment configuration and remaining hosted acceptance checks.
 - [Property marketplace](docs/property-marketplace.md): publishing, offer types and listing APIs.
 - [Property details](docs/property-details.md): optional characteristics, filtering, unknown values and deployment.
 - [Property reviews](docs/property-reviews.md): eligibility, public privacy, safe retries and deployment.
