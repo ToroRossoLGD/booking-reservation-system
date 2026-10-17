@@ -30,6 +30,24 @@ it("keeps the report request ID across an uncertain response and confirms submis
   expect(calls[0][1]).toMatchObject({ category: "misleading", details: report.details });
 });
 
+it("explains whitespace-only reports and focuses the description before retry", async () => {
+  vi.mocked(api.reportProperty).mockResolvedValue(report);
+  const user = userEvent.setup(); render(<PropertyReportForm propertyId={7} />);
+  await user.click(screen.getByRole("button", { name: "Prijavi oglas" }));
+  const description = screen.getByLabelText("Opis problema");
+  await user.type(description, "          ");
+  await user.click(screen.getByRole("button", { name: "Pošalji prijavu" }));
+  expect(api.reportProperty).not.toHaveBeenCalled();
+  expect(description).toHaveFocus();
+  expect(description).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByRole("alert")).toHaveTextContent("najmanje 10 znakova");
+  await user.clear(description);
+  await user.type(description, report.details);
+  expect(description).toHaveAttribute("aria-invalid", "false");
+  await user.click(screen.getByRole("button", { name: "Pošalji prijavu" }));
+  expect(await screen.findByRole("status")).toHaveTextContent("Prijava je poslata");
+});
+
 it("requires an admin reason and blocks further decisions after a stale version", async () => {
   vi.mocked(api.moderateProperty).mockRejectedValue(new ApiError("stale", 409));
   const user = userEvent.setup(); render(<PropertyModerationPage />);

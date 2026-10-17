@@ -40,6 +40,10 @@ test("report, admin suspension, owner appeal and restoration keep publication ex
     const guestPage = await customer.newPage();
     await guestPage.goto("/properties/7");
     await guestPage.getByRole("button", { name: "Prijavi oglas" }).click();
+    await guestPage.getByRole("button", { name: "Pošalji prijavu" }).click();
+    await expect(guestPage.getByLabel("Opis problema")).toBeFocused();
+    await expect(guestPage.getByLabel("Opis problema")).toHaveAttribute("aria-invalid", "true");
+    await expect(guestPage.getByRole("alert")).toContainText("najmanje 10 znakova");
     await guestPage.getByLabel("Opis problema").fill("Fotografije i adresa ne odgovaraju opisu.");
     await guestPage.getByRole("button", { name: "Pošalji prijavu" }).click();
     await expect(guestPage.getByText("Prijava je poslata administratoru.")).toBeVisible();
