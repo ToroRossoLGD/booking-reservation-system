@@ -1,0 +1,13 @@
+.owner-access-page { background: #fbfaf6; min-height: 100vh; color: #294a3c; }
+.owner-access-page header, .owner-access-page main { max-width: 900px; margin: auto; padding: 24px; }
+.owner-access-page header, .owner-access-page nav { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+.owner-access-page header { justify-content: space-between; }
+.owner-access-page article, .owner-access-page form { background: white; border: 1px solid #d0d9ca; border-radius: 12px; padding: 20px; margin: 20px 0; }
+.owner-access-page p { line-height: 1.6; overflow-wrap: anywhere; }
+.owner-access-page label { display: grid; gap: 8px; margin: 16px 0; }
+.owner-access-page textarea { width: 100%; min-height: 120px; resize: vertical; padding: 12px; box-sizing: border-box; font: inherit; }
+.owner-access-page button, .owner-access-page select { padding: 10px 14px; font: inherit; margin: 4px; max-width: 100%; }
+.owner-access-page fieldset { min-width: 0; border: 1px solid #d0d9ca; }
+.owner-access-page a { text-decoration: underline; }
+.owner-access-page :focus-visible { outline: 3px solid #618458; outline-offset: 3px; }
+.owner-access-text { white-space: pre-wrap; }

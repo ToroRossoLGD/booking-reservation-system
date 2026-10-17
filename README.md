@@ -76,6 +76,7 @@ The goal is one place for property discovery and owner management, with a reserv
 
 ### Property marketplace
 
+- Verified customers can request owner access at `/owner-access`. Administrators review requests with recorded reasons at `/admin/owner-access`; approved users sign in again before publishing. See [owner approval](docs/owner-access-requests.md).
 - Owners can create, edit, publish and withdraw listings, or keep them as private drafts.
 - The owner editor offers live completeness hints for photos, description, contact, property details and long-term rental terms, with shortcuts to missing fields. These recommendations add no publishing restrictions; photos are managed after the first save.
 - Owners can open **Pregled oglasa** to inspect saved drafts, protected photo previews, asking prices and rental/stay terms before publication. Preview is read-only and does not count as a public listing view.
@@ -201,6 +202,7 @@ Launch preparation now takes priority over additional marketplace features. **La
 - [ ] **Monitoring and operational ownership.** Collect redacted API/worker logs and errors; alert on uptime, database failures, queue backlog, scheduler failure, email/storage errors and exhausted capacity. Define who handles incidents, how to contact support and how to stop new writes safely during recovery.
 - [ ] **Repeatable staging-to-production releases.** Add a deployment workflow with immutable build artifacts, environment separation, migration ordering, health checks and a documented rollback/recovery path. Include browser-to-real-API staging tests and a load/concurrency check using the deployed PostgreSQL setup; retain the existing mocked-browser tests as fast regression coverage.
 - [ ] **Owner onboarding and customer-facing policies.** Implement the agreed owner approval/provisioning flow; explain publication, moderation, cancellation, payment-at-property and support processes. Publish appropriate terms/privacy information and define retention/deletion handling for real user data before collection, including external maps, email and photo storage.
+  - [x] Verified customers can request owner access; administrators approve/reject with retained reasons, private history and in-app decisions. Approval atomically revokes old sessions/API keys. Includes migration, customer/admin screens, abuse controls and PostgreSQL concurrency tests. See [owner access workflow](docs/owner-access-requests.md). Operational identity checks, legal policies and retention remain open.
   - [x] Public Serbian guide explains stays/payment/cancellation, rental/sales inquiries, current owner approval, publication and reporting, with links to existing account workflows. Legal policies and support ownership remain open. See [customer guide scope](docs/customer-help-guide.md).
 - [ ] **Finish the core user experience.** Make the primary property/account flows consistently Serbian (or implement the language selector), review keyboard/screen-reader access, validate empty/error states and remove or clearly label unavailable social-login/legacy actions. Add production page titles/share metadata and verify mobile performance with real images and maps.
   - [x] Listing reports explain description limits, show character counts and focus invalid descriptions with associated Serbian error guidance instead of a silently disabled submit button. See [report form usability](docs/report-form-usability.md).
@@ -283,6 +285,8 @@ Deployment guidance: [FastAPI deployment concepts](https://fastapi.tiangolo.com/
 | `/properties/{id}` | Shareable property page, gallery, booking or rental inquiry |
 | `/saved` | User's saved property listings |
 | `/owner` | Existing owner workspace, property editor and nightly booking settings |
+| `/owner-access` | Request owner access and review decisions |
+| `/admin/owner-access` | Administrator queue for owner approval |
 | `/rentals` | Tenant rental inquiries and viewing confirmations |
 | `/owner/rentals` | Owner replies and viewing proposals |
 | `/stays` | Guest's nightly reservations and cancellation |

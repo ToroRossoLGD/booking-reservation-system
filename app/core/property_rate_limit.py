@@ -24,6 +24,7 @@ class Policy:
 
 MESSAGE_POLICY = Policy("message", 120, 30, 60)
 POLICIES = (
+    (re.compile(r"/owner-access/requests"), Policy("owner-access", 20, 3, 3600)),
     (
         re.compile(r"/properties/[^/]+/(?:rental|sale)-inquiries"),
         Policy("inquiry", 30, 10, 900),

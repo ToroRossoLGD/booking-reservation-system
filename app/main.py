@@ -26,6 +26,7 @@ from app.api.routers.maintenance import router as maintenance_router
 from app.api.routers.media import router as media_router
 from app.api.routers.notifications import router as notifications_router
 from app.api.routers.owner import router as owner_router
+from app.api.routers.owner_access import router as owner_access_router
 from app.api.routers.payments import router as payments_router
 from app.api.routers.promotions import router as promotions_router
 from app.api.routers.property_analytics import router as property_analytics_router
@@ -174,3 +175,4 @@ app.include_router(webhooks_router)
 app.include_router(waivers_router)
 
 app.include_router(saved_searches_router)
+app.include_router(owner_access_router)

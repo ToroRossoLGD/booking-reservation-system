@@ -6,6 +6,8 @@ export const SITE_DESCRIPTION = "Pronađi stan za prodaju, dugoročni najam ili 
 export type PageMetadata = { title: string; description: string };
 
 const pages: Record<string, [string, string]> = {
+  "/owner-access": ["Vlasnički pristup", "Zatraži pristup za objavljivanje nekretnina i prati odluku."],
+  "/admin/owner-access": ["Zahtevi vlasnika", "Administratorski pregled zahteva za vlasnički pristup."],
   "/help": ["Kako funkcioniše Bookica", "Vodič za boravke, plaćanje na licu mesta, upite za najam i kupovinu i objavljivanje oglasa."],
   "/saved": ["Sačuvani oglasi", "Pregledaj nekretnine koje si sačuvao za kasnije."],
   "/stays": ["Moji boravci", "Pregledaj i upravljaj svojim rezervacijama smeštaja."],

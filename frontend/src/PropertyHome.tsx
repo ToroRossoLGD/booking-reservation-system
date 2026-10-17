@@ -118,7 +118,7 @@ export default function PropertyHome() {
     <header className="ph-header">
       <a className="ph-brand" href="/" aria-label="Bookica početna"><span>⌂</span> bookica<span className="ph-brand-dot">.</span></a>
       <nav aria-label="Glavna navigacija"><a href="#ponuda">Pronađi nekretninu</a><a href="/saved">Sačuvani oglasi</a><a href="/stays">Moji boravci</a><a href="/rentals">Upiti za najam</a><a href="/sales">Upiti za kupovinu</a><a href="/account">Moj nalog</a></nav>
-      <a className="ph-outline" href="/owner">Objavi oglas ↗</a>
+      <a className="ph-outline" href="/owner-access">Objavi oglas ↗</a>
     </header>
     <nav className="ph-mobile-nav" aria-label="Mobilna navigacija"><a href="#ponuda">Ponuda</a><a href="/saved">Sačuvano</a><a href="/stays">Boravci</a><a href="/rentals">Najam</a><a href="/sales">Kupovina</a><a href="/account">Moj nalog ↗</a></nav>
     <main id="main-content" tabIndex={-1}>
@@ -141,7 +141,7 @@ export default function PropertyHome() {
       <ShareSearchButton key={searchPath} path={searchPath} />
       <SavedSearches path={searchPath} />
       <section className="ph-listings" id="ponuda" aria-busy={loading}>
-        <div className="ph-section-heading"><div><p className="ph-eyebrow">PROSTORI ZA TVOJE PLANOVE</p><h2>Mesto koje ti pristaje.</h2></div><a href="/owner" className="ph-outline">Dodaj svoju nekretninu</a></div>
+        <div className="ph-section-heading"><div><p className="ph-eyebrow">PROSTORI ZA TVOJE PLANOVE</p><h2>Mesto koje ti pristaje.</h2></div><a href="/owner-access" className="ph-outline">Dodaj svoju nekretninu</a></div>
         <PropertyComparison items={compared} onRemove={id => { setCompared(items => items.filter(item => item.id !== id)); setComparisonError(""); }} onClear={() => { setCompared([]); setComparisonError(""); }} />
         {comparisonError && <p role="alert">{comparisonError}</p>}
         <div className="property-map-actions">
@@ -155,13 +155,13 @@ export default function PropertyHome() {
           <p className="ph-demo" role="status">Pronađeno oglasa: {page.total}{query ? ` · ${query}` : ""}</p>
           {favoritesError && <div className="property-save-error" role="alert">Status sačuvanih oglasa nije učitan. <button className="ph-outline" onClick={() => search(query)}>Pokušaj ponovo</button><a href="/account">Proveri prijavu</a></div>}
           <div className="ph-grid">{page.items.map(p => <PropertyCard key={`${p.id}-${filters.check_in}-${filters.check_out}-${filters.guests}`} property={p} stayDates={filters.check_in && filters.check_out && filters.guests ? { check_in: filters.check_in, check_out: filters.check_out, guests: filters.guests } : undefined} saveAction={<><button className="compare-toggle" type="button" aria-pressed={compared.some(item => item.id === p.id)} aria-label={`Poredi: ${p.title}`} onClick={() => toggleComparison(p)}>Poredi</button><SavePropertyButton propertyId={p.id} title={p.title} saved={favoriteIds === null ? null : favoriteIds.has(p.id)} onChange={saved => setFavoriteIds(current => { const next = new Set(current); if (saved) next.add(p.id); else next.delete(p.id); return next; })} /></>} />)}</div>
-          {page.items.length === 0 && <div className="ph-empty"><span className="ph-empty-icon" aria-hidden="true">⌂</span><h3>Nema oglasa za ovaj izbor.</h3><p>{query || offer || hasFilters ? "Probaj drugu destinaciju ili ukloni filtere da proširiš pretragu." : "Ponuda tek počinje da raste. Tvoja nekretnina može biti prva."}</p>{query || offer || hasFilters ? <button className="ph-outline" onClick={clearFilters}>Prikaži sve oglase</button> : <a className="ph-primary" href="/owner">Objavi prvi oglas ↗</a>}</div>}
+          {page.items.length === 0 && <div className="ph-empty"><span className="ph-empty-icon" aria-hidden="true">⌂</span><h3>Nema oglasa za ovaj izbor.</h3><p>{query || offer || hasFilters ? "Probaj drugu destinaciju ili ukloni filtere da proširiš pretragu." : "Ponuda tek počinje da raste. Tvoja nekretnina može biti prva."}</p>{query || offer || hasFilters ? <button className="ph-outline" onClick={clearFilters}>Prikaži sve oglase</button> : <a className="ph-primary" href="/owner-access">Objavi prvi oglas ↗</a>}</div>}
           {(offset > 0 || page.has_next) && <nav className="ph-pagination" aria-label="Stranice oglasa"><button className="ph-outline" disabled={offset === 0} onClick={() => { apply({ city: query, offer, filters, offset: Math.max(0, offset - 12) }); }}>Prethodna</button><span>Stranica {Math.floor(offset / 12) + 1}</span><button className="ph-outline" disabled={!page.has_next} onClick={() => { apply({ city: query, offer, filters, offset: offset + 12 }); }}>Sledeća</button></nav>}
         </>}
       </section>
       <PropertyShortcuts />
       <section className="ph-destinations" id="destinacije"><div><p className="ph-eyebrow">PROMENI OKRUŽENJE</p><h2>Gde te vodi sledeći plan?</h2><p>Gradski ritam, planinska tišina ili dani uz more.</p></div><div className="ph-destination-links">{["Beograd", "Novi Sad", "Zlatibor", "Budva"].map(city => <a href="#ponuda" key={city} onClick={() => search(city, "")}>{city}<span>↗</span></a>)}</div></section>
-      <section className="ph-owner-invite"><div><p className="ph-eyebrow">IMAŠ PROSTOR ZA NEČIJE PLANOVE?</p><h2>Svaki dom ima svoju priču.<br />Podeli svoju.</h2><p>Predstavi nekretninu, odredi cenu i poveži se sa budućim gostima ili kupcima.</p></div><a href="/owner" className="ph-primary">Kreiraj svoj oglas <span>↗</span></a></section>
+      <section className="ph-owner-invite"><div><p className="ph-eyebrow">IMAŠ PROSTOR ZA NEČIJE PLANOVE?</p><h2>Svaki dom ima svoju priču.<br />Podeli svoju.</h2><p>Predstavi nekretninu, odredi cenu i poveži se sa budućim gostima ili kupcima.</p></div><a href="/owner-access" className="ph-primary">Kreiraj svoj oglas <span>↗</span></a></section>
     </main>
     <footer className="ph-footer"><span className="ph-brand">bookica.</span><p>Mesto za odmor. Prostor za život.</p><a href="/help">Kako funkcioniše Bookica?</a><a href="/booking">Postojeći sistem rezervacija ↗</a></footer>
   </div>;

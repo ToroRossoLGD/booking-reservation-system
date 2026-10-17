@@ -13,8 +13,8 @@ Content reflects the implemented flows documented in:
   until the owner's approval of a new quote/date request.
 - [Rentals](long-term-rentals.md) and [sales](sales-inquiries.md): inquiries and
   viewing arrangements, without platform rent/deposit collection or sale execution.
-- [Provisioning](account-provisioning.md): public signup creates customers;
-  owner access currently requires trusted operator approval.
+- [Owner access](owner-access-requests.md): public signup creates customers;
+  verified customers request access and administrators approve or reject it.
 - [Moderation](property-moderation.md): publication/drafts, reports and suspension
   without automatic cancellation of existing stays.
 
@@ -23,8 +23,9 @@ password recovery and verification. No unsupported support contact or response
 time is promised. Existing authorization still protects those destinations.
 
 This closes the product-explanation slice of P1 owner/customer guidance. It does
-not complete self-service owner onboarding, legal terms/privacy, retention rules
-or operational support ownership. The public page explicitly identifies the
+not complete legal terms/privacy, retention rules or operational support ownership.
+The owner request/approval workflow now has its own implementation and guide.
+The public page explicitly identifies the
 project as under construction and does not present itself as legal policy.
 
 Browser coverage verifies home discovery, desktop/mobile layout, keyboard

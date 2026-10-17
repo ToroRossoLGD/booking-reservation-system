@@ -32,6 +32,7 @@ import type { SaleInquiry, SaleInquiryInput, SaleInquiryPage, RentalInquiry, Ren
 import type { StayBlock, StayBlockPage, StayBlockCreate, Stay, StayCalendar, StayCreate, StayDates, StayPage, StayQuote } from "./stay-types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
+import type { OwnerAccessRequest, OwnerAccessPageData } from "./owner-access-types";
 
 export const googleLoginUrl = `${API_URL}/auth/google/login`;
 
@@ -70,6 +71,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  ownerAccessRequests: (admin: boolean, status: string, offset: number, signal?: AbortSignal) => request<OwnerAccessPageData>(`${admin ? "/admin/owner-access" : "/owner-access/mine"}?offset=${offset}${admin ? `&status=${status}` : ""}`, { signal }),
+  requestOwnerAccess: (details: string, request_id: string) => request<OwnerAccessRequest>("/owner-access/requests", { method: "POST", body: JSON.stringify({ details, request_id }) }),
+  decideOwnerAccess: (id: number, action: "approved" | "rejected", note: string) => request<OwnerAccessRequest>(`/admin/owner-access/${id}/decision`, { method: "POST", body: JSON.stringify({ action, note }) }),
   logoutAllSessions: () => request<void>("/auth/logout-all", { method: "POST" }),
   requestEmailVerification: () => request<{ message: string }>("/auth/email-verification/request", { method: "POST" }),
   confirmEmailVerification: (token: string) => request<{ message: string }>("/auth/email-verification/confirm", { method: "POST", body: JSON.stringify({ token }) }),

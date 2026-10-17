@@ -28,7 +28,8 @@ export default function HelpPage() {
 
       <section id="vlasnici" aria-labelledby="owners-help-title">
         <h2 id="owners-help-title">Objavljivanje oglasa</h2>
-        <p>Obična registracija pravi korisnički nalog. Vlasnički pristup trenutno odobrava operater projekta; registracija ga ne dodeljuje automatski. Ako učestvuješ u testiranju kao vlasnik, dogovori odobrenje sa operaterom koji ti je omogućio pristup.</p>
+        <p>Obična registracija pravi korisnički nalog. Posle potvrde email adrese pošalji zahtev za vlasnički pristup. Administrator proverava zahtev i donosi odluku uz obrazloženje. Po odobrenju se prijavi ponovo: stare sesije i API ključevi prestaju da važe.</p>
+        <p><Link to="/owner-access">Zatraži vlasnički pristup ili pogledaj odluku</Link></p>
         <p>Sa odobrenim pristupom u vlasničkom panelu unesi podatke o nekretnini, vrstu ponude, cenu i fotografije. Proveri pregled oglasa i izaberi objavljivanje. Nacrt nije vidljiv u javnoj ponudi.</p>
         <details><summary>Šta ako je oglas povučen ili suspendovan?</summary><p>Oglas koji nije objavljen ne pojavljuje se u javnoj ponudi. Za suspendovan oglas prati obrazloženje moderacije i dostupnu mogućnost ponovnog pregleda u vlasničkom panelu. Suspenzija sama po sebi ne otkazuje postojeće rezervacije.</p></details>
         <Link to="/owner">Otvori vlasnički panel</Link>

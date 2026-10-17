@@ -23,6 +23,7 @@ PATHS = [
     "/rental-inquiries/1/messages",
     "/sale-inquiries/2/messages",
     "/properties/1/reports",
+    "/owner-access/requests",
     "/owner/properties/1/photos",
 ]
 

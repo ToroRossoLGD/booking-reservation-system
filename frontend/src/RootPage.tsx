@@ -13,6 +13,7 @@ import { getEmailVerificationToken, subscribeEmailVerificationToken, syncEmailVe
 
 const PropertyDetailPage = lazy(() => import("./PropertyDetailPage"));
 const HelpPage = lazy(() => import("./HelpPage"));
+const OwnerAccessPage = lazy(() => import("./OwnerAccessPage"));
 const App = lazy(() => import("./App"));
 const StaysPage = lazy(() => import("./StaysPage"));
 const RentalInquiriesPage = lazy(() => import("./RentalInquiriesPage"));
@@ -43,6 +44,8 @@ function PageContent() {
   useEffect(() => { syncEmailVerificationToken(); }, [pathname, hash]);
   if (!isKnownPage(pathname)) return <NotFoundPage />;
   if (pathname === "/help") return <HelpPage />;
+  if (pathname === "/owner-access") return <OwnerAccessPage />;
+  if (pathname === "/admin/owner-access") return <OwnerAccessPage admin />;
   if (pathname === "/account/security") return <AccountSecurity />;
   if (pathname === "/verify-email") return <EmailVerification key={verificationToken} token={verificationToken} />;
   if (pathname === "/forgot-password") return <ForgotPasswordPage />;
