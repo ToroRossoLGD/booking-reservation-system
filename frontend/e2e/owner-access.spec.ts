@@ -50,7 +50,13 @@ for (const mobile of [false, true]) {
     await page.getByLabel("Obrazloženje za korisnika").fill("Provereno ovlašćenje za oglašavanje porodičnog stana.");
     await page.getByRole("button", { name: "Odobri pristup" }).click();
     await expect(page.getByText(/poništava sve postojeće sesije/)).toBeVisible();
-    await page.getByRole("button", { name: "Odustani", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Odustani", exact: true })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: "Odobri pristup" })).toBeFocused();
+    await page.getByRole("button", { name: "Odbij zahtev" }).click();
+    await expect(page.getByRole("button", { name: "Odustani", exact: true })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: "Odbij zahtev" })).toBeFocused();
     expect(decisions).toBe(0);
     await page.getByRole("button", { name: "Odobri pristup" }).click();
     await page.getByRole("button", { name: "Potvrdi odluku" }).click();

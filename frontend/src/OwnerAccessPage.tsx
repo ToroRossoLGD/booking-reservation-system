@@ -84,7 +84,18 @@ function AccessContent({ admin, token }: { admin: boolean; token: string }) {
 function RequestCard({ item, admin, busy, onDecision }: { item: OwnerAccessRequest; admin: boolean; busy: boolean; onDecision: (action: "approved" | "rejected", note: string) => Promise<void> }) {
   const [note, setNote] = useState("");
   const [action, setAction] = useState<"approved" | "rejected" | null>(null);
+  const cancel = useRef<HTMLButtonElement>(null);
+  const approve = useRef<HTMLButtonElement>(null);
+  const reject = useRef<HTMLButtonElement>(null);
+  const restore = useRef<"approved" | "rejected" | null>(null);
+  useEffect(() => {
+    if (action) cancel.current?.focus();
+    else if (restore.current) {
+      (restore.current === "approved" ? approve : reject).current?.focus();
+      restore.current = null;
+    }
+  }, [action]);
   return <article><h3>Zahtev #{item.id} — {labels[item.status]}</h3>{admin && <p>Korisnik #{item.user_id} · {item.email}</p>}<p>{new Date(item.created_at).toLocaleString("sr-Latn-RS")}</p><p className="owner-access-text">{item.details}</p>{item.decision_note && <><h4>Obrazloženje odluke</h4><p className="owner-access-text">{item.decision_note}</p><p>{item.decided_at && new Date(item.decided_at).toLocaleString("sr-Latn-RS")}</p></>}
-    {admin && item.status === "pending" && <fieldset disabled={busy}><legend>Administratorska odluka</legend><label>Obrazloženje za korisnika<textarea minLength={10} maxLength={2000} value={note} onChange={event => { setNote(event.target.value); setAction(null); }} /></label>{action ? <div><p>{action === "approved" ? "Odobrenje dodeljuje vlasničku ulogu i poništava sve postojeće sesije i API ključeve ovog korisnika. Moraće ponovo da se prijavi." : "Odbijanje zadržava korisničku ulogu. Korisnik će videti obrazloženje."}</p><button disabled={note.trim().length < 10} onClick={() => void onDecision(action, note.trim())}>Potvrdi odluku</button><button onClick={() => setAction(null)}>Odustani</button></div> : <><button disabled={note.trim().length < 10} onClick={() => setAction("approved")}>Odobri pristup</button><button disabled={note.trim().length < 10} onClick={() => setAction("rejected")}>Odbij zahtev</button></>}</fieldset>}
+    {admin && item.status === "pending" && <fieldset disabled={busy}><legend>Administratorska odluka</legend><label>Obrazloženje za korisnika<textarea minLength={10} maxLength={2000} value={note} onChange={event => { setNote(event.target.value); setAction(null); }} /></label>{action ? <div><p>{action === "approved" ? "Odobrenje dodeljuje vlasničku ulogu i poništava sve postojeće sesije i API ključeve ovog korisnika. Moraće ponovo da se prijavi." : "Odbijanje zadržava korisničku ulogu. Korisnik će videti obrazloženje."}</p><button disabled={note.trim().length < 10} onClick={() => void onDecision(action, note.trim())}>Potvrdi odluku</button><button ref={cancel} onClick={() => { restore.current = action; setAction(null); }}>Odustani</button></div> : <><button ref={approve} disabled={note.trim().length < 10} onClick={() => setAction("approved")}>Odobri pristup</button><button ref={reject} disabled={note.trim().length < 10} onClick={() => setAction("rejected")}>Odbij zahtev</button></>}</fieldset>}
   </article>;
 }
