@@ -5,6 +5,12 @@ still creates only customers; neither request input nor public registration acce
 a role override. Administrators review requests at `/admin/owner-access` and must
 enter a user-visible reason, then explicitly confirm approval or rejection.
 
+Opening either decision confirmation focuses **Odustani** (Cancel). Cancelling
+returns keyboard focus to the approval or rejection button that opened it, while
+preserving the entered reason. Pressing Enter on the initial confirmation focus
+therefore cancels rather than granting or refusing access. Desktop/mobile browser
+tests cover both cancellation paths and verify no decision is sent.
+
 ## Rules and security
 
 - A request contains 20–2000 trimmed characters explaining planned listings and
