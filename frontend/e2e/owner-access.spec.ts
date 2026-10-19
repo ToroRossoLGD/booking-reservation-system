@@ -73,6 +73,7 @@ for (const mobile of [false, true]) {
     await page.route("**/api/admin/owner-access/7/decision", route => {
       decisions++;
       const data = route.request().postDataJSON();
+      if (decisions === 1) return route.fulfill({ status: 503, json: { detail: "unavailable" } });
       requests[0] = { ...requests[0], status: data.action, decision_note: data.note, decided_at: "2026-10-17T11:00:00Z" };
       return route.fulfill({ json: requests[0] });
     });
@@ -105,6 +106,21 @@ for (const mobile of [false, true]) {
     await expect(page.getByRole("alert")).toContainText("samo administratoru");
     role = "admin";
     await page.getByRole("button", { name: "Osveži zahteve" }).click();
+    const note = page.getByLabel("Obrazloženje za korisnika");
+    for (const action of ["Odobri pristup", "Odbij zahtev"]) {
+      for (const invalid of ["", "   ", "Kratko", "a".repeat(2001)]) {
+        await note.fill(invalid);
+        await page.getByRole("button", { name: action, exact: true }).click();
+        await expect(note).toBeFocused();
+        await expect(note).toHaveAttribute("aria-invalid", "true");
+        await expect(note).toHaveAccessibleDescription(/Unesi obrazloženje od 10 do 2000/);
+        await expect(page.getByRole("button", { name: "Potvrdi odluku" })).toHaveCount(0);
+        expect(decisions).toBe(0);
+      }
+    }
+    await note.fill("  " + "🏠".repeat(10) + "  ");
+    await expect(note).toHaveAttribute("aria-invalid", "false");
+    await expect(note).toHaveAccessibleDescription(/Broj znakova: 10 \/ 2000/);
     await page.getByLabel("Obrazloženje za korisnika").fill("Provereno ovlašćenje za oglašavanje porodičnog stana.");
     await page.getByRole("button", { name: "Odobri pristup" }).click();
     await expect(page.getByText(/poništava sve postojeće sesije/)).toBeVisible();
@@ -118,12 +134,15 @@ for (const mobile of [false, true]) {
     expect(decisions).toBe(0);
     await page.getByRole("button", { name: "Odobri pristup" }).click();
     await page.getByRole("button", { name: "Potvrdi odluku" }).click();
+    await expect(page.getByRole("alert")).toContainText("Zahtev nije potvrđen");
+    await expect(note).toHaveValue("Provereno ovlašćenje za oglašavanje porodičnog stana.");
+    await page.getByRole("button", { name: "Potvrdi odluku" }).click();
     await expect(page.getByText("Nema zahteva za prikaz.")).toBeVisible();
     await page.getByLabel("Status zahteva").selectOption("approved");
     await expect(page.getByRole("heading", { name: "Zahtev #7 — Odobren" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath("owner-access-admin.png"), fullPage: true });
-    expect(decisions).toBe(1);
+    expect(decisions).toBe(2);
     expired = true;
     await page.goto("/owner-access");
     await expect(page.getByRole("alert")).toContainText("Prijavi se ponovo");

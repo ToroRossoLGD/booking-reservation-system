@@ -111,6 +111,19 @@ function AccessContent({ admin, token }: { admin: boolean; token: string }) {
 }
 function RequestCard({ item, admin, busy, onDecision }: { item: OwnerAccessRequest; admin: boolean; busy: boolean; onDecision: (action: "approved" | "rejected", note: string) => Promise<void> }) {
   const [note, setNote] = useState("");
+  const [noteError, setNoteError] = useState("");
+  const noteInput = useRef<HTMLTextAreaElement>(null);
+  const noteId = `owner-note-${item.id}`;
+  const noteLength = Array.from(note.trim()).length;
+  function chooseAction(next: "approved" | "rejected") {
+    if (noteLength < 10 || noteLength > 2000) {
+      setNoteError("Unesi obrazloženje od 10 do 2000 znakova, bez razmaka na početku i kraju.");
+      noteInput.current?.focus();
+      return;
+    }
+    setNoteError("");
+    setAction(next);
+  }
   const [action, setAction] = useState<"approved" | "rejected" | null>(null);
   const cancel = useRef<HTMLButtonElement>(null);
   const approve = useRef<HTMLButtonElement>(null);
@@ -124,6 +137,6 @@ function RequestCard({ item, admin, busy, onDecision }: { item: OwnerAccessReque
     }
   }, [action]);
   return <article><h3>Zahtev #{item.id} — {labels[item.status]}</h3>{admin && <p>Korisnik #{item.user_id} · {item.email}</p>}<p>{new Date(item.created_at).toLocaleString("sr-Latn-RS")}</p><p className="owner-access-text">{item.details}</p>{item.decision_note && <><h4>Obrazloženje odluke</h4><p className="owner-access-text">{item.decision_note}</p><p>{item.decided_at && new Date(item.decided_at).toLocaleString("sr-Latn-RS")}</p></>}
-    {admin && item.status === "pending" && <fieldset disabled={busy}><legend>Administratorska odluka</legend><label>Obrazloženje za korisnika<textarea minLength={10} maxLength={2000} value={note} onChange={event => { setNote(event.target.value); setAction(null); }} /></label>{action ? <div><p>{action === "approved" ? "Odobrenje dodeljuje vlasničku ulogu i poništava sve postojeće sesije i API ključeve ovog korisnika. Moraće ponovo da se prijavi." : "Odbijanje zadržava korisničku ulogu. Korisnik će videti obrazloženje."}</p><button disabled={note.trim().length < 10} onClick={() => void onDecision(action, note.trim())}>Potvrdi odluku</button><button ref={cancel} onClick={() => { restore.current = action; setAction(null); }}>Odustani</button></div> : <><button ref={approve} disabled={note.trim().length < 10} onClick={() => setAction("approved")}>Odobri pristup</button><button ref={reject} disabled={note.trim().length < 10} onClick={() => setAction("rejected")}>Odbij zahtev</button></>}</fieldset>}
+    {admin && item.status === "pending" && <fieldset disabled={busy}><legend>Administratorska odluka</legend><label>Obrazloženje za korisnika<textarea ref={noteInput} aria-invalid={Boolean(noteError)} aria-describedby={`${noteId}-help${noteError ? ` ${noteId}-error` : ""}`} value={note} onChange={event => { setNote(event.target.value); setNoteError(""); setAction(null); }} /></label><p id={`${noteId}-help`}>10–2000 znakova, bez razmaka na početku i kraju. Broj znakova: {noteLength} / 2000</p>{noteError && <p id={`${noteId}-error`} role="alert">{noteError}</p>}{action ? <div><p>{action === "approved" ? "Odobrenje dodeljuje vlasničku ulogu i poništava sve postojeće sesije i API ključeve ovog korisnika. Moraće ponovo da se prijavi." : "Odbijanje zadržava korisničku ulogu. Korisnik će videti obrazloženje."}</p><button disabled={noteLength < 10 || noteLength > 2000} onClick={() => void onDecision(action, note.trim())}>Potvrdi odluku</button><button ref={cancel} onClick={() => { restore.current = action; setAction(null); }}>Odustani</button></div> : <><button ref={approve} onClick={() => chooseAction("approved")}>Odobri pristup</button><button ref={reject} onClick={() => chooseAction("rejected")}>Odbij zahtev</button></>}</fieldset>}
   </article>;
 }
