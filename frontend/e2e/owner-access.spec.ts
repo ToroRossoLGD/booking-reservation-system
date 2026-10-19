@@ -1,5 +1,50 @@
 import { expect, test } from "./fixtures";
 
+for (const admin of [false, true]) {
+  for (const mobile of [false, true]) {
+    test(`owner request pagination recovery ${admin ? "admin" : "customer"} ${mobile ? "mobile" : "desktop"}`, async ({ page }) => {
+      if (mobile) await page.setViewportSize({ width: 390, height: 844 });
+      let empty = false;
+      let fail = false;
+      const offsets: number[] = [];
+      await page.route("**/api/auth/me", route => route.fulfill({ json: { id: 1, email: "member@example.com", role: admin ? "admin" : "customer", email_verified: true } }));
+      await page.route(admin ? "**/api/admin/owner-access?*" : "**/api/owner-access/mine?*", route => {
+        const offset = Number(new URL(route.request().url()).searchParams.get("offset"));
+        offsets.push(offset);
+        if (fail) return route.fulfill({ status: 503, json: { detail: "unavailable" } });
+        return route.fulfill({ json: {
+          items: empty ? [] : [{ id: offset + 1, user_id: 1, email: "member@example.com", details: "Upravljam porodičnim stanom na Zlatiboru.", status: "pending", created_at: "2026-10-17T10:00:00Z", decided_at: null, decision_note: null }],
+          has_next: !empty && offset === 0,
+        } });
+      });
+      await page.goto(admin ? "/admin/owner-access" : "/owner-access");
+      const heading = page.getByRole("heading", { name: admin ? "Pregled zahteva" : "Istorija tvojih zahteva" });
+      await page.getByRole("button", { name: "Sledeća", exact: true }).click();
+      await expect(page.getByText("Stranica 2", { exact: true })).toBeVisible();
+      await expect(heading).toBeFocused();
+      await page.getByRole("button", { name: "Prethodna", exact: true }).click();
+      await expect(page.getByText("Stranica 1", { exact: true })).toBeVisible();
+      await expect(heading).toBeFocused();
+      await page.getByRole("button", { name: "Sledeća", exact: true }).click();
+      await expect(page.getByText("Stranica 2", { exact: true })).toBeVisible();
+      fail = true;
+      await page.getByRole("button", { name: "Osveži zahteve" }).click();
+      await expect(page.getByRole("alert")).toContainText("Zahtev nije potvrđen");
+      expect(offsets.at(-1)).toBe(20);
+      fail = false;
+      empty = true;
+      await page.getByRole("button", { name: "Osveži zahteve" }).click();
+      await expect(page.getByText("Stranica 1", { exact: true })).toBeVisible();
+      await expect(page.getByText("Nema zahteva za prikaz.")).toBeVisible();
+      await expect(page.getByRole("status")).toContainText("Prikazana je prva stranica");
+      await expect(heading).toBeFocused();
+      await expect(page.getByRole("button", { name: "Prethodna", exact: true })).toBeDisabled();
+      await expect(page.getByRole("button", { name: "Sledeća", exact: true })).toBeDisabled();
+      expect(offsets).toEqual([0, 20, 0, 20, 20, 20, 0]);
+    });
+  }
+}
+
 for (const mobile of [false, true]) {
   test(`customer request and admin decision on ${mobile ? "mobile" : "desktop"}`, async ({ page }, testInfo) => {
     if (mobile) await page.setViewportSize({ width: 390, height: 844 });
