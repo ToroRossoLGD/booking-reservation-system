@@ -65,6 +65,14 @@ Routes:
 
 ## Validation and remaining launch work
 
+History and administrator queues return to page one when a later page becomes
+empty, for example after another administrator processes pending requests. A Serbian
+status message explains the move. An empty first page ends recovery without another
+request. Load failures keep the current offset for explicit retry with **Osveži
+zahteve**. Successful refresh, pagination and status changes focus the results
+heading for keyboard users. Desktop/mobile browser tests cover both queues,
+previous/next navigation, failed refresh and recovery to an empty first page.
+
 Tests cover privacy/roles, verification, demo mode, UUID retries, duplicate requests,
 rejection/resubmission, changed-account conflicts, transaction rollback, notification
 deduplication, real HTTP bearer revocation and PostgreSQL simultaneous submissions

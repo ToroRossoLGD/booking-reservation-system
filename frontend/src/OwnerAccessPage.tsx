@@ -32,7 +32,15 @@ function AccessContent({ admin, token }: { admin: boolean; token: string }) {
   const [details, setDetails] = useState("");
   const [message, setMessage] = useState("");
   const requestId = useRef("");
-  function refresh(nextOffset = offset) { setLoading(true); setError(""); setPage(null); setOffset(nextOffset); setVersion(value => value + 1); }
+  const resultsHeading = useRef<HTMLHeadingElement>(null);
+  const focusResults = useRef(false);
+  function refresh(nextOffset = offset) { focusResults.current = true; setLoading(true); setError(""); setPage(null); setOffset(nextOffset); setVersion(value => value + 1); }
+  useEffect(() => {
+    if (!loading && page && focusResults.current) {
+      resultsHeading.current?.focus();
+      focusResults.current = false;
+    }
+  }, [loading, page]);
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
@@ -41,7 +49,15 @@ function AccessContent({ admin, token }: { admin: boolean; token: string }) {
       setUser(current);
       if (admin && current.role !== "admin") { setError("Ovaj pregled je dostupan samo administratoru."); setLoading(false); return; }
       const result = await api.ownerAccessRequests(admin, status, offset, controller.signal);
-      if (active && tokenSnapshot() === token) { setPage(result); setLoading(false); }
+      if (active && tokenSnapshot() === token) {
+        if (offset > 0 && result.items.length === 0) {
+          setMessage("Ova stranica više nema zahteva. Prikazana je prva stranica.");
+          focusResults.current = true;
+          setOffset(0);
+          return;
+        }
+        setPage(result); setLoading(false);
+      }
     }).catch(error => { if (active) { setError(failure(error)); setLoading(false); } });
     return () => { active = false; controller.abort(); };
   }, [admin, status, offset, version, token]);
@@ -69,7 +85,7 @@ function AccessContent({ admin, token }: { admin: boolean; token: string }) {
         </form>}
       </>)}
       {admin && <label>Status zahteva<select disabled={busy} value={status} onChange={event => { setStatus(event.target.value); refresh(0); }}>{Object.entries(labels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>}
-      <h2>{admin ? "Pregled zahteva" : "Istorija tvojih zahteva"}</h2>
+      <h2 ref={resultsHeading} tabIndex={-1}>{admin ? "Pregled zahteva" : "Istorija tvojih zahteva"}</h2>
       {!page.items.length && <p>Nema zahteva za prikaz.</p>}
       {page.items.map(item => <RequestCard key={item.id} item={item} admin={admin} busy={busy} onDecision={async (action, note) => {
         setBusy(true); setError(""); setMessage("");
