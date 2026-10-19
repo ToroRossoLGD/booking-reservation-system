@@ -30,6 +30,8 @@ function AccessContent({ admin, token }: { admin: boolean; token: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [details, setDetails] = useState("");
+  const [detailsError, setDetailsError] = useState("");
+  const detailsInput = useRef<HTMLTextAreaElement>(null);
   const [message, setMessage] = useState("");
   const requestId = useRef("");
   const resultsHeading = useRef<HTMLHeadingElement>(null);
@@ -63,6 +65,13 @@ function AccessContent({ admin, token }: { admin: boolean; token: string }) {
   }, [admin, status, offset, version, token]);
   async function submit() {
     if (busy) return;
+    const length = Array.from(details.trim()).length;
+    if (length < 20 || length > 2000) {
+      setDetailsError("Unesi opis od 20 do 2000 znakova, ne računajući razmake na početku i kraju.");
+      detailsInput.current?.focus();
+      return;
+    }
+    setDetailsError("");
     setBusy(true); setError(""); setMessage("");
     if (!requestId.current) requestId.current = crypto.randomUUID();
     try {
@@ -78,10 +87,13 @@ function AccessContent({ admin, token }: { admin: boolean; token: string }) {
     {message && <p role="status">{message}</p>}{error && <p role="alert">{error}</p>}
     {loading ? <p role="status">Učitavanje zahteva…</p> : page && user && <>
       {!admin && offset === 0 && (user.role === "owner" || user.role === "admin" ? <p>Vlasnički pristup je aktivan. <a href="/owner">Otvori vlasnički panel</a></p> : !user.email_verified ? <p><a href="/verify-email">Potvrdi email adresu</a> pre slanja zahteva.</p> : <>
-        {page.items.some(item => item.status === "pending") ? <p>Zahtev čeka odluku administratora.</p> : <form onSubmit={event => { event.preventDefault(); void submit(); }}>
+        {page.items.some(item => item.status === "pending") ? <p>Zahtev čeka odluku administratora.</p> : <form noValidate onSubmit={event => { event.preventDefault(); void submit(); }}>
           <h2>Zatraži pristup</h2><p>Opiši kakve nekretnine planiraš da oglašavaš i po kom osnovu njima upravljaš. Ne šalji lične dokumente, brojeve računa ili druge osetljive podatke. Tekst vidi administracija.</p>
-          <label>Opis planiranih oglasa<textarea required minLength={20} maxLength={2000} disabled={busy} value={details} onChange={event => { setDetails(event.target.value); requestId.current = ""; }} /></label>
-          <p>20–2000 znakova. Posle odbijanja, novi zahtev je moguć najranije 24 sata od prethodnog slanja.</p><button disabled={busy || details.trim().length < 20}>{busy ? "Slanje…" : "Pošalji zahtev"}</button>
+          <label>Opis planiranih oglasa<textarea ref={detailsInput} required aria-invalid={Boolean(detailsError)} aria-describedby={`owner-details-help owner-details-count${detailsError ? " owner-details-error" : ""}`} disabled={busy} value={details} onChange={event => { setDetails(event.target.value); setDetailsError(""); requestId.current = ""; }} /></label>
+          <p id="owner-details-help">20–2000 znakova, bez razmaka na početku i kraju. Posle odbijanja, novi zahtev je moguć najranije 24 sata od prethodnog slanja.</p>
+          <p id="owner-details-count">Broj znakova: {Array.from(details.trim()).length} / 2000</p>
+          {detailsError && <p id="owner-details-error" role="alert">{detailsError}</p>}
+          <button disabled={busy}>{busy ? "Slanje…" : "Pošalji zahtev"}</button>
         </form>}
       </>)}
       {admin && <label>Status zahteva<select disabled={busy} value={status} onChange={event => { setStatus(event.target.value); refresh(0); }}>{Object.entries(labels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>}

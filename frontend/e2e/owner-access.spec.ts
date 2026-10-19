@@ -81,6 +81,19 @@ for (const mobile of [false, true]) {
     await expect(page.getByRole("button", { name: "Pošalji zahtev" })).toHaveCount(0);
     verified = true;
     await page.getByRole("button", { name: "Osveži zahteve" }).click();
+    const description = page.getByLabel("Opis planiranih oglasa");
+    const submit = page.getByRole("button", { name: "Pošalji zahtev" });
+    for (const invalid of ["", "     ", "Kratak opis", "a".repeat(2001)]) {
+      await description.fill(invalid);
+      await submit.click();
+      await expect(description).toBeFocused();
+      await expect(description).toHaveAttribute("aria-invalid", "true");
+      await expect(description).toHaveAccessibleDescription(/Unesi opis od 20 do 2000/);
+      expect(creates).toBe(0);
+    }
+    await description.fill("  " + "🏠".repeat(20) + "  ");
+    await expect(description).toHaveAttribute("aria-invalid", "false");
+    await expect(page.getByText("Broj znakova: 20 / 2000", { exact: true })).toBeVisible();
     await page.getByLabel("Opis planiranih oglasa").fill("Upravljam porodičnim stanom na Zlatiboru za kratke boravke.");
     await page.getByRole("button", { name: "Pošalji zahtev" }).click();
     await expect(page.getByRole("alert")).toContainText("Zahtev nije potvrđen");
