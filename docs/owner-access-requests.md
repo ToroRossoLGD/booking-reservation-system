@@ -65,6 +65,13 @@ Routes:
 
 ## Validation and remaining launch work
 
+The application form shows a character count after trimming surrounding whitespace.
+Submission validates the 20–2000 character limit, associates a Serbian error with
+the description and focuses that field. Invalid input never sends an API request.
+Counts use Unicode code points to match backend string lengths. Overlong pasted
+text remains editable rather than being silently truncated. Network failures retain
+the description and request UUID for safe retry; editing starts a new request UUID.
+
 History and administrator queues return to page one when a later page becomes
 empty, for example after another administrator processes pending requests. A Serbian
 status message explains the move. An empty first page ends recovery without another
