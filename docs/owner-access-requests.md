@@ -65,6 +65,13 @@ Routes:
 
 ## Validation and remaining launch work
 
+Administrator approval and rejection require a 10–2000 character reason before
+opening confirmation. Each request has its own associated Serbian error and
+trimmed Unicode character count. Invalid reasons receive keyboard focus, while
+valid decisions retain the explicit confirmation step. Failed saves preserve the
+reason and confirmation for explicit retry. Desktop/mobile tests cover both
+actions, empty/whitespace/short/overlong reasons and retry after a server failure.
+
 The application form shows a character count after trimming surrounding whitespace.
 Submission validates the 20–2000 character limit, associates a Serbian error with
 the description and focuses that field. Invalid input never sends an API request.
