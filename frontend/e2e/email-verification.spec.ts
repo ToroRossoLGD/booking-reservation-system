@@ -1,6 +1,46 @@
 import { expect, test } from "./fixtures";
 
 for (const mobile of [false, true]) {
+  test(`verification follows account changes on ${mobile ? "mobile" : "desktop"}`, async ({ page, context }) => {
+    if (mobile) await page.setViewportSize({ width: 390, height: 844 });
+    await context.route("**/api/auth/me", route => {
+      const token = route.request().headers().authorization;
+      return token ? route.fulfill({ json: { id: token === "Bearer verified" ? 1 : 2, email_verified: token === "Bearer verified" } })
+        : route.fulfill({ status: 401, json: { detail: "unauthorized" } });
+    });
+    let sends = 0;
+    let release!: () => void;
+    const pending = new Promise<void>(resolve => { release = resolve; });
+    await page.route("**/api/auth/email-verification/request", async route => {
+      sends++;
+      await pending;
+      await route.fulfill({ status: 429, headers: { "Retry-After": "120" }, json: { detail: "limited" } });
+    });
+    await page.goto("/verify-email");
+    const other = await context.newPage();
+    await other.goto("/help");
+    await other.evaluate(() => localStorage.setItem("bookica_token", "verified"));
+    await expect(page.getByRole("status")).toContainText("Email adresa je potvrđena");
+    await other.evaluate(() => localStorage.setItem("bookica_token", "unverified"));
+    const resend = page.getByRole("button", { name: "Pošalji novi link" });
+    await expect(resend).toBeEnabled();
+    expect(sends).toBe(0);
+    const requested = page.waitForRequest("**/api/auth/email-verification/request");
+    await resend.click();
+    await requested;
+    await other.evaluate(() => localStorage.setItem("bookica_token", "replacement"));
+    await expect(resend).toBeEnabled();
+    const response = page.waitForResponse("**/api/auth/email-verification/request");
+    release();
+    await response;
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(resend).toBeEnabled();
+    await other.evaluate(() => localStorage.removeItem("bookica_token"));
+    await expect(page.getByText("Prijavite se da zatražite novi link za svoj nalog.")).toBeVisible();
+    await expect(resend).toHaveCount(0);
+    expect(sends).toBe(1);
+  });
+
   test(`verification status refresh recovers and detects another tab on ${mobile ? "mobile" : "desktop"}`, async ({ page }) => {
     if (mobile) await page.setViewportSize({ width: 390, height: 844 });
     let state: "error" | "unverified" | "verified" | "guest" = "error";
