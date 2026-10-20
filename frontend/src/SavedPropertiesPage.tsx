@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { api, ApiError } from "./api";
 import type { PropertyPage } from "./property-types";
 import PropertyCard from "./PropertyCard";
@@ -7,7 +7,20 @@ import "./property-home.css";
 import "./property-refresh.css";
 import "./saved-properties.css";
 
+function sessionSnapshot() { return localStorage.getItem("bookica_token") ?? ""; }
+function subscribeSession(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener("focus", callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("focus", callback);
+  };
+}
 export default function SavedPropertiesPage() {
+  const session = useSyncExternalStore(subscribeSession, sessionSnapshot);
+  return <SavedContent key={session} session={session} />;
+}
+function SavedContent({ session }: { session: string }) {
   const [page, setPage] = useState<PropertyPage | null>(null);
   const [offset, setOffset] = useState(0);
   const [version, setVersion] = useState(0);
@@ -25,7 +38,7 @@ export default function SavedPropertiesPage() {
   useEffect(() => {
     const controller = new AbortController();
     api.savedProperties(offset, controller.signal).then(result => {
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted || sessionSnapshot() !== session) return;
       // Listings can be withdrawn or removed on another device between pages.
       if (result.items.length === 0 && offset > 0) {
         setOffset(Math.min(offset - 12, Math.max(0, Math.floor((result.total - 1) / 12) * 12)));
@@ -33,14 +46,14 @@ export default function SavedPropertiesPage() {
       }
       setPage(result); setLoading(false);
     }).catch(err => {
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && sessionSnapshot() === session) {
         const unauthorized = err instanceof ApiError && err.status === 401;
         setLogin(unauthorized); setLoading(false);
         setError(unauthorized ? "Prijavi se da vidiš svoje sačuvane oglase." : "Sačuvani oglasi nisu učitani. Pokušaj ponovo.");
       }
     });
     return () => controller.abort();
-  }, [offset, version]);
+  }, [offset, version, session]);
   function reload(nextOffset = offset) { restoreFocus.current = true; setLoading(true); setError(""); setLogin(false); setOffset(nextOffset); setVersion(value => value + 1); }
   return <div className="property-home saved-properties-page">
     <header className="ph-header"><a href="/" className="ph-brand">bookica.</a><a className="ph-outline" href="/account">Moj nalog</a></header>

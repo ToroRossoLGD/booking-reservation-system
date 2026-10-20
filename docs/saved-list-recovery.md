@@ -3,6 +3,14 @@
 The `/saved` page offers **Osveži oglase** to retrieve current published listings
 and prices after changes on another device or owner withdrawals.
 
+Session changes received from another tab, or detected when the window regains
+focus, reset the list, errors and pagination before loading the current account's
+first page. Logout retrieves the normal login guidance. In-flight reads are
+aborted on session replacement; response handlers also check session identity
+before displaying results. Desktop/mobile tests switch accounts during a delayed
+page-two request, check the empty replacement account and logout, and verify
+session refresh on window focus. Server-side ownership checks remain authoritative.
+
 If a later page becomes empty, the client requests the last possible page using
 the current total. Each fallback strictly reduces the offset, including when all
 listings disappear, so concurrent changes cannot cause an endless retry loop.

@@ -30,6 +30,48 @@ test("saved pages recover from withdrawals, failures and an empty account", asyn
 });
 
 for (const mobile of [false, true]) {
+  test(`saved listings follow session changes on ${mobile ? "mobile" : "desktop"}`, async ({ page, context }) => {
+    if (mobile) await page.setViewportSize({ width: 390, height: 844 });
+    const property = { id: 4, venue_id: 1, title: "Privatni izbor prvog naloga", description: "Stan sa terasom.", city: "Beograd", offer_type: "long_term", area_sqm: 50, rooms: 2, price_cents: 65000, currency: "EUR", is_published: true };
+    const offsets: number[] = [];
+    let release!: () => void;
+    const pending = new Promise<void>(resolve => { release = resolve; });
+    await context.route("**/api/favorites/properties?*", async route => {
+      const token = route.request().headers().authorization;
+      const offset = Number(new URL(route.request().url()).searchParams.get("offset"));
+      if (!token) return route.fulfill({ status: 401, json: { detail: "unauthorized" } });
+      if (token === "Bearer second") {
+        offsets.push(offset);
+        return route.fulfill({ json: { items: [], total: 0, limit: 12, offset, has_next: false } });
+      }
+      if (offset === 12) await pending;
+      await route.fulfill({ json: { items: [property], total: 13, limit: 12, offset, has_next: offset === 0 } }).catch(() => {});
+    });
+    await page.goto("/saved");
+    const other = await context.newPage();
+    await other.goto("/help");
+    await other.evaluate(() => localStorage.setItem("bookica_token", "first"));
+    await expect(page.getByRole("heading", { name: property.title })).toBeVisible();
+    const oldRequest = page.waitForRequest(request => request.url().includes("favorites/properties?") && new URL(request.url()).searchParams.get("offset") === "12");
+    await page.getByRole("button", { name: "Sledeća" }).click();
+    await oldRequest;
+    await other.evaluate(() => localStorage.setItem("bookica_token", "second"));
+    await expect(page.getByRole("heading", { name: "Još nema sačuvanih oglasa za prikaz." })).toBeVisible();
+    release();
+    await expect(page.getByRole("heading", { name: property.title })).toHaveCount(0);
+    expect(offsets.length).toBeGreaterThan(0);
+    expect(offsets.every(offset => offset === 0)).toBe(true);
+    await other.evaluate(() => localStorage.removeItem("bookica_token"));
+    await expect(page.getByRole("alert")).toContainText("Prijavi se da vidiš");
+    await expect(page.getByRole("heading", { name: property.title })).toHaveCount(0);
+    // A same-tab change is picked up when the window receives focus again.
+    await page.evaluate(() => {
+      localStorage.setItem("bookica_token", "first");
+      window.dispatchEvent(new Event("focus"));
+    });
+    await expect(page.getByRole("heading", { name: property.title })).toBeVisible();
+  });
+
   test(`save and revisit property on ${mobile ? "mobile" : "desktop"}`, async ({ page }, testInfo) => {
     if (mobile) await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript(() => localStorage.setItem("bookica_token", "fixture-token"));
