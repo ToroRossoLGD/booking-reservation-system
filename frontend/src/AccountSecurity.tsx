@@ -2,6 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "./api";
 
 export default function AccountSecurity() {
+  const [session, setSession] = useState(() => localStorage.getItem("bookica_token"));
+  useEffect(() => {
+    const refresh = () => setSession(localStorage.getItem("bookica_token"));
+    window.addEventListener("storage", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
+  return <SecurityContent key={session ?? "anonymous"} session={session} refreshSession={() => setSession(localStorage.getItem("bookica_token"))} />;
+}
+
+function SecurityContent({ session, refreshSession }: { session: string | null; refreshSession: () => void }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [confirm, setConfirm] = useState(false);
@@ -36,13 +50,16 @@ export default function AccountSecurity() {
   }
 
   async function revoke() {
+    if (localStorage.getItem("bookica_token") !== session) { refreshSession(); return; }
     setBusy(true); setError("");
     try {
       await api.logoutAllSessions();
+      if (localStorage.getItem("bookica_token") !== session) { refreshSession(); return; }
       localStorage.removeItem("bookica_token");
       focusTarget.current = "heading";
       setConfirm(false); setDone(true); setEmail("");
     } catch (error) {
+      if (localStorage.getItem("bookica_token") !== session) { refreshSession(); return; }
       if (error instanceof ApiError && error.status === 401) {
         localStorage.removeItem("bookica_token");
         focusTarget.current = "heading";
