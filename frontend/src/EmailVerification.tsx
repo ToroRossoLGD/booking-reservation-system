@@ -1,8 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "./api";
 
+function sessionSnapshot() { return localStorage.getItem("bookica_token") ?? ""; }
+function subscribeSession(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener("focus", callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("focus", callback);
+  };
+}
 export default function EmailVerification({ token }: { token: string }) {
+  const session = useSyncExternalStore(subscribeSession, sessionSnapshot);
+  // A confirmation link identifies its own account; only resend uses the session.
+  return <VerificationContent key={token ? `link:${token}` : `session:${session}`} token={token} session={session} />;
+}
+function VerificationContent({ token, session }: { token: string; session: string }) {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [sent, setSent] = useState(false);
@@ -28,10 +42,10 @@ export default function EmailVerification({ token }: { token: string }) {
   useEffect(() => {
     if (token) return;
     let active = true;
-    api.me().then(user => { if (active) setAccount(user.email_verified ? "verified" : "unverified"); })
-      .catch(error => { if (active) setAccount(error instanceof ApiError && error.status === 401 ? "guest" : "error"); });
+    api.me().then(user => { if (active && sessionSnapshot() === session) setAccount(user.email_verified ? "verified" : "unverified"); })
+      .catch(error => { if (active && sessionSnapshot() === session) setAccount(error instanceof ApiError && error.status === 401 ? "guest" : "error"); });
     return () => { active = false; };
-  }, [token, statusVersion]);
+  }, [token, statusVersion, session]);
   function refreshStatus() {
     if (busy || account === "loading") return;
     setAccount("loading"); setError(""); setSent(false);
@@ -39,12 +53,14 @@ export default function EmailVerification({ token }: { token: string }) {
   }
 
   async function submit(confirm: boolean) {
+    if (!confirm && sessionSnapshot() !== session) return;
     if (busy || (!confirm && remaining > 0)) return;
     setBusy(true); setError(""); setSent(false);
     try {
       if (confirm) { await api.confirmEmailVerification(token); setDone(true); }
-      else { await api.requestEmailVerification(); setSent(true); waitBeforeResend(60); }
+      else { await api.requestEmailVerification(); if (sessionSnapshot() !== session) return; setSent(true); waitBeforeResend(60); }
     } catch (error) {
+      if (!confirm && sessionSnapshot() !== session) return;
       if (error instanceof ApiError && error.status === 429) {
         setError(error.message);
         if (!confirm) waitBeforeResend(error.retryAfter ?? 60);
