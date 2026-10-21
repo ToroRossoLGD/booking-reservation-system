@@ -19,6 +19,7 @@ export default function PropertyDetailPage({ id }: { id: string }) {
   const [retry, setRetry] = useState(0);
   const [saved, setSaved] = useState<boolean | null>(null);
   const [saveError, setSaveError] = useState(false);
+  const [saveRetry, setSaveRetry] = useState(0);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -29,21 +30,31 @@ export default function PropertyDetailPage({ id }: { id: string }) {
   useEffect(() => {
     if (!validId) return;
     const controller = new AbortController();
-    api.property(Number(id), controller.signal).then(async listing => {
+    api.property(Number(id), controller.signal).then(listing => {
       if (controller.signal.aborted) return;
       setProperty(listing);
-      if (!localStorage.getItem("bookica_token")) { setSaved(false); return; }
-      try {
-        const result = await api.savedPropertyIds([listing.id], controller.signal);
-        if (!controller.signal.aborted) setSaved(result.property_ids.includes(listing.id));
-      } catch {
-        if (!controller.signal.aborted) setSaveError(true);
-      }
+      if (!localStorage.getItem("bookica_token")) setSaved(false);
     }).catch(err => {
       if (!controller.signal.aborted) setError(err instanceof ApiError && err.status === 404 ? "missing" : "network");
     });
     return () => controller.abort();
   }, [id, retry, validId]);
+
+  useEffect(() => {
+    if (!property) return;
+    const controller = new AbortController();
+    if (!localStorage.getItem("bookica_token")) return;
+    api.savedPropertyIds([property.id], controller.signal).then(result => {
+      if (!controller.signal.aborted) setSaved(result.property_ids.includes(property.id));
+    }).catch(() => {
+      if (!controller.signal.aborted) setSaveError(true);
+    });
+    return () => controller.abort();
+  }, [property, saveRetry]);
+
+  function retrySavedStatus() {
+    setSaveError(false); setSaved(localStorage.getItem("bookica_token") ? null : false); setSaveRetry(value => value + 1);
+  }
 
   usePageMetadata({
     title: property ? `${property.title} | Bookica` : !validId || error === "missing" ? "Oglas nije dostupan | Bookica" : error ? "Oglas nije učitan | Bookica" : "Oglas | Bookica",
@@ -85,7 +96,7 @@ export default function PropertyDetailPage({ id }: { id: string }) {
           <aside className="property-detail-actions" aria-label="Cena i kontakt">
             <p className="property-detail-price"><strong>{propertyPrice(property)}</strong> / {priceUnits[property.offer_type]}{!!property.seasonal_rates?.length && <small> · Osnovna cena</small>}</p>
             <SavePropertyButton propertyId={property.id} title={property.title} saved={saved} onChange={setSaved} />
-            {saveError && <p role="alert">Status sačuvanog oglasa nije učitan. <button onClick={reload}>Pokušaj ponovo</button></p>}
+            {saveError && <p role="alert">Status sačuvanog oglasa nije učitan. <button onClick={retrySavedStatus}>Pokušaj ponovo</button></p>}
             <div className="property-share">{typeof navigator.share === "function" && <button className="ph-outline" disabled={sharing} onClick={() => void shareListing()}>Podeli oglas</button>}<button className="ph-outline" disabled={sharing} onClick={() => void copyLink()}>Kopiraj link oglasa</button>{copied && <p role="status">Link je kopiran.</p>}{copyError && <label>Kopiraj adresu ručno<input readOnly value={url} onFocus={event => event.target.select()} /></label>}</div>
             <PropertyActions property={property} stayDates={stayDates} />
             <PropertyReportForm key={property.id} propertyId={property.id} />
