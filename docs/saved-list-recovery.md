@@ -1,5 +1,11 @@
 # Saved-list recovery
 
+On `/properties/:id`, retrying a failed saved-status lookup only reloads favorite
+status. It keeps the listing and inquiry form mounted, preserving the message and
+selected move-in date through repeated failures and eventual success. The retry
+does not submit an inquiry or reload the property. Desktop/mobile tests verify
+those behaviors; property-loading errors retain their separate full-page retry.
+
 The `/saved` page offers **Osveži oglase** to retrieve current published listings
 and prices after changes on another device or owner withdrawals.
 
