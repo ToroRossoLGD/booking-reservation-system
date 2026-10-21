@@ -6,6 +6,18 @@ The browser reads the fragment before React mounts and removes it with `replaceS
 
 Confirmation checks matching passwords in the UI and bcrypt's 72-byte UTF-8 limit at the API. Success consumes the token, invalidates remaining reset tokens, increments the account token version and revokes its API keys in one database transaction. The browser clears its previous bearer token and offers normal login; there is no automatic login. Expired, reused and invalid links offer a new request. PostgreSQL locks serialize issuance/consumption for the same account, so concurrent requests leave one active link and concurrent confirmation has one winner. No migration is required.
 
+## Rate-limit retry
+
+The recovery-request form displays a countdown after HTTP 429 using the parsed
+server `Retry-After`, or 60 seconds when no usable delay is provided. It retains
+the email, blocks button and keyboard submission during the wait, and announces
+when explicit retry is available. Editing the email does not reset the wait;
+expiry never sends mail automatically. A repeated 429 starts a new countdown.
+The deadline is local to the mounted page; server-side budgets remain authoritative
+across reloads and devices. Browser tests cover desktop/mobile expiry, retained
+input, fallback waiting and repeated limiting. This does not complete provider
+delivery or hosted acceptance.
+
 ## SMTP configuration
 
 - `SMTP_MODE=disabled`: no email is sent. Reset requests return 503 before looking up the email address. Production templates intentionally start in this state until a provider is configured.

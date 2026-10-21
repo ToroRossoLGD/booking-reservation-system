@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "./api";
 
@@ -14,17 +14,35 @@ function failure(error: unknown): string {
 }
 
 export function ForgotPasswordPage() {
+  const [retryAt, setRetryAt] = useState(0);
+  const [remaining, setRemaining] = useState(0);
+  useEffect(() => {
+    if (!retryAt) return;
+    const timer = window.setInterval(() => {
+      const seconds = Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
+      setRemaining(seconds);
+      if (!seconds) window.clearInterval(timer);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [retryAt]);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (busy || Date.now() < retryAt) return;
     setBusy(true); setError(""); setSent(false);
     try {
       await api.requestPasswordReset(email.trim());
       setSent(true);
-    } catch (error) { setError(failure(error)); }
+    } catch (error) {
+      setError(failure(error));
+      if (error instanceof ApiError && error.status === 429) {
+        const seconds = error.retryAfter ?? 60;
+        setRemaining(seconds); setRetryAt(Date.now() + seconds * 1000);
+      }
+    }
     finally { setBusy(false); }
   }
   return <main id="main-content" tabIndex={-1} className="recovery-page">
@@ -34,10 +52,12 @@ export function ForgotPasswordPage() {
     <form onSubmit={submit} className="auth-form">
       <label htmlFor="recovery-email">Email adresa</label>
       <input id="recovery-email" type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} disabled={busy} />
-      <button type="submit" disabled={busy}>{busy ? "Slanje…" : "Pošalji link"}</button>
+      <button type="submit" disabled={busy || remaining > 0}>{busy ? "Slanje…" : "Pošalji link"}</button>
     </form>
     {sent && <p role="status">Ako postoji nalog za ovu adresu, dobićete link za promenu lozinke. Proverite i spam folder. Ako poruka ne stigne, pokušajte ponovo kasnije.</p>}
     {error && <p role="alert">{error}</p>}
+    {remaining > 0 && <p>Ponovni pokušaj za {remaining} s. Stranicu nije potrebno osvežavati.</p>}
+    {retryAt > 0 && remaining === 0 && !sent && !busy && <p role="status">Možete ponovo zatražiti link.</p>}
     <Link to="/account">Nazad na prijavu</Link>
   </main>;
 }
