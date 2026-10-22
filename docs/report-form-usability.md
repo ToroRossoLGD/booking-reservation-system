@@ -24,3 +24,14 @@ description and request ID for retry. No migration or configuration is required.
 Unit coverage checks whitespace-only input, focus, correction and retry alongside
 existing rate-limit/idempotency tests. The moderation browser flow checks empty
 submission before completing a valid report. This is a P1 usability slice only.
+# Account changes
+
+The report form resets its draft, category, request UUID, errors and confirmation
+when the stored browser session changes in another tab or is detected on window
+focus. It also resets for a different listing. Closing/reopening within the same
+session still preserves the draft. A response from an older session cannot show
+confirmation or errors in the replacement form, and no report is sent automatically.
+
+Switching accounts does not cancel a report already accepted by the server for the
+previous account. Desktop/mobile tests cover switching during a pending request,
+separate request UUIDs and authorization for the new account, and logout cleanup.
