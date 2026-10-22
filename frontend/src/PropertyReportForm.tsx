@@ -1,9 +1,22 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { api, ApiError } from "./api";
 import { reportCategories } from "./moderation-types";
 import "./moderation.css";
 
+function sessionSnapshot() { return localStorage.getItem("bookica_token") ?? ""; }
+function subscribeSession(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener("focus", callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("focus", callback);
+  };
+}
 export default function PropertyReportForm({ propertyId }: { propertyId: number }) {
+  const session = useSyncExternalStore(subscribeSession, sessionSnapshot);
+  return <ReportContent key={`${propertyId}:${session}`} propertyId={propertyId} session={session} />;
+}
+function ReportContent({ propertyId, session }: { propertyId: number; session: string }) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<keyof typeof reportCategories>("misleading");
   const [details, setDetails] = useState("");
@@ -20,7 +33,7 @@ export default function PropertyReportForm({ propertyId }: { propertyId: number 
   function changed() { requestId.current = ""; setError(""); setInvalid(false); }
   function close() { setOpen(false); trigger.current?.focus(); }
   async function submit() {
-    if (busy) return;
+    if (busy || sessionSnapshot() !== session) return;
     if (details.length > 2000) {
       setInvalid(true); setError("Skrati opis na najviše 2000 znakova."); description.current?.focus(); return;
     }
@@ -30,8 +43,9 @@ export default function PropertyReportForm({ propertyId }: { propertyId: number 
     }
     setBusy(true); setError("");
     if (!requestId.current) requestId.current = crypto.randomUUID();
-    try { await api.reportProperty(propertyId, { category, details: details.trim(), request_id: requestId.current }); setSent(true); }
+    try { await api.reportProperty(propertyId, { category, details: details.trim(), request_id: requestId.current }); if (sessionSnapshot() === session) setSent(true); }
     catch (err) {
+      if (sessionSnapshot() !== session) return;
       setError(err instanceof ApiError && err.status === 429 && err.retryAfter !== undefined ? err.message : err instanceof ApiError && err.status === 401 ? "Prijavi se da pošalješ prijavu." : err instanceof ApiError && err.status === 409 ? "Za ovaj oglas već postoji tvoja prijava ili je zahtev promenjen. Proveri svoje prijave." : err instanceof ApiError && [400, 404, 429].includes(err.status) ? "Prijava nije moguća: oglas nije dostupan, pripada tebi ili je dostignut limit od 20 otvorenih prijava." : "Potvrda nije stigla. Pokušaj ponovo; isti zahtev neće biti dupliran.");
     } finally { setBusy(false); }
   }
