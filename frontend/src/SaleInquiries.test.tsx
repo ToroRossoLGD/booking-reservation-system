@@ -17,7 +17,11 @@ it("retries a purchase inquiry with the same ID and without rental terms", async
   const user = userEvent.setup();
   render(<SaleInquiryForm property={property} />);
   expect(screen.queryByLabelText("Željeno useljenje")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Pošalji upit za kupovinu" })).toBeDisabled();
+  await user.click(screen.getByRole("button", { name: "Pošalji upit za kupovinu" }));
+  expect(screen.getByLabelText("Poruka prodavcu")).toHaveFocus();
+  expect(screen.getByLabelText("Poruka prodavcu")).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByLabelText("Poruka prodavcu")).toHaveAccessibleDescription(/Unesi poruku od 10 do 3000/);
+  expect(api.createSaleInquiry).not.toHaveBeenCalled();
   await user.type(screen.getByLabelText("Poruka prodavcu"), inquiry.message);
   await user.click(screen.getByRole("button", { name: "Pošalji upit za kupovinu" }));
   await screen.findByRole("alert");
