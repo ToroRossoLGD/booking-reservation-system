@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { api, ApiError } from "./api";
 import type { PropertyReview } from "./property-review-types";
 
 export default function StayReview({ stayId }: { stayId: number }) {
+  const fieldId = useId();
+  const commentInput = useRef<HTMLTextAreaElement>(null);
+  const [invalid, setInvalid] = useState(false);
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [review, setReview] = useState<PropertyReview | null>(null);
@@ -21,6 +24,12 @@ export default function StayReview({ stayId }: { stayId: number }) {
   function refresh() { setLoaded(false); setError(""); setRetry(value => value + 1); }
   async function submit() {
     if (inFlight.current) return;
+    setError("");
+    const length = Array.from(comment.trim()).length;
+    if (length < 10 || length > 2000) {
+      setInvalid(true); commentInput.current?.focus(); return;
+    }
+    setInvalid(false);
     inFlight.current = true; setBusy(true); setError("");
     try { setReview(await api.createPropertyReview(stayId, { rating: Number(rating), comment: comment.trim() })); }
     catch (err) { setError(err instanceof ApiError && err.status === 409 ? "Ovaj boravak već ima recenziju. Osveži recenziju da je vidiš." : err instanceof ApiError && [400, 404, 422].includes(err.status) ? "Proveri ocenu i komentar. Recenzija je dostupna samo gostu, od dana nakon odlaska." : "Potvrda nije stigla. Pokušaj ponovo; isti komentar neće napraviti duplikat."); }
@@ -34,7 +43,9 @@ export default function StayReview({ stayId }: { stayId: number }) {
         <p>Jedna recenzija po boravku. Ocena i komentar su javni, bez tvog imena, emaila i datuma boravka. Objavljena recenzija se ovde ne može menjati.</p>
         <fieldset disabled={busy}>
           <label>Ocena<select required value={rating} onChange={event => setRating(event.target.value)}><option value="">Izaberi ocenu</option>{[1, 2, 3, 4, 5].map(value => <option key={value} value={value}>{value} / 5</option>)}</select></label>
-          <label>Komentar<textarea required minLength={10} maxLength={2000} rows={4} value={comment} onChange={event => setComment(event.target.value)} /></label>
+          <label htmlFor={`${fieldId}-comment`}>Komentar</label><textarea id={`${fieldId}-comment`} ref={commentInput} aria-required="true" aria-invalid={invalid} aria-describedby={`${fieldId}-hint${invalid ? ` ${fieldId}-error` : ""}`} rows={4} value={comment} onChange={event => { setComment(event.target.value); setInvalid(false); }} />
+          <p id={`${fieldId}-hint`}>10–2000 znakova bez početnih i završnih razmaka. Uneto: {Array.from(comment.trim()).length}/2000.</p>
+          {invalid && <p id={`${fieldId}-error`} role="alert">Unesi komentar od 10 do 2000 znakova, bez razmaka na početku i kraju.</p>}
           <button className="ph-primary" disabled={busy}>{busy ? "Objavljivanje…" : "Objavi recenziju"}</button>
         </fieldset>
       </form>}

@@ -35,6 +35,10 @@ it("preserves review text for a safe retry and displays the saved review", async
   const user = userEvent.setup(); render(<StayReview stayId={9} />);
   await user.click(screen.getByRole("button", { name: "Oceni boravak / moja recenzija" }));
   await user.selectOptions(await screen.findByLabelText("Ocena"), "4");
+  await user.click(screen.getByRole("button", { name: "Objavi recenziju" }));
+  expect(screen.getByLabelText("Komentar")).toHaveFocus();
+  expect(screen.getByLabelText("Komentar")).toHaveAccessibleDescription(/Unesi komentar od 10 do 2000/);
+  expect(api.createPropertyReview).not.toHaveBeenCalled();
   await user.type(screen.getByLabelText("Komentar"), review.comment);
   await user.click(screen.getByRole("button", { name: "Objavi recenziju" }));
   await screen.findByRole("alert");
