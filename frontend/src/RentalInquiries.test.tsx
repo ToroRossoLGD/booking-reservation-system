@@ -16,6 +16,10 @@ it("keeps the same request identifier after a failed submission", async () => {
   const user = userEvent.setup();
   render(<RentalInquiryForm property={property} />);
   fireEvent.change(screen.getByLabelText("Željeno useljenje"), { target: { value: "2030-10-01" } });
+  await user.click(screen.getByRole("button", { name: "Pošalji upit za najam" }));
+  expect(screen.getByLabelText("Poruka vlasniku")).toHaveFocus();
+  expect(screen.getByLabelText("Poruka vlasniku")).toHaveAccessibleDescription(/Unesi poruku od 10 do 3000/);
+  expect(api.createRentalInquiry).not.toHaveBeenCalled();
   await user.type(screen.getByLabelText("Poruka vlasniku"), inquiry.message);
   await user.click(screen.getByRole("button", { name: "Pošalji upit za najam" }));
   await screen.findByRole("alert");
