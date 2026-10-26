@@ -1,5 +1,12 @@
 # Guest review navigation
 
+The stay-review form validates comments of 10–2000 trimmed Unicode code points
+before submission. A character count and associated Serbian error explain the
+limits; invalid comments receive keyboard focus. Pasted overlong text remains
+editable, and the rating retains its native required selection. Existing retry
+behavior preserves the comment after server errors. Unit and desktop/mobile
+browser tests cover invalid comments, Unicode counts and successful publication.
+
 Reviews load only when the guest opens the review section. Opening, pagination
 and explicit retry move keyboard focus to the review heading once results or an
 error arrive. Failed requests retain the requested offset for retry.

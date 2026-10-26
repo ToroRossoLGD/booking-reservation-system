@@ -1,7 +1,9 @@
 import { expect, test } from "./fixtures";
 import { propertyToday, shiftDate } from "../src/stay-types";
 
-test("only a completed stay offers review submission and the result is public on mobile", async ({ page }, testInfo) => {
+for (const mobile of [false, true]) {
+test(`completed stay review validation and publication on ${mobile ? "mobile" : "desktop"}`, async ({ page }, testInfo) => {
+  if (mobile) await page.setViewportSize({ width: 390, height: 844 });
   const today = propertyToday();
   const stay = { id: 9, property_id: 7, status: "confirmed", title: "Stan pored parka", city: "Novi Sad", check_in: shiftDate(today, -5), check_out: shiftDate(today, -2), check_in_time: "14:00", check_out_time: "11:00", guests: 2, timezone: "Europe/Belgrade", total_cents: 18000, currency: "EUR", contact_email: "owner@example.com" };
   const review = { id: 1, rating: 5, comment: "Cist i miran stan, sve po dogovoru.", created_at: new Date().toISOString() };
@@ -18,7 +20,18 @@ test("only a completed stay offers review submission and the result is public on
   await expect(button).toHaveCount(1);
   await button.click();
   await page.getByRole("combobox", { name: "Ocena", exact: true }).selectOption("5");
-  await page.getByLabel("Komentar", { exact: true }).fill(review.comment);
+  const comment = page.getByRole("textbox", { name: "Komentar", exact: true });
+  for (const invalid of ["", "   ", "Kratko", "a".repeat(2001)]) {
+    await comment.fill(invalid);
+    await page.getByRole("button", { name: "Objavi recenziju" }).click();
+    await expect(comment).toBeFocused();
+    await expect(comment).toHaveAccessibleDescription(/Unesi komentar od 10 do 2000/);
+    expect(saved).toBe(false);
+  }
+  await comment.fill("  " + "🏠".repeat(10) + "  ");
+  await expect(comment).toHaveAttribute("aria-invalid", "false");
+  await expect(comment).toHaveAccessibleDescription(/Uneto: 10\/2000/);
+  await comment.fill(review.comment);
   await page.getByRole("button", { name: "Objavi recenziju" }).click();
   await expect(page.getByText("Tvoja ocena: 5 / 5")).toBeVisible();
   await page.reload();
@@ -33,3 +46,4 @@ test("only a completed stay offers review submission and the result is public on
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("property-reviews-mobile.png"), fullPage: true });
 });
+}
