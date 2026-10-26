@@ -15,4 +15,16 @@ it("copies the supplied search URL and exposes a selectable fallback if clipboar
   await user.click(screen.getByRole("button", { name: "Kopiraj link pretrage" }));
   expect(screen.queryByRole("status")).not.toBeInTheDocument();
   expect(screen.getByLabelText("Kopiraj link pretrage ručno")).toHaveValue(`${window.location.origin}${path}`);
+  const input = screen.getByLabelText("Kopiraj link pretrage ručno") as HTMLInputElement;
+  expect(input).toHaveFocus();
+  expect(input).toHaveAccessibleDescription(/Link je označen za ručno kopiranje/);
+  expect(input.selectionStart).toBe(0);
+  expect(input.selectionEnd).toBe(input.value.length);
+  await user.click(screen.getByRole("button", { name: "Kopiraj link pretrage" }));
+  expect(screen.getByLabelText("Kopiraj link pretrage ručno")).toHaveFocus();
+  copy.mockResolvedValue(undefined);
+  await user.click(screen.getByRole("button", { name: "Kopiraj link pretrage" }));
+  expect(screen.getByRole("status")).toHaveTextContent("Link pretrage je kopiran.");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Kopiraj link pretrage ručno")).not.toBeInTheDocument();
 });
