@@ -24,6 +24,7 @@ it("downloads a calendar with the right name and MIME type, then releases the te
   const view = render(<CalendarDownloadButton create={() => file} />);
   fireEvent.click(screen.getByRole("button"));
   expect(click).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole("status")).toHaveTextContent("Preuzimanje kalendarske datoteke je pokrenuto");
   expect(document.querySelector("a[download]")).toBeNull();
   const blob = createObjectURL.mock.calls[0][0] as Blob;
   expect(blob.type).toBe("text/calendar;charset=utf-8");
@@ -43,6 +44,7 @@ it("allows retry after generation fails without leaving an error on success", ()
   expect(createObjectURL).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button"));
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveTextContent("Otvori .ics datoteku");
   expect(createObjectURL).toHaveBeenCalledTimes(1);
 });
 
@@ -51,6 +53,7 @@ it("cleans up the anchor and URL even when the browser blocks the download", () 
   render(<CalendarDownloadButton create={() => file} />);
   fireEvent.click(screen.getByRole("button"));
   expect(screen.getByRole("alert")).toBeVisible();
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
   expect(document.querySelector("a[download]")).toBeNull();
   act(() => vi.advanceTimersByTime(1000));
   expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith("blob:calendar-test");
@@ -62,4 +65,20 @@ it("does not create a file when the event is no longer exportable", () => {
   fireEvent.click(screen.getByRole("button"));
   expect(createObjectURL).not.toHaveBeenCalled();
   expect(click).not.toHaveBeenCalled();
+  expect(screen.getByRole("alert")).toHaveTextContent("Termin trenutno nije dostupan");
+});
+
+it("replaces previous feedback when availability changes between attempts", () => {
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  const create = vi.fn().mockReturnValueOnce(file).mockReturnValueOnce(null).mockReturnValue(file);
+  render(<CalendarDownloadButton create={create} />);
+  fireEvent.click(screen.getByRole("button"));
+  expect(screen.getByRole("status")).toBeVisible();
+  fireEvent.click(screen.getByRole("button"));
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  expect(screen.getByRole("alert")).toHaveTextContent("proveri da li je potvrđen");
+  fireEvent.click(screen.getByRole("button"));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.getByRole("status")).toBeVisible();
+  expect(createObjectURL).toHaveBeenCalledTimes(2);
 });
