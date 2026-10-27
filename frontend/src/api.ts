@@ -46,7 +46,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function request<T>(path: string, options: RequestInit = {}, text = false): Promise<T> {
   const token = localStorage.getItem("bookica_token");
   const headers = new Headers(options.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -67,10 +67,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     );
   }
   if (response.status === 204) return undefined as T;
+  if (text) return await response.text() as T;
   return response.json();
 }
 
 export const api = {
+  occupancyCalendar: (id: number) => request<string>(`/owner/properties/${id}/occupancy.ics`, {}, true),
   ownerAccessRequests: (admin: boolean, status: string, offset: number, signal?: AbortSignal) => request<OwnerAccessPageData>(`${admin ? "/admin/owner-access" : "/owner-access/mine"}?offset=${offset}${admin ? `&status=${status}` : ""}`, { signal }),
   requestOwnerAccess: (details: string, request_id: string) => request<OwnerAccessRequest>("/owner-access/requests", { method: "POST", body: JSON.stringify({ details, request_id }) }),
   decideOwnerAccess: (id: number, action: "approved" | "rejected", note: string) => request<OwnerAccessRequest>(`/admin/owner-access/${id}/decision`, { method: "POST", body: JSON.stringify({ action, note }) }),

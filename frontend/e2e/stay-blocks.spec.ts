@@ -5,6 +5,13 @@ test("owner creates and removes a private block from the listing manager", async
   const today = propertyToday();
   const listing = { id: 7, venue_id: 1, title: "Moj apartman", city: "Beograd", description: "Ceo stan za odmor i posao.", offer_type: "short_stay", area_sqm: 50, rooms: 2, price_cents: 6500, currency: "EUR", contact_email: "owner@example.com", is_published: true, timezone: "Europe/Belgrade" };
   let blocked = false;
+  let exports = 0;
+  await page.addInitScript(() => localStorage.setItem("bookica_token", "owner-session"));
+  await page.route("**/api/owner/properties/7/occupancy.ics", route => {
+    expect(route.request().headers().authorization).toBe("Bearer owner-session");
+    exports++;
+    return exports === 1 ? route.fulfill({ status: 503, json: { detail: "unavailable" } }) : route.fulfill({ contentType: "text/calendar", body: "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n" });
+  });
   const block = { id: 1, venue_id: 1, check_in: today, check_out: shiftDate(today, 3), reason: "Renoviranje", active: true, created_at: new Date().toISOString() };
   await page.route("**/api/auth/me", route => route.fulfill({ json: { id: 1, email: "owner@example.com", role: "owner" } }));
   await page.route("**/api/venues", route => route.fulfill({ json: [] }));
@@ -23,6 +30,14 @@ test("owner creates and removes a private block from the listing manager", async
   await page.route("**/api/owner/properties/7/stay-blocks/1", route => { blocked = false; return route.fulfill({ status: 204 }); });
   await page.goto("/owner");
   await page.getByRole("button", { name: "Blokade: Moj apartman" }).click();
+  expect(exports).toBe(0);
+  await page.getByRole("button", { name: "Preuzmi zauzetost (.ics)" }).click();
+  await expect(page.getByRole("alert")).toContainText("Izvoz nije uspeo");
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Preuzmi zauzetost (.ics)" }).click();
+  expect((await download).suggestedFilename()).toBe("bookica-occupancy-7.ics");
+  await expect(page.getByText(/Preuzimanje je pokrenuto/)).toBeVisible();
+  await expect(page.getByText(/bez automatske sinhronizacije/)).toBeVisible();
   await page.getByLabel("Kraj blokade").fill(block.check_out);
   await page.getByLabel("Privatni razlog (opciono)").fill(block.reason);
   await page.getByRole("button", { name: "Blokiraj termin" }).click();

@@ -5,9 +5,30 @@ from app.core.dependencies import require_roles
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.stay_block import StayBlockCreate, StayBlockPage, StayBlockRead
+from app.services.occupancy_calendar_service import OccupancyCalendarService
 from app.services.stay_block_service import StayBlockService
 
 router = APIRouter(tags=["Owner stay blocks"])
+
+
+@router.get("/owner/properties/{property_id}/occupancy.ics")
+async def export_occupancy(
+    property_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles("owner", "admin")),
+):
+    content = await OccupancyCalendarService(db).export(property_id, user)
+    return Response(
+        content,
+        media_type="text/calendar",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="bookica-occupancy-{property_id}.ics"'
+            ),
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.get("/owner/properties/{property_id}/stay-blocks", response_model=StayBlockPage)
