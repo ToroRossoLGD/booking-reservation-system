@@ -259,7 +259,8 @@ Launch preparation now takes priority over additional marketplace features. **La
 
 - [ ] External calendar synchronization, conflict reporting and last-sync status; prioritize before relying on Bookica alongside other booking channels.
   - [x] First P2 slice: authenticated owner ICS occupancy snapshot for the next 365 local days, including shared-apartment stays, active blocks and preparation gaps without guest data. Download from the owner's availability panel. See [occupancy export](docs/occupancy-calendar-export.md).
-  - [ ] Revocable subscription URLs, external calendar import, scheduled refresh, conflict handling and last-sync status. The manual snapshot does not provide synchronization.
+  - [x] Revocable live occupancy subscription URLs with owner controls, one-time secret display and private calendar events. See [calendar subscriptions](docs/occupancy-subscriptions.md).
+  - [ ] External calendar import, scheduled refresh, conflict handling and last-sync status. Outbound subscriptions depend on external clients' refresh schedules.
 - [ ] Email/push delivery for nightly stays and viewings, reminders, preferences and delivery tracking. Basic account-recovery email belongs to P1; existing legacy reminders do not complete this property feature.
 - [ ] Online short-stay payments and deposits, including signed webhooks, idempotency, refunds, failed-payment recovery and reconciliation. The legacy hourly Stripe integration does not yet provide this nightly flow.
 - [ ] Long-term leases and monthly rental payments.
