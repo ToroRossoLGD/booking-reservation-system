@@ -54,10 +54,12 @@ from app.api.routers.waivers import router as waivers_router
 from app.api.routers.webhooks import router as webhooks_router
 from app.core.auth_rate_limit import enforce_auth_rate_limit
 from app.core.config import settings
+from app.core.feed_logging import install_feed_log_filter
 from app.core.legacy_write_rate_limit import enforce_legacy_write_ip_limit
 from app.core.property_rate_limit import enforce_property_ip_limit
 from app.db.session import get_db
 
+install_feed_log_filter()
 app = FastAPI(title=settings.APP_NAME)
 
 

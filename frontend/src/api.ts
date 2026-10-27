@@ -35,6 +35,9 @@ const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 import type { OwnerAccessRequest, OwnerAccessPageData } from "./owner-access-types";
 
 export const googleLoginUrl = `${API_URL}/auth/google/login`;
+export function occupancySubscriptionUrl(path: string) {
+  return new URL(`${API_URL}${path}`, window.location.origin).href;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -72,6 +75,9 @@ async function request<T>(path: string, options: RequestInit = {}, text = false)
 }
 
 export const api = {
+  occupancyFeedStatus: (id: number) => request<{ active: boolean }>(`/owner/properties/${id}/occupancy-feed`),
+  rotateOccupancyFeed: (id: number) => request<{ active: boolean; path: string }>(`/owner/properties/${id}/occupancy-feed`, { method: "POST" }),
+  revokeOccupancyFeed: (id: number) => request<{ active: boolean }>(`/owner/properties/${id}/occupancy-feed`, { method: "DELETE" }),
   occupancyCalendar: (id: number) => request<string>(`/owner/properties/${id}/occupancy.ics`, {}, true),
   ownerAccessRequests: (admin: boolean, status: string, offset: number, signal?: AbortSignal) => request<OwnerAccessPageData>(`${admin ? "/admin/owner-access" : "/owner-access/mine"}?offset=${offset}${admin ? `&status=${status}` : ""}`, { signal }),
   requestOwnerAccess: (details: string, request_id: string) => request<OwnerAccessRequest>("/owner-access/requests", { method: "POST", body: JSON.stringify({ details, request_id }) }),

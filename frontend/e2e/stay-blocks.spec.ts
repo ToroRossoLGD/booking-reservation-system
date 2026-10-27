@@ -6,6 +6,13 @@ test("owner creates and removes a private block from the listing manager", async
   const listing = { id: 7, venue_id: 1, title: "Moj apartman", city: "Beograd", description: "Ceo stan za odmor i posao.", offer_type: "short_stay", area_sqm: 50, rooms: 2, price_cents: 6500, currency: "EUR", contact_email: "owner@example.com", is_published: true, timezone: "Europe/Belgrade" };
   let blocked = false;
   let exports = 0;
+  let subscribed = false;
+  await page.route("**/api/owner/properties/7/occupancy-feed", route => {
+    expect(route.request().headers().authorization).toBe("Bearer owner-session");
+    if (route.request().method() === "POST") subscribed = true;
+    if (route.request().method() === "DELETE") subscribed = false;
+    return route.fulfill({ json: { active: subscribed, ...(route.request().method() === "POST" ? { path: "/occupancy-feeds/test-secret.ics" } : {}) } });
+  });
   await page.addInitScript(() => localStorage.setItem("bookica_token", "owner-session"));
   await page.route("**/api/owner/properties/7/occupancy.ics", route => {
     expect(route.request().headers().authorization).toBe("Bearer owner-session");
@@ -38,6 +45,16 @@ test("owner creates and removes a private block from the listing manager", async
   expect((await download).suggestedFilename()).toBe("bookica-occupancy-7.ics");
   await expect(page.getByText(/Preuzimanje je pokrenuto/)).toBeVisible();
   await expect(page.getByText(/bez automatske sinhronizacije/)).toBeVisible();
+  await page.getByRole("button", { name: "Podesi iCal pretplatu" }).click();
+  await page.getByRole("button", { name: "Kreiraj pretplatni link" }).click();
+  expect(subscribed).toBe(false);
+  await page.getByRole("button", { name: "Potvrdi promenu", exact: true }).click();
+  await expect(page.getByLabel("Tajni pretplatni link")).toHaveValue(/\/api\/occupancy-feeds\/test-secret\.ics$/);
+  await page.getByRole("button", { name: "Opozovi pretplatu", exact: true }).click();
+  expect(subscribed).toBe(true);
+  await page.getByRole("button", { name: "Potvrdi promenu", exact: true }).click();
+  await expect(page.getByText("Pretplata nije aktivna.", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Tajni pretplatni link")).toHaveCount(0);
   await page.getByLabel("Kraj blokade").fill(block.check_out);
   await page.getByLabel("Privatni razlog (opciono)").fill(block.reason);
   await page.getByRole("button", { name: "Blokiraj termin" }).click();

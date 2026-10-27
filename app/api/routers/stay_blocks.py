@@ -6,9 +6,53 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.stay_block import StayBlockCreate, StayBlockPage, StayBlockRead
 from app.services.occupancy_calendar_service import OccupancyCalendarService
+from app.services.occupancy_feed_service import OccupancyFeedService
 from app.services.stay_block_service import StayBlockService
 
 router = APIRouter(tags=["Owner stay blocks"])
+
+
+@router.get("/owner/properties/{property_id}/occupancy-feed")
+async def occupancy_feed_status(
+    property_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles("owner", "admin")),
+):
+    return await OccupancyFeedService(db).manage(property_id, user)
+
+
+@router.post("/owner/properties/{property_id}/occupancy-feed")
+async def rotate_occupancy_feed(
+    property_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles("owner", "admin")),
+):
+    data = await OccupancyFeedService(db).manage(property_id, user, "rotate")
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(data, headers={"Cache-Control": "no-store"})
+
+
+@router.delete("/owner/properties/{property_id}/occupancy-feed")
+async def revoke_occupancy_feed(
+    property_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles("owner", "admin")),
+):
+    return await OccupancyFeedService(db).manage(property_id, user, "revoke")
+
+
+@router.get("/occupancy-feeds/{token}.ics")
+async def occupancy_subscription(token: str, db: AsyncSession = Depends(get_db)):
+    return Response(
+        await OccupancyFeedService(db).render(token),
+        media_type="text/calendar",
+        headers={
+            "Cache-Control": "private, no-store",
+            "Referrer-Policy": "no-referrer",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.get("/owner/properties/{property_id}/occupancy.ics")
