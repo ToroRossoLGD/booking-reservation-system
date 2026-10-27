@@ -4,12 +4,42 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import require_roles
 from app.db.session import get_db
 from app.models.user import User
+from app.schemas.occupancy_import import OccupancyImportRequest, OccupancyImportResult
 from app.schemas.stay_block import StayBlockCreate, StayBlockPage, StayBlockRead
 from app.services.occupancy_calendar_service import OccupancyCalendarService
 from app.services.occupancy_feed_service import OccupancyFeedService
+from app.services.occupancy_import_service import OccupancyImportService
 from app.services.stay_block_service import StayBlockService
 
 router = APIRouter(tags=["Owner stay blocks"])
+
+
+@router.post(
+    "/owner/properties/{property_id}/occupancy-import/preview",
+    response_model=OccupancyImportResult,
+)
+async def preview_occupancy_import(
+    property_id: int,
+    data: OccupancyImportRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles("owner", "admin")),
+):
+    return await OccupancyImportService(db).run(property_id, user, data.content)
+
+
+@router.post(
+    "/owner/properties/{property_id}/occupancy-import",
+    response_model=OccupancyImportResult,
+)
+async def import_occupancy(
+    property_id: int,
+    data: OccupancyImportRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles("owner", "admin")),
+):
+    return await OccupancyImportService(db).run(
+        property_id, user, data.content, apply=True
+    )
 
 
 @router.get("/owner/properties/{property_id}/occupancy-feed")

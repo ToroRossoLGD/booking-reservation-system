@@ -20,6 +20,14 @@ test("owner creates and removes a private block from the listing manager", async
     return exports === 1 ? route.fulfill({ status: 503, json: { detail: "unavailable" } }) : route.fulfill({ contentType: "text/calendar", body: "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n" });
   });
   const block = { id: 1, venue_id: 1, check_in: today, check_out: shiftDate(today, 3), reason: "Renoviranje", active: true, created_at: new Date().toISOString() };
+  const calendar = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nDTSTART;VALUE=DATE:${today.replaceAll("-", "")}\r\nDTEND;VALUE=DATE:${block.check_out.replaceAll("-", "")}\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n`;
+  await page.route("**/api/owner/properties/7/occupancy-import**", route => {
+    expect(route.request().headers().authorization).toBe("Bearer owner-session");
+    expect(route.request().postDataJSON()).toEqual({ content: calendar });
+    const applied = !route.request().url().endsWith("/preview");
+    if (applied) blocked = true;
+    return route.fulfill({ json: { ranges: [{ check_in: today, check_out: block.check_out, status: "ready" }], ignored: 0, clipped: 0, applied, created: applied ? 1 : 0 } });
+  });
   await page.route("**/api/auth/me", route => route.fulfill({ json: { id: 1, email: "owner@example.com", role: "owner" } }));
   await page.route("**/api/venues", route => route.fulfill({ json: [] }));
   await page.route("**/api/promotions/active", route => route.fulfill({ json: [] }));
@@ -66,4 +74,13 @@ test("owner creates and removes a private block from the listing manager", async
   expect(blocked).toBe(true);
   await page.getByRole("button", { name: "Potvrdi uklanjanje" }).click();
   await expect(page.getByText("Aktivnih blokada: 0")).toBeVisible();
+  await page.getByLabel("iCal fajl (.ics, do 100 KB)").setInputFiles({ name: "availability.ics", mimeType: "text/calendar", buffer: Buffer.from(calendar) });
+  await page.getByRole("button", { name: "Pregledaj uvoz" }).click();
+  await expect(page.getByText(/Nova blokada/)).toBeVisible();
+  expect(blocked).toBe(false);
+  await page.getByRole("button", { name: "Potvrdi uvoz blokada" }).click();
+  await expect(page.getByText(/Uvoz je završen/)).toBeVisible();
+  await expect(page.getByText("Aktivnih blokada: 1")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("owner-calendar-import.png"), fullPage: true });
 });

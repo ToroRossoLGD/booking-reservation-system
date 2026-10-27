@@ -5,6 +5,7 @@ import type { StayBlockPage } from "./stay-types";
 import { displayDate, propertyToday, shiftDate } from "./stay-types";
 import OccupancyCalendarExport from "./OccupancyCalendarExport";
 import OccupancySubscription from "./OccupancySubscription";
+import OccupancyImport from "./OccupancyImport";
 
 export default function StayBlockManager({ property }: { property: PropertyListing }) {
   const today = propertyToday(property.timezone);
@@ -56,6 +57,7 @@ export default function StayBlockManager({ property }: { property: PropertyListi
     <h3>Zauzetost: {property.title}</h3>
     {property.offer_type === "short_stay" && <OccupancyCalendarExport key={property.id} propertyId={property.id} />}
     {property.offer_type === "short_stay" && <OccupancySubscription key={`feed-${property.id}`} propertyId={property.id} />}
+    {property.offer_type === "short_stay" && <OccupancyImport propertyId={property.id} onImported={() => refresh(0)} />}
     <p>Blokade važe za sve oglase istog objekta. Poslednji datum nije blokiran i može biti novi dolazak. Razlog vidiš samo ti i administratori.</p>
     <p>Vremenska zona: {property.timezone ?? "Europe/Belgrade"}. Postojeće rezervacije se ne otkazuju blokadom.</p>
     {property.offer_type === "short_stay" && <form onSubmit={event => { event.preventDefault(); void create(); }}>
