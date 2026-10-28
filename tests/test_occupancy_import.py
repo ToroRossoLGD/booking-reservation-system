@@ -16,6 +16,7 @@ from app.core.config import settings
 from app.core.dependencies import get_current_user
 from app.db.base import Base
 from app.db.session import get_db
+from app.models.occupancy_import_run import OccupancyImportRun
 from app.models.stay_block import StayBlock
 from app.services.occupancy_import_service import OccupancyImportService, parse_calendar
 from app.services.stay_service import StayService
@@ -42,6 +43,8 @@ def calendar(*events):
 @pytest.fixture
 def importer(stay_service, monkeypatch):
     monkeypatch.setattr(settings, "DEMO_MODE", False)
+    session = stay_service.repository.db.scalar.side_effect.__self__
+    OccupancyImportRun.__table__.create(session.get_bind())
     return OccupancyImportService(stay_service.repository.db)
 
 
@@ -201,6 +204,7 @@ async def test_postgres_import_serializes_with_alias_booking(monkeypatch):
                         test_stays.Resource.__table__,
                         test_stays.Stay.__table__,
                         StayBlock.__table__,
+                        OccupancyImportRun.__table__,
                         test_stays.Notification.__table__,
                     ],
                 )

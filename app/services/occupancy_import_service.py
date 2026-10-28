@@ -5,8 +5,10 @@ from datetime import date, timedelta
 from uuid import uuid4
 
 from fastapi import HTTPException
+from sqlalchemy import select
 
 from app.core.config import settings
+from app.models.occupancy_import_run import OccupancyImportRun
 from app.models.stay_block import StayBlock
 from app.services.stay_block_service import StayBlockService
 from app.services.stay_service import StayService
@@ -126,6 +128,16 @@ def parse_calendar(content: str):
 
 
 class OccupancyImportService(StayBlockService):
+    async def history(self, property_id, user):
+        listing = await self.authorize(property_id, user)
+        rows = await self.db.scalars(
+            select(OccupancyImportRun)
+            .where(OccupancyImportRun.venue_id == listing.venue_id)
+            .order_by(OccupancyImportRun.id.desc())
+            .limit(10)
+        )
+        return list(rows.all())
+
     async def run(self, property_id, user, content, apply=False):
         if apply and settings.DEMO_MODE:
             raise HTTPException(403, "Calendar import is disabled in demo mode")
@@ -191,6 +203,19 @@ class OccupancyImportService(StayBlockService):
                         )
                     )
                     created += 1
+        if apply:
+            # Outcome and new blocks commit together; a conflict records no blocks.
+            self.db.add(
+                OccupancyImportRun(
+                    venue_id=listing.venue_id,
+                    status="conflict" if conflicts else "applied",
+                    created=created,
+                    existing=sum(item["status"] == "existing" for item in result),
+                    conflicts=sum(item["status"] == "conflict" for item in result),
+                    ignored=ignored,
+                    clipped=clipped,
+                )
+            )
             await self.db.commit()
         return {
             "ranges": result,

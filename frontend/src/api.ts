@@ -34,6 +34,7 @@ import type { StayBlock, StayBlockPage, StayBlockCreate, Stay, StayCalendar, Sta
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 import type { OwnerAccessRequest, OwnerAccessPageData } from "./owner-access-types";
 import type { OccupancyImportResult } from "./OccupancyImport";
+import type { OccupancyImportRun } from "./OccupancyImportHistory";
 
 export const googleLoginUrl = `${API_URL}/auth/google/login`;
 export function occupancySubscriptionUrl(path: string) {
@@ -76,6 +77,7 @@ async function request<T>(path: string, options: RequestInit = {}, text = false)
 }
 
 export const api = {
+  occupancyImportHistory: (id: number, signal?: AbortSignal) => request<OccupancyImportRun[]>(`/owner/properties/${id}/occupancy-import/history`, { signal }),
   importOccupancy: (id: number, content: string, apply: boolean) => request<OccupancyImportResult>(`/owner/properties/${id}/occupancy-import${apply ? "" : "/preview"}`, { method: "POST", body: JSON.stringify({ content }) }),
   occupancyFeedStatus: (id: number) => request<{ active: boolean }>(`/owner/properties/${id}/occupancy-feed`),
   rotateOccupancyFeed: (id: number) => request<{ active: boolean; path: string }>(`/owner/properties/${id}/occupancy-feed`, { method: "POST" }),

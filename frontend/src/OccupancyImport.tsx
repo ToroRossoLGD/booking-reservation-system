@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { api, ApiError } from "./api";
 import { displayDate } from "./stay-types";
+import OccupancyImportHistory from "./OccupancyImportHistory";
 
 export type OccupancyImportResult = {
   ranges: { check_in: string; check_out: string; status: "ready" | "existing" | "conflict" }[];
@@ -27,6 +28,7 @@ function ImportPanel({ propertyId, session, onImported }: { propertyId: number; 
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<OccupancyImportResult | null>(null);
   const [error, setError] = useState("");
+  const [historyVersion, setHistoryVersion] = useState(0);
   const inFlight = useRef(false);
   const live = useRef(true);
   const report = useRef<HTMLDivElement>(null);
@@ -60,13 +62,20 @@ function ImportPanel({ propertyId, session, onImported }: { propertyId: number; 
       if (current()) setError(err instanceof ApiError && [400, 422].includes(err.status)
         ? "Fajl nije podržan. Koristi iCal 2.0 sa najviše 100 celodnevnih događaja (VALUE=DATE), bez ponavljanja, satnice, DURATION ili dodatnih komponenti."
         : "Uvoz nije potvrđen. Proveri prijavu i ponovi pregled; već sačuvani identični termini neće se duplirati.");
-    } finally { inFlight.current = false; if (current()) setBusy(false); }
+    } finally {
+      inFlight.current = false;
+      if (current()) {
+        setBusy(false);
+        if (apply) setHistoryVersion(value => value + 1);
+      }
+    }
   }
 
   const conflicts = result?.ranges.some(item => item.status === "conflict");
   const labels = { ready: "Nova blokada", existing: "Već blokirano", conflict: "Preklapanje — proveri termin" };
   return <section aria-label="Uvoz zauzetosti iz kalendara">
     <h4>Uvezi iCal fajl</h4>
+    <OccupancyImportHistory propertyId={propertyId} revision={historyVersion} />
     <p>Jednokratni uvoz celodnevnih termina, bez automatskog osvežavanja. Datumi važe za sve oglase istog objekta. Nazivi događaja i podaci gostiju se ne čuvaju.</p>
     <p>Uvoze se samo datumi od danas do 365 dana unapred. Preklopljeni i susedni termini iz fajla se spajaju. Poslednji datum je slobodan za novi dolazak.</p>
     <label>iCal fajl (.ics, do 100 KB)<input ref={fileInput} type="file" accept=".ics,text/calendar" disabled={busy} onChange={event => void selectFile(event.target.files?.[0])} /></label>

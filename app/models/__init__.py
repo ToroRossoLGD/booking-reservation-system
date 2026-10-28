@@ -14,6 +14,7 @@ from app.models.maintenance import MaintenanceActivity, MaintenanceWorkOrder
 from app.models.media_asset import MediaAsset as MediaAsset
 from app.models.notification import Notification
 from app.models.occupancy_feed import OccupancyFeed
+from app.models.occupancy_import_run import OccupancyImportRun
 from app.models.owner_access_request import OwnerAccessRequest
 from app.models.password_reset_token import PasswordResetToken
 from app.models.payment import Payment
@@ -96,6 +97,7 @@ __all__ = [
     "AvailabilityRule",
     "CalendarFeed",
     "OccupancyFeed",
+    "OccupancyImportRun",
     "AvailabilityException",
     "WaitlistEntry",
     "WebhookSubscription",

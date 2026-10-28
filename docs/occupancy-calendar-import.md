@@ -21,6 +21,16 @@ Authenticated owner/admin endpoints accept JSON `{ "content": "BEGIN:VCALENDAR..
 - `POST /owner/properties/{id}/occupancy-import/preview`
 - `POST /owner/properties/{id}/occupancy-import`
 
-Responses contain date ranges with `ready`, `existing` or `conflict` status, skipped/clipped counts, `applied` and `created`. A conflict result is HTTP 200 with `applied: false`; callers must inspect it. Invalid files return 400/422, unauthorized access 401/403. Demo mode rejects confirmation. No new migration or dependency is required.
+Responses contain date ranges with `ready`, `existing` or `conflict` status, skipped/clipped counts, `applied` and `created`. A conflict result is HTTP 200 with `applied: false`; callers must inspect it. Invalid files return 400/422, unauthorized access 401/403. Demo mode rejects confirmation.
+
+## Import history
+
+Choose **Istorija uvoza kalendara** to see the latest 10 confirmed attempts for the apartment, newest first. All listing aliases share this history. Each entry shows its time in UTC, success or conflict outcome, new/existing blocks, conflicting ranges and skipped/clipped event counts. A successful attempt with no new blocks is labeled separately. Refresh the history after an uncertain network response to check whether an attempt committed; retrying a confirmation can add another history entry even when no duplicate blocks are created.
+
+`GET /owner/properties/{id}/occupancy-import/history` returns these entries to the current owner or an administrator, with private/no-store caching. The UI refreshes an open history after confirmation and clears it on an account change. History survives page reloads. It does not contain file contents, guest metadata, source URLs or filenames. Records describe the outcome at import time; later removal of a block does not rewrite history.
+
+History is stored atomically with newly imported blocks. Conflict attempts record an outcome without adding blocks. Preview-only requests, malformed/unsupported files, authorization failures and rolled-back transactions are not recorded. Earlier imports are not backfilled. The endpoint shows only the newest 10 records; older records remain in the database. This is manual import history, not a last-sync or source-health monitor.
+
+Before deploying history support, run `alembic upgrade head` (migration `c94e15fa0823`). No new dependency is required.
 
 This is an additive manual snapshot import, not a connection to a source calendar. Reimporting changed or cancelled events does not remove previous blocks; review/remove those explicitly. If you remove a block and import the file again, it can be created again. Imported occupancy is included in outbound exports, so avoid feeding a Bookica export back into the same apartment. No external URLs are fetched. Automatic refresh, source-aware reconciliation, last-sync reporting and broader format support remain future work.
