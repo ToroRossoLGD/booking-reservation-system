@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -21,3 +21,15 @@ class OccupancyImportResult(BaseModel):
     clipped: int
     applied: bool
     created: int
+
+
+class OccupancyImportRunRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: datetime
+    status: Literal["applied", "conflict"]
+    created: int
+    existing: int
+    conflicts: int
+    ignored: int
+    clipped: int
