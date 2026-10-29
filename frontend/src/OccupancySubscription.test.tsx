@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { api } from "./api";
 import OccupancySubscription from "./OccupancySubscription";
@@ -20,7 +20,7 @@ it("loads on demand, requires confirmation and removes the secret after revocati
   fireEvent.click(screen.getByText("Kreiraj pretplatni link"));
   fireEvent.click(screen.getByText("Potvrdi promenu"));
   expect(await screen.findByLabelText("Tajni pretplatni link")).toHaveValue("https://example.test/api/occupancy-feeds/secret.ics");
-  expect(screen.getByLabelText("Tajni pretplatni link")).toHaveFocus();
+  await waitFor(() => expect(screen.getByLabelText("Tajni pretplatni link")).toHaveFocus());
   fireEvent.click(screen.getByText("Opozovi pretplatu"));
   expect(api.revokeOccupancyFeed).not.toHaveBeenCalled();
   fireEvent.click(screen.getByText("Potvrdi promenu"));

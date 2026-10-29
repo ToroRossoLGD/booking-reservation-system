@@ -34,6 +34,7 @@ import type { StayBlock, StayBlockPage, StayBlockCreate, Stay, StayCalendar, Sta
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 import type { OwnerAccessRequest, OwnerAccessPageData } from "./owner-access-types";
 import type { OccupancyImportResult } from "./OccupancyImport";
+import type { OccupancySource } from "./OccupancySources";
 import type { OccupancyImportRun } from "./OccupancyImportHistory";
 
 export const googleLoginUrl = `${API_URL}/auth/google/login`;
@@ -77,9 +78,12 @@ async function request<T>(path: string, options: RequestInit = {}, text = false)
 }
 
 export const api = {
+  occupancySources: (id: number, signal?: AbortSignal) => request<OccupancySource[]>(`/owner/properties/${id}/occupancy-sources`, { signal }),
+  createOccupancySource: (id: number, name: string) => request<OccupancySource>(`/owner/properties/${id}/occupancy-sources`, { method: "POST", body: JSON.stringify({ name }) }),
+  removeOccupancySource: (id: number, source: number) => request<void>(`/owner/properties/${id}/occupancy-sources/${source}`, { method: "DELETE" }),
   fetchOccupancyUrl: (id: number, url: string) => request<{ content: string }>(`/owner/properties/${id}/occupancy-import/url`, { method: "POST", body: JSON.stringify({ url }) }),
   occupancyImportHistory: (id: number, signal?: AbortSignal) => request<OccupancyImportRun[]>(`/owner/properties/${id}/occupancy-import/history`, { signal }),
-  importOccupancy: (id: number, content: string, apply: boolean) => request<OccupancyImportResult>(`/owner/properties/${id}/occupancy-import${apply ? "" : "/preview"}`, { method: "POST", body: JSON.stringify({ content }) }),
+  importOccupancy: (id: number, content: string, apply: boolean, source_id?: number, source_revision?: number) => request<OccupancyImportResult>(`/owner/properties/${id}/occupancy-import${apply ? "" : "/preview"}`, { method: "POST", body: JSON.stringify({ content, source_id, source_revision }) }),
   occupancyFeedStatus: (id: number) => request<{ active: boolean }>(`/owner/properties/${id}/occupancy-feed`),
   rotateOccupancyFeed: (id: number) => request<{ active: boolean; path: string }>(`/owner/properties/${id}/occupancy-feed`, { method: "POST" }),
   revokeOccupancyFeed: (id: number) => request<{ active: boolean }>(`/owner/properties/${id}/occupancy-feed`, { method: "DELETE" }),

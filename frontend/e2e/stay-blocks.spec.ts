@@ -22,12 +22,31 @@ test("owner creates and removes a private block from the listing manager", async
   const block = { id: 1, venue_id: 1, check_in: today, check_out: shiftDate(today, 3), reason: "Renoviranje", active: true, created_at: new Date().toISOString() };
   const calendar = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nDTSTART;VALUE=DATE:${today.replaceAll("-", "")}\r\nDTEND;VALUE=DATE:${block.check_out.replaceAll("-", "")}\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n`;
   let imported = false;
+  let sourceExists = false;
+  let sourceRevision = 0;
+  let sourceOwned = false;
+  const emptyCalendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n";
   await page.route("**/api/owner/properties/7/occupancy-import**", route => {
     expect(route.request().headers().authorization).toBe("Bearer owner-session");
-    expect(route.request().postDataJSON()).toEqual({ content: calendar });
+    const data = route.request().postDataJSON();
     const applied = !route.request().url().endsWith("/preview");
+    if (data.source_id === 4) {
+      const empty = data.content === emptyCalendar;
+      const removed = empty && sourceOwned ? 1 : 0;
+      if (applied) {
+        expect(data.source_revision).toBe(sourceRevision);
+        sourceRevision++; sourceOwned = !empty; blocked = !empty;
+      }
+      return route.fulfill({ json: { ranges: empty ? [] : [{ check_in: today, check_out: block.check_out, status: "ready" }], ignored: 0, clipped: 0, applied, created: applied && !empty ? 1 : 0, removed, removed_ranges: removed ? [{ check_in: today, check_out: block.check_out }] : [], source_revision: sourceRevision } });
+    }
+    expect(data).toEqual({ content: calendar });
     if (applied) { blocked = true; imported = true; }
     return route.fulfill({ json: { ranges: [{ check_in: today, check_out: block.check_out, status: "ready" }], ignored: 0, clipped: 0, applied, created: applied ? 1 : 0 } });
+  });
+  await page.route("**/api/owner/properties/7/occupancy-sources", route => {
+    const source = { id: 4, name: "Channel A", revision: sourceRevision, last_attempt_at: null, last_success_at: null, last_status: null };
+    if (route.request().method() === "POST") { sourceExists = true; return route.fulfill({ json: source }); }
+    return route.fulfill({ json: sourceExists ? [source] : [] });
   });
   await page.route("**/api/owner/properties/7/occupancy-import/history", route => {
     expect(route.request().method()).toBe("GET");
@@ -109,6 +128,23 @@ test("owner creates and removes a private block from the listing manager", async
   await page.getByRole("button", { name: "Potvrdi uvoz blokada" }).click();
   await expect(page.getByText(/Uvoz je završen/)).toBeVisible();
   expect(fetches).toBe(2);
+  await page.getByRole("button", { name: "Ukloni blokadu", exact: true }).click();
+  await page.getByRole("button", { name: "Potvrdi uklanjanje", exact: true }).click();
+  await expect(page.getByText("Aktivnih blokada: 0")).toBeVisible();
+  await page.getByRole("button", { name: "Uvoz po izvoru kalendara" }).click();
+  await page.getByLabel("Naziv novog izvora (bez linka)").fill("Channel A");
+  await page.getByRole("button", { name: "Dodaj izvor" }).click();
+  await expect(page.getByLabel("Izvor za ovaj uvoz")).toHaveValue("4");
+  await page.getByLabel("iCal fajl (.ics, do 100 KB)").setInputFiles({ name: "channel.ics", mimeType: "text/calendar", buffer: Buffer.from(calendar) });
+  await page.getByRole("button", { name: "Pregledaj uvoz" }).click();
+  await page.getByRole("button", { name: "Potvrdi uvoz blokada" }).click();
+  await expect(page.getByText("Aktivnih blokada: 1")).toBeVisible();
+  await page.getByLabel("iCal fajl (.ics, do 100 KB)").setInputFiles({ name: "channel-empty.ics", mimeType: "text/calendar", buffer: Buffer.from(emptyCalendar) });
+  await page.getByRole("button", { name: "Pregledaj uvoz" }).click();
+  await expect(page.getByLabel("Blokade izvora za uklanjanje")).toBeVisible();
+  expect(blocked).toBe(true);
+  await page.getByRole("button", { name: "Potvrdi uvoz blokada" }).click();
+  await expect(page.getByText("Aktivnih blokada: 0")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("owner-calendar-import.png"), fullPage: true });
 });

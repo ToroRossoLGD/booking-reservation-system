@@ -2,7 +2,7 @@
 
 In the owner's short-stay availability panel, enter a private iCal HTTPS link and choose **Preuzmi i pregledaj link**. Bookica downloads a snapshot, strips descriptive metadata and shows the existing import preview. **Potvrdi uvoz blokada** imports exactly that reviewed snapshot, with the usual fresh availability check under the apartment lock. Confirmation does not fetch the URL again. Successful and conflicting confirmation attempts appear in manual import history.
 
-This is a one-shot import, not a stored calendar connection. URL changes and cancellations are not automatically applied. Repeated imports remain additive; remove outdated blocks explicitly. Recurrence, timed events and additional components remain unsupported; all [file import constraints](occupancy-calendar-import.md) apply.
+This is a one-shot import, not a stored calendar connection. URL changes and cancellations are not automatically applied. Repeated imports without a selected source remain additive; [named sources](occupancy-calendar-sources.md) allow manual reconciliation of their own blocks after preview and confirmation. Recurrence, timed events and additional components remain unsupported; all [file import constraints](occupancy-calendar-import.md) apply.
 
 ## Configuration
 
