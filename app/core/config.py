@@ -89,6 +89,7 @@ class Settings(BaseSettings):
     MAX_ACTIVE_CALENDAR_FEEDS: int = 10
     CALENDAR_FEED_PAST_DAYS: int = 30
     CALENDAR_FEED_FUTURE_DAYS: int = 365
+    OCCUPANCY_IMPORT_ALLOWED_HOSTS: str = ""
 
     CACHE_TTL_SECONDS: int = 60
 

@@ -21,7 +21,7 @@ def invalid(message="Invalid or unsupported calendar"):
     return HTTPException(400, message)
 
 
-def parse_calendar(content: str):
+def _calendar_events(content: str):
     # Deliberately support a strict subset instead of guessing recurrence/time zones.
     try:
         size = len(content.encode("utf-8"))
@@ -89,6 +89,11 @@ def parse_calendar(content: str):
         raise invalid()
     if "METHOD" in calendar and calendar["METHOD"][1].upper() != "PUBLISH":
         raise invalid("Scheduling messages are not supported")
+    return events
+
+
+def parse_calendar(content: str):
+    events = _calendar_events(content)
     ranges, ignored = [], 0
 
     def day(field):
@@ -125,6 +130,22 @@ def parse_calendar(content: str):
         else:
             ranges.append((start, end))
     return ranges, ignored
+
+
+def sanitized_calendar(content: str):
+    """Return validated date/status fields only; never expose remote guest metadata."""
+    parse_calendar(content)
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0"]
+    for event in _calendar_events(content):
+        lines.append("BEGIN:VEVENT")
+        for name in ("DTSTART", "DTEND", "STATUS", "TRANSP"):
+            if name in event:
+                key, value = event[name]
+                # Parameters on non-date fields may contain descriptive metadata.
+                lines.append(f"{key if name in {'DTSTART', 'DTEND'} else name}:{value}")
+        lines.append("END:VEVENT")
+    lines.append("END:VCALENDAR")
+    return "\r\n".join(lines) + "\r\n"
 
 
 class OccupancyImportService(StayBlockService):
