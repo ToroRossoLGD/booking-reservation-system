@@ -1,7 +1,7 @@
 """Bounded, date-only ICS snapshot import; never fetches external URLs."""
 
 import re
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -9,7 +9,9 @@ from sqlalchemy import select
 
 from app.core.config import settings
 from app.models.occupancy_import_run import OccupancyImportRun
+from app.models.occupancy_source import OccupancySourceBlock
 from app.models.stay_block import StayBlock
+from app.services.occupancy_source_service import OccupancySourceService
 from app.services.stay_block_service import StayBlockService
 from app.services.stay_service import StayService
 
@@ -159,12 +161,28 @@ class OccupancyImportService(StayBlockService):
         )
         return list(rows.all())
 
-    async def run(self, property_id, user, content, apply=False):
+    async def run(
+        self,
+        property_id,
+        user,
+        content,
+        apply=False,
+        source_id=None,
+        source_revision=None,
+    ):
         if apply and settings.DEMO_MODE:
             raise HTTPException(403, "Calendar import is disabled in demo mode")
         listing = await self.authorize(property_id, user, lock=apply)
         if listing.offer_type != "short_stay":
             raise invalid("Only short stays support calendar import")
+        source = None
+        owned = []
+        if source_id is not None:
+            sources = OccupancySourceService(self.db)
+            source = await sources.get(listing.venue_id, source_id)
+            if apply and source_revision != source.revision:
+                raise HTTPException(409, "Calendar source changed; preview again")
+            owned = await sources.blocks(source.id)
         ranges, ignored = parse_calendar(content)
         today = StayService.today(listing.timezone)
         horizon = today + timedelta(days=365)
@@ -188,17 +206,25 @@ class OccupancyImportService(StayBlockService):
             preparation_days=await self.stays.preparation_days(listing.venue_id),
         )
         result = []
+        owned_ids = {block.id for block in owned}
+        owned_ranges = {(block.check_in, block.check_out) for block in owned}
+        removed = [
+            block for block in owned if (block.check_in, block.check_out) not in merged
+        ]
         for start, end in merged:
             overlaps = [
                 item
                 for item in occupied
-                if item.check_in < end and item.check_out > start
+                if item.check_in < end
+                and item.check_out > start
+                and not (isinstance(item, StayBlock) and item.id in owned_ids)
             ]
-            status = "ready"
+            status = "existing" if (start, end) in owned_ranges else "ready"
             if overlaps:
                 status = (
                     "existing"
-                    if all(
+                    if source is None
+                    and all(
                         isinstance(item, StayBlock)
                         and item.check_in == start
                         and item.check_out == end
@@ -210,21 +236,33 @@ class OccupancyImportService(StayBlockService):
         conflicts = any(item["status"] == "conflict" for item in result)
         created = 0
         if apply and not conflicts:
+            for block in removed:
+                block.active = False
             for item in result:
                 if item["status"] == "ready":
-                    self.db.add(
-                        StayBlock(
-                            venue_id=listing.venue_id,
-                            created_by_id=user.id,
-                            request_id=str(uuid4()),
-                            check_in=item["check_in"],
-                            check_out=item["check_out"],
-                            reason="iCal import",
-                            active=True,
-                        )
+                    block = StayBlock(
+                        venue_id=listing.venue_id,
+                        created_by_id=user.id,
+                        request_id=str(uuid4()),
+                        check_in=item["check_in"],
+                        check_out=item["check_out"],
+                        reason="iCal source" if source else "iCal import",
+                        active=True,
                     )
+                    self.db.add(block)
+                    if source:
+                        await self.db.flush()
+                        self.db.add(
+                            OccupancySourceBlock(source_id=source.id, block_id=block.id)
+                        )
                     created += 1
         if apply:
+            if source:
+                source.last_attempt_at = datetime.now(UTC)
+                source.last_status = "conflict" if conflicts else "applied"
+                if not conflicts:
+                    source.last_success_at = source.last_attempt_at
+                    source.revision += 1
             # Outcome and new blocks commit together; a conflict records no blocks.
             self.db.add(
                 OccupancyImportRun(
@@ -244,4 +282,12 @@ class OccupancyImportService(StayBlockService):
             "clipped": clipped,
             "applied": apply and not conflicts,
             "created": created,
+            "removed": len(removed) if not apply or not conflicts else 0,
+            "source_revision": source.revision if source else None,
+            "removed_ranges": [
+                {"check_in": block.check_in, "check_out": block.check_out}
+                for block in removed
+            ]
+            if not apply or not conflicts
+            else [],
         }

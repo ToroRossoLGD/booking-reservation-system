@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { api, ApiError } from "./api";
 import { displayDate } from "./stay-types";
 import OccupancyImportHistory from "./OccupancyImportHistory";
+import OccupancySources from "./OccupancySources";
 
 export type OccupancyImportResult = {
   ranges: { check_in: string; check_out: string; status: "ready" | "existing" | "conflict" }[];
@@ -9,6 +10,9 @@ export type OccupancyImportResult = {
   clipped: number;
   applied: boolean;
   created: number;
+  removed?: number;
+  source_revision?: number | null;
+  removed_ranges?: { check_in: string; check_out: string }[];
 };
 
 function snapshot() { return localStorage.getItem("bookica_token") ?? ""; }
@@ -30,6 +34,7 @@ function ImportPanel({ propertyId, session, onImported }: { propertyId: number; 
   const [error, setError] = useState("");
   const [historyVersion, setHistoryVersion] = useState(0);
   const [sourceUrl, setSourceUrl] = useState("");
+  const [sourceId, setSourceId] = useState<number>();
   const inFlight = useRef(false);
   const live = useRef(true);
   const report = useRef<HTMLDivElement>(null);
@@ -52,13 +57,13 @@ function ImportPanel({ propertyId, session, onImported }: { propertyId: number; 
   }
 
   async function fetchUrl() {
-    if (inFlight.current || !sourceUrl.trim() || !current()) return;
+    if (busy || inFlight.current || !sourceUrl.trim() || !current()) return;
     inFlight.current = true; setBusy(true); setError(""); setContent(""); setResult(null);
     if (fileInput.current) fileInput.current.value = "";
     try {
       const fetched = await api.fetchOccupancyUrl(propertyId, sourceUrl.trim());
       if (!current()) return;
-      const preview = await api.importOccupancy(propertyId, fetched.content, false);
+      const preview = sourceId ? await api.importOccupancy(propertyId, fetched.content, false, sourceId) : await api.importOccupancy(propertyId, fetched.content, false);
       if (!current()) return;
       setContent(fetched.content); setResult(preview); setSourceUrl("");
     } catch (err) {
@@ -69,14 +74,17 @@ function ImportPanel({ propertyId, session, onImported }: { propertyId: number; 
   }
 
   async function submit(apply: boolean) {
-    if (inFlight.current || !content || !current()) return;
+    if (busy || inFlight.current || !content || !current()) return;
     inFlight.current = true; setBusy(true); setError("");
     try {
-      const next = await api.importOccupancy(propertyId, content, apply);
+      const next = sourceId ? await api.importOccupancy(propertyId, content, apply, sourceId, apply ? result?.source_revision ?? undefined : undefined) : await api.importOccupancy(propertyId, content, apply);
       if (!current()) return;
       setResult(next);
       if (next.applied) onImported();
     } catch (err) {
+      if (current() && err instanceof ApiError && err.status === 409) {
+        setResult(null); setError("Izvor je promenjen od pregleda. Ponovi pregled pre potvrde."); return;
+      }
       if (current()) setError(err instanceof ApiError && [400, 422].includes(err.status)
         ? "Fajl nije podržan. Koristi iCal 2.0 sa najviše 100 celodnevnih događaja (VALUE=DATE), bez ponavljanja, satnice, DURATION ili dodatnih komponenti."
         : "Uvoz nije potvrđen. Proveri prijavu i ponovi pregled; već sačuvani identični termini neće se duplirati.");
@@ -94,6 +102,7 @@ function ImportPanel({ propertyId, session, onImported }: { propertyId: number; 
   return <section aria-label="Uvoz zauzetosti iz kalendara">
     <h4>Uvezi iCal fajl</h4>
     <OccupancyImportHistory propertyId={propertyId} revision={historyVersion} />
+    <OccupancySources propertyId={propertyId} value={sourceId} revision={historyVersion} busy={busy} onBusy={setBusy} onChange={value => { setSourceId(value); setResult(null); setError(""); }} onRemoved={onImported} />
     <p>Jednokratni uvoz celodnevnih termina, bez automatskog osvežavanja. Datumi važe za sve oglase istog objekta. Nazivi događaja i podaci gostiju se ne čuvaju.</p>
     <p>Uvoze se samo datumi od danas do 365 dana unapred. Preklopljeni i susedni termini iz fajla se spajaju. Poslednji datum je slobodan za novi dolazak.</p>
     <label>Privatni iCal HTTPS link<input type="password" autoComplete="off" spellCheck={false} maxLength={2048} disabled={busy} value={sourceUrl} onChange={event => { setSourceUrl(event.target.value); setContent(""); setResult(null); setError(""); if (fileInput.current) fileInput.current.value = ""; }} /></label>
@@ -107,10 +116,12 @@ function ImportPanel({ propertyId, session, onImported }: { propertyId: number; 
       <p>Preskočenih događaja: {result.ignored}. Skraćenih na podržani period: {result.clipped}.</p>
       {result.ranges.length === 0 && <p>Nema zauzetih termina za uvoz u narednih 365 dana.</p>}
       <ul>{result.ranges.map(item => <li key={`${item.check_in}:${item.check_out}`}>{displayDate(item.check_in)} — {displayDate(item.check_out)}: {labels[item.status]}</li>)}</ul>
+      {sourceId && <p>{result.applied ? "Uklonjeno blokada izvora" : "Blokada izabranog izvora za uklanjanje pri potvrdi"}: {result.removed ?? 0}. Ručne blokade i rezervacije se ne uklanjaju.</p>}
+      {!!result.removed_ranges?.length && <ul aria-label="Blokade izvora za uklanjanje">{result.removed_ranges.map(item => <li key={`${item.check_in}:${item.check_out}`}>{displayDate(item.check_in)} — {displayDate(item.check_out)}</li>)}</ul>}
       {result.applied ? <p role="status">Uvoz je završen. Novih blokada: {result.created}. Uklanjaš ih pojedinačno u listi blokada.</p> : <>
         {conflicts && <p role="alert">Postoje preklapanja sa rezervacijama, pripremom ili blokadama. Nijedan termin nije uvezen. Ispravi fajl ili zauzetost pa ponovi pregled.</p>}
         <p>Potvrdom dodaješ prikazane nove blokade. Postojeće rezervacije i blokade se ne menjaju. Zauzetost se ponovo proverava pri potvrdi.</p>
-        <button disabled={busy || conflicts || !result.ranges.length} onClick={() => void submit(true)}>Potvrdi uvoz blokada</button>
+        <button disabled={busy || conflicts || (!result.ranges.length && !result.removed)} onClick={() => void submit(true)}>Potvrdi uvoz blokada</button>
       </>}
       <button disabled={busy} onClick={() => { setResult(null); setContent(""); setError(""); if (fileInput.current) { fileInput.current.value = ""; fileInput.current.focus(); } }}>Zatvori pregled</button>
     </div>}
