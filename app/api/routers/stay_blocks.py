@@ -2,20 +2,38 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import require_roles
+from app.core.property_rate_limit import limit_property_account
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.occupancy_import import (
     OccupancyImportRequest,
     OccupancyImportResult,
     OccupancyImportRunRead,
+    OccupancyUrlRequest,
 )
 from app.schemas.stay_block import StayBlockCreate, StayBlockPage, StayBlockRead
 from app.services.occupancy_calendar_service import OccupancyCalendarService
 from app.services.occupancy_feed_service import OccupancyFeedService
 from app.services.occupancy_import_service import OccupancyImportService
+from app.services.occupancy_url_service import OccupancyUrlService
 from app.services.stay_block_service import StayBlockService
 
 router = APIRouter(tags=["Owner stay blocks"])
+
+
+@router.post(
+    "/owner/properties/{property_id}/occupancy-import/url",
+    dependencies=[Depends(limit_property_account)],
+)
+async def fetch_occupancy_url(
+    property_id: int,
+    data: OccupancyUrlRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles("owner", "admin")),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return await OccupancyUrlService(db).fetch(property_id, user, data.url)
 
 
 @router.get(

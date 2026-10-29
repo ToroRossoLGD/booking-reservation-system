@@ -77,6 +77,7 @@ async function request<T>(path: string, options: RequestInit = {}, text = false)
 }
 
 export const api = {
+  fetchOccupancyUrl: (id: number, url: string) => request<{ content: string }>(`/owner/properties/${id}/occupancy-import/url`, { method: "POST", body: JSON.stringify({ url }) }),
   occupancyImportHistory: (id: number, signal?: AbortSignal) => request<OccupancyImportRun[]>(`/owner/properties/${id}/occupancy-import/history`, { signal }),
   importOccupancy: (id: number, content: string, apply: boolean) => request<OccupancyImportResult>(`/owner/properties/${id}/occupancy-import${apply ? "" : "/preview"}`, { method: "POST", body: JSON.stringify({ content }) }),
   occupancyFeedStatus: (id: number) => request<{ active: boolean }>(`/owner/properties/${id}/occupancy-feed`),

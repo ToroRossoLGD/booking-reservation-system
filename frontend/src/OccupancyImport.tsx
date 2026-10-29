@@ -29,6 +29,7 @@ function ImportPanel({ propertyId, session, onImported }: { propertyId: number; 
   const [result, setResult] = useState<OccupancyImportResult | null>(null);
   const [error, setError] = useState("");
   const [historyVersion, setHistoryVersion] = useState(0);
+  const [sourceUrl, setSourceUrl] = useState("");
   const inFlight = useRef(false);
   const live = useRef(true);
   const report = useRef<HTMLDivElement>(null);
@@ -39,7 +40,7 @@ function ImportPanel({ propertyId, session, onImported }: { propertyId: number; 
 
   async function selectFile(file?: File) {
     if (inFlight.current) return;
-    setResult(null); setContent(""); setError("");
+    setResult(null); setContent(""); setError(""); setSourceUrl("");
     if (!file) return;
     if (file.size > 100_000) { setError("Fajl može imati najviše 100 KB."); return; }
     inFlight.current = true; setBusy(true);
@@ -48,6 +49,23 @@ function ImportPanel({ propertyId, session, onImported }: { propertyId: number; 
       if (current()) setContent(text);
     } catch { if (current()) setError("Fajl nije moguće pročitati kao UTF-8 tekst."); }
     finally { inFlight.current = false; if (current()) setBusy(false); }
+  }
+
+  async function fetchUrl() {
+    if (inFlight.current || !sourceUrl.trim() || !current()) return;
+    inFlight.current = true; setBusy(true); setError(""); setContent(""); setResult(null);
+    if (fileInput.current) fileInput.current.value = "";
+    try {
+      const fetched = await api.fetchOccupancyUrl(propertyId, sourceUrl.trim());
+      if (!current()) return;
+      const preview = await api.importOccupancy(propertyId, fetched.content, false);
+      if (!current()) return;
+      setContent(fetched.content); setResult(preview); setSourceUrl("");
+    } catch (err) {
+      if (current()) setError(err instanceof ApiError && err.status === 429 ? err.message
+        : err instanceof ApiError && err.status === 503 ? "Uvoz preko linka trenutno nije dostupan. Administrator treba da podesi dozvoljene domene; možeš uvesti .ics fajl."
+        : "Kalendar nije preuzet. Proveri HTTPS link i odobreni domen. Podržani su samo celodnevni iCal termini bez ponavljanja, do 100 KB. Možeš pokušati ponovo ili uvesti fajl.");
+    } finally { inFlight.current = false; if (current()) setBusy(false); }
   }
 
   async function submit(apply: boolean) {
@@ -78,6 +96,9 @@ function ImportPanel({ propertyId, session, onImported }: { propertyId: number; 
     <OccupancyImportHistory propertyId={propertyId} revision={historyVersion} />
     <p>Jednokratni uvoz celodnevnih termina, bez automatskog osvežavanja. Datumi važe za sve oglase istog objekta. Nazivi događaja i podaci gostiju se ne čuvaju.</p>
     <p>Uvoze se samo datumi od danas do 365 dana unapred. Preklopljeni i susedni termini iz fajla se spajaju. Poslednji datum je slobodan za novi dolazak.</p>
+    <label>Privatni iCal HTTPS link<input type="password" autoComplete="off" spellCheck={false} maxLength={2048} disabled={busy} value={sourceUrl} onChange={event => { setSourceUrl(event.target.value); setContent(""); setResult(null); setError(""); if (fileInput.current) fileInput.current.value = ""; }} /></label>
+    <p>Link mora biti sa domena koji je administrator odobrio. Čuvaj ga kao lozinku. Preuzimanje je jednokratno; potvrda uvozi pregledani snimak, bez ponovnog preuzimanja i automatskog praćenja promena.</p>
+    <button disabled={busy || !sourceUrl.trim()} onClick={() => void fetchUrl()}>Preuzmi i pregledaj link</button>
     <label>iCal fajl (.ics, do 100 KB)<input ref={fileInput} type="file" accept=".ics,text/calendar" disabled={busy} onChange={event => void selectFile(event.target.files?.[0])} /></label>
     <button disabled={busy || !content} onClick={() => void submit(false)}>Pregledaj uvoz</button>
     {busy && <p role="status">Obrada kalendara…</p>}

@@ -3,9 +3,54 @@ import { afterEach, expect, it, vi } from "vitest";
 import { api } from "./api";
 import OccupancyImport, { type OccupancyImportResult } from "./OccupancyImport";
 
-vi.mock("./api", () => ({ api: { importOccupancy: vi.fn() }, ApiError: class extends Error {} }));
+vi.mock("./api", () => ({ api: { importOccupancy: vi.fn(), fetchOccupancyUrl: vi.fn() }, ApiError: class extends Error {} }));
 afterEach(() => { vi.resetAllMocks(); localStorage.clear(); });
 const preview: OccupancyImportResult = { ranges: [{ check_in: "2026-11-01", check_out: "2026-11-04", status: "ready" }], ignored: 0, clipped: 0, applied: false, created: 0 };
+
+it("fetches a URL only on demand and confirms the reviewed snapshot without refetching", async () => {
+  vi.mocked(api.fetchOccupancyUrl).mockResolvedValue({ content: "sanitized snapshot" });
+  vi.mocked(api.importOccupancy).mockResolvedValueOnce(preview).mockResolvedValueOnce({ ...preview, applied: true, created: 1 });
+  render(<OccupancyImport propertyId={7} onImported={() => {}} />);
+  fireEvent.change(screen.getByLabelText("Privatni iCal HTTPS link"), { target: { value: "https://calendar.example/a?token=secret" } });
+  expect(api.fetchOccupancyUrl).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByText("Preuzmi i pregledaj link"));
+  expect(await screen.findByText(/Nova blokada/)).toBeVisible();
+  expect(screen.getByLabelText("Privatni iCal HTTPS link")).toHaveValue("");
+  expect(api.importOccupancy).toHaveBeenLastCalledWith(7, "sanitized snapshot", false);
+  fireEvent.click(screen.getByText("Potvrdi uvoz blokada"));
+  expect(await screen.findByText(/Uvoz je završen/)).toBeVisible();
+  expect(api.importOccupancy).toHaveBeenLastCalledWith(7, "sanitized snapshot", true);
+  expect(api.fetchOccupancyUrl).toHaveBeenCalledTimes(1);
+});
+
+it("retries download failures and invalidates a preview when its source changes", async () => {
+  vi.mocked(api.fetchOccupancyUrl).mockRejectedValueOnce(new Error("network")).mockResolvedValue({ content: "snapshot" });
+  vi.mocked(api.importOccupancy).mockResolvedValue(preview);
+  render(<OccupancyImport propertyId={7} onImported={() => {}} />);
+  fireEvent.change(screen.getByLabelText("Privatni iCal HTTPS link"), { target: { value: "https://calendar.example/a" } });
+  fireEvent.click(screen.getByText("Preuzmi i pregledaj link"));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Kalendar nije preuzet");
+  expect(api.importOccupancy).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByText("Preuzmi i pregledaj link"));
+  expect(await screen.findByText("Potvrdi uvoz blokada")).toBeVisible();
+  fireEvent.change(screen.getByLabelText("Privatni iCal HTTPS link"), { target: { value: "https://calendar.example/b" } });
+  expect(screen.queryByText("Potvrdi uvoz blokada")).toBeNull();
+  expect(screen.getByText("Pregledaj uvoz")).toBeDisabled();
+});
+
+it("does not preview a downloaded snapshot after an account changes", async () => {
+  localStorage.setItem("bookica_token", "first");
+  let resolve!: (value: { content: string }) => void;
+  vi.mocked(api.fetchOccupancyUrl).mockImplementation(() => new Promise(done => { resolve = done; }));
+  render(<OccupancyImport propertyId={7} onImported={() => {}} />);
+  fireEvent.change(screen.getByLabelText("Privatni iCal HTTPS link"), { target: { value: "https://calendar.example/a" } });
+  fireEvent.click(screen.getByText("Preuzmi i pregledaj link"));
+  expect(screen.getByText("Preuzmi i pregledaj link")).toBeDisabled();
+  localStorage.setItem("bookica_token", "second");
+  await act(async () => { window.dispatchEvent(new Event("storage")); resolve({ content: "old account" }); });
+  expect(api.importOccupancy).not.toHaveBeenCalled();
+  expect(screen.getByLabelText("Privatni iCal HTTPS link")).toHaveValue("");
+});
 async function choose(content = "calendar") {
   const bytes = new TextEncoder().encode(content);
   await act(async () => { fireEvent.change(screen.getByLabelText(/iCal fajl/), { target: { files: [{ size: bytes.length, arrayBuffer: async () => bytes.buffer }] } }); });

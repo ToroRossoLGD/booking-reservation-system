@@ -33,6 +33,12 @@ test("owner creates and removes a private block from the listing manager", async
     expect(route.request().method()).toBe("GET");
     return route.fulfill({ json: imported ? [{ id: 1, created_at: "2026-10-28T09:30:00Z", status: "applied", created: 1, existing: 0, conflicts: 0, ignored: 0, clipped: 0 }] : [] });
   });
+  let fetches = 0;
+  await page.route("**/api/owner/properties/7/occupancy-import/url", route => {
+    expect(route.request().postDataJSON()).toEqual({ url: "https://calendar.example/availability?token=secret" });
+    fetches++;
+    return fetches === 1 ? route.fulfill({ status: 502, json: { detail: "Download failed" } }) : route.fulfill({ json: { content: calendar } });
+  });
   await page.route("**/api/auth/me", route => route.fulfill({ json: { id: 1, email: "owner@example.com", role: "owner" } }));
   await page.route("**/api/venues", route => route.fulfill({ json: [] }));
   await page.route("**/api/promotions/active", route => route.fulfill({ json: [] }));
@@ -94,6 +100,15 @@ test("owner creates and removes a private block from the listing manager", async
   await page.getByRole("button", { name: "Istorija uvoza kalendara" }).click();
   await expect(page.getByText(/Uspešan uvoz/)).toBeVisible();
   await expect(page.getByText(/Novih blokada: 1. Već blokirano: 0/)).toBeVisible();
+  await page.getByLabel("Privatni iCal HTTPS link").fill("https://calendar.example/availability?token=secret");
+  await page.getByRole("button", { name: "Preuzmi i pregledaj link" }).click();
+  await expect(page.getByRole("alert")).toContainText("Kalendar nije preuzet");
+  await page.getByRole("button", { name: "Preuzmi i pregledaj link" }).click();
+  await expect(page.getByText(/Nova blokada/)).toBeVisible();
+  await expect(page.getByLabel("Privatni iCal HTTPS link")).toHaveValue("");
+  await page.getByRole("button", { name: "Potvrdi uvoz blokada" }).click();
+  await expect(page.getByText(/Uvoz je završen/)).toBeVisible();
+  expect(fetches).toBe(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("owner-calendar-import.png"), fullPage: true });
 });

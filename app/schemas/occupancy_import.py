@@ -9,6 +9,11 @@ class OccupancyImportRequest(BaseModel):
     content: str = Field(min_length=1, max_length=100_000)
 
 
+class OccupancyUrlRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    url: str = Field(min_length=1, max_length=2048, repr=False)
+
+
 class ImportedRange(BaseModel):
     check_in: date
     check_out: date
