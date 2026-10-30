@@ -22,6 +22,7 @@ test("owner creates and removes a private block from the listing manager", async
   const block = { id: 1, venue_id: 1, check_in: today, check_out: shiftDate(today, 3), reason: "Renoviranje", active: true, created_at: new Date().toISOString() };
   const calendar = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nDTSTART;VALUE=DATE:${today.replaceAll("-", "")}\r\nDTEND;VALUE=DATE:${block.check_out.replaceAll("-", "")}\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n`;
   let imported = false;
+  let conflictShown = false;
   let sourceExists = false;
   let sourceRevision = 0;
   let sourceOwned = false;
@@ -40,6 +41,10 @@ test("owner creates and removes a private block from the listing manager", async
       return route.fulfill({ json: { ranges: empty ? [] : [{ check_in: today, check_out: block.check_out, status: "ready" }], ignored: 0, clipped: 0, applied, created: applied && !empty ? 1 : 0, removed, removed_ranges: removed ? [{ check_in: today, check_out: block.check_out }] : [], source_revision: sourceRevision } });
     }
     expect(data).toEqual({ content: calendar });
+    if (!applied && !conflictShown) {
+      conflictShown = true;
+      return route.fulfill({ json: { ranges: [{ check_in: today, check_out: block.check_out, status: "conflict", conflicts: [{ check_in: today, check_out: block.check_out, kind: "reservation" }] }], ignored: 0, clipped: 0, applied: false, created: 0 } });
+    }
     if (applied) { blocked = true; imported = true; }
     return route.fulfill({ json: { ranges: [{ check_in: today, check_out: block.check_out, status: "ready" }], ignored: 0, clipped: 0, applied, created: applied ? 1 : 0 } });
   });
@@ -107,6 +112,10 @@ test("owner creates and removes a private block from the listing manager", async
   await page.getByLabel("iCal fajl (.ics, do 100 KB)").setInputFiles({ name: "availability.ics", mimeType: "text/calendar", buffer: Buffer.from(calendar) });
   await page.getByRole("button", { name: "Istorija uvoza kalendara" }).click();
   await expect(page.getByText("Još nema zabeleženih pokušaja uvoza.")).toBeVisible();
+  await page.getByRole("button", { name: "Pregledaj uvoz" }).click();
+  await expect(page.getByText(/Rezervacija ili vreme pripreme:/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Potvrdi uvoz blokada" })).toBeDisabled();
+  expect(blocked).toBe(false);
   await page.getByRole("button", { name: "Pregledaj uvoz" }).click();
   await expect(page.getByText(/Nova blokada/)).toBeVisible();
   expect(blocked).toBe(false);

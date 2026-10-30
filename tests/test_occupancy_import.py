@@ -112,6 +112,7 @@ async def test_preview_merge_clip_import_retry_and_shared_inventory(
     retry = await importer.run(2, OWNER, content, apply=True)
     assert retry["created"] == 0 and retry["applied"]
     assert {item["status"] for item in retry["ranges"]} == {"existing"}
+    assert all(item["conflicts"] == [] for item in retry["ranges"])
     assert await importer.db.scalar(select(func.count(StayBlock.id))) == 2
     block = await importer.db.scalar(select(StayBlock).limit(1))
     assert block.reason == "iCal import"
@@ -137,7 +138,44 @@ async def test_conflict_after_preview_is_atomic_and_respects_preparation(
     result = await importer.run(1, OWNER, content, apply=True)
     assert not result["applied"] and result["created"] == 0
     assert [item["status"] for item in result["ranges"]] == ["conflict", "ready"]
+    assert result["ranges"][0]["conflicts"] == [
+        {
+            "check_in": TODAY + timedelta(days=1),
+            "check_out": TODAY + timedelta(days=6),
+            "kind": "reservation",
+        }
+    ]
+    assert result["ranges"][1]["conflicts"] == []
     assert await importer.db.scalar(select(func.count(StayBlock.id))) == 0
+
+
+@pytest.mark.asyncio
+async def test_conflict_details_expose_only_dates_and_kind(importer):
+    await importer.run(1, OWNER, calendar(event()), apply=True)
+    block = await importer.db.scalar(select(StayBlock).limit(1))
+    block.reason = "Private owner note"
+    await importer.db.commit()
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[get_db] = lambda: importer.db
+    app.dependency_overrides[get_current_user] = lambda: OWNER
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/owner/properties/2/occupancy-import/preview",
+            json={"content": calendar(event(1, 4))},
+        )
+        assert response.status_code == 200
+        conflicts = response.json()["ranges"][0]["conflicts"]
+        assert conflicts == [
+            {
+                "check_in": str(TODAY + timedelta(days=2)),
+                "check_out": str(TODAY + timedelta(days=5)),
+                "kind": "block",
+            }
+        ]
+        assert "Private owner note" not in response.text
 
 
 @pytest.mark.asyncio

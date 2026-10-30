@@ -16,10 +16,17 @@ class OccupancyUrlRequest(BaseModel):
     url: str = Field(min_length=1, max_length=2048, repr=False)
 
 
+class OccupancyConflict(BaseModel):
+    check_in: date
+    check_out: date
+    kind: Literal["reservation", "block"]
+
+
 class ImportedRange(BaseModel):
     check_in: date
     check_out: date
     status: Literal["ready", "existing", "conflict"]
+    conflicts: list[OccupancyConflict] = Field(default_factory=list)
 
 
 class RemovedRange(BaseModel):

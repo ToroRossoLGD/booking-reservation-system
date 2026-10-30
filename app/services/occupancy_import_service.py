@@ -232,7 +232,27 @@ class OccupancyImportService(StayBlockService):
                     )
                     else "conflict"
                 )
-            result.append({"check_in": start, "check_out": end, "status": status})
+            details = []
+            if status == "conflict":
+                # Only occupied dates/type; never include guest or block metadata.
+                details = [
+                    {
+                        "check_in": item.check_in,
+                        "check_out": item.check_out,
+                        "kind": "block"
+                        if isinstance(item, StayBlock)
+                        else "reservation",
+                    }
+                    for item in overlaps
+                ]
+            result.append(
+                {
+                    "check_in": start,
+                    "check_out": end,
+                    "status": status,
+                    "conflicts": details,
+                }
+            )
         conflicts = any(item["status"] == "conflict" for item in result)
         created = 0
         if apply and not conflicts:
