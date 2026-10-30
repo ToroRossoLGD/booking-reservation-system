@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
+import CalendarImportFreshness from "./CalendarImportFreshness";
 
 export type OccupancySource = { id: number; name: string; revision: number; last_attempt_at: string | null; last_success_at: string | null; last_status: "applied" | "conflict" | null };
 
@@ -58,6 +59,7 @@ export default function OccupancySources({ propertyId, value, revision, busy, on
         {rows.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}
       </select></label>
       {selected && <><p>Poslednji pokušaj: {timestamp(selected.last_attempt_at)}. {selected.last_status === "conflict" ? "Preklapanje: prethodne blokade su sačuvane." : selected.last_status === "applied" ? "Uvoz uspešan." : "Izvor još nije uvezen."}</p><p>Poslednji uspešan uvoz: {timestamp(selected.last_success_at)}.</p></>}
+      {selected && <CalendarImportFreshness key={`${selected.id}:${selected.last_success_at}:${selected.last_status}`} source={selected} />}
       <label>Naziv novog izvora (bez linka)<input maxLength={80} disabled={busy} value={name} onChange={event => setName(event.target.value)} /></label>
       <button disabled={busy || loading || !name.trim()} onClick={() => void change(false)}>Dodaj izvor</button>
       {value && (confirm ? <fieldset disabled={busy}><legend>Ukloniti izvor i sve njegove aktivne blokade? Rezervacije i ostale blokade ostaju.</legend><button onClick={() => void change(true)}>Potvrdi uklanjanje izvora</button><button ref={cancel} onClick={() => setConfirm(false)}>Odustani od uklanjanja izvora</button></fieldset> : <button disabled={busy} onClick={() => setConfirm(true)}>Ukloni izvor i njegove blokade</button>)}
