@@ -6,6 +6,8 @@ Imported dates become ordinary private blocks shared across all listings of the 
 
 ## Supported files
 
+Conflicting preview/confirmation ranges now include `conflicts`: occupied `check_in`/`check_out` dates and `kind` (`reservation` or `block`). Reservation ranges include preparation gaps, so the UI labels them as reservation/preparation rather than claiming these are the guest's stay dates. End dates remain exclusive. Only date/type metadata is returned; no guest details, private block reasons or provider links are exposed. Exact existing blocks accepted by additive import and the selected source's own blocks are not reported as conflicts. Details are recomputed at confirmation and are not persisted in import history.
+
 - UTF-8 iCalendar 2.0, up to 100,000 bytes and 100 VEVENTs; folded lines are supported.
 - Explicit `DTSTART;VALUE=DATE` and optional `DTEND;VALUE=DATE`. An absent end means one day. The end date is exclusive, as specified by [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545.html#section-3.6.1).
 - Cancelled and transparent events are skipped. Other events, including tentative ones, block dates.

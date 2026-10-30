@@ -56,6 +56,21 @@ async function choose(content = "calendar") {
   await act(async () => { fireEvent.change(screen.getByLabelText(/iCal fajl/), { target: { files: [{ size: bytes.length, arrayBuffer: async () => bytes.buffer }] } }); });
 }
 
+it("shows occupied ranges and their types for a conflict without allowing confirmation", async () => {
+  vi.mocked(api.importOccupancy).mockResolvedValue({ ...preview, ranges: [{ ...preview.ranges[0], status: "conflict", conflicts: [
+    { check_in: "2026-10-31", check_out: "2026-11-02", kind: "reservation" },
+    { check_in: "2026-11-03", check_out: "2026-11-05", kind: "block" },
+  ] }] });
+  render(<OccupancyImport propertyId={7} onImported={() => {}} />);
+  await choose();
+  fireEvent.click(screen.getByText("Pregledaj uvoz"));
+  expect(await screen.findByText(/Rezervacija ili vreme pripreme:/)).toHaveTextContent("31. 10. 2026.");
+  expect(screen.getByText(/Postojeća blokada:/)).toHaveTextContent("5. 11. 2026.");
+  expect(screen.getByText("Potvrdi uvoz blokada")).toBeDisabled();
+  await choose("new calendar");
+  expect(screen.queryByText(/Rezervacija ili vreme pripreme:/)).toBeNull();
+});
+
 it("previews without writes, requires confirmation and refreshes blocks after success", async () => {
   const refresh = vi.fn();
   vi.mocked(api.importOccupancy).mockResolvedValueOnce(preview).mockResolvedValueOnce({ ...preview, applied: true, created: 1 });

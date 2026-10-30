@@ -5,7 +5,7 @@ import OccupancyImportHistory from "./OccupancyImportHistory";
 import OccupancySources from "./OccupancySources";
 
 export type OccupancyImportResult = {
-  ranges: { check_in: string; check_out: string; status: "ready" | "existing" | "conflict" }[];
+  ranges: { check_in: string; check_out: string; status: "ready" | "existing" | "conflict"; conflicts?: { check_in: string; check_out: string; kind: "reservation" | "block" }[] }[];
   ignored: number;
   clipped: number;
   applied: boolean;
@@ -115,7 +115,10 @@ function ImportPanel({ propertyId, session, onImported }: { propertyId: number; 
     {result && <div ref={report} tabIndex={-1} aria-label="Rezultat pregleda kalendara">
       <p>Preskočenih događaja: {result.ignored}. Skraćenih na podržani period: {result.clipped}.</p>
       {result.ranges.length === 0 && <p>Nema zauzetih termina za uvoz u narednih 365 dana.</p>}
-      <ul>{result.ranges.map(item => <li key={`${item.check_in}:${item.check_out}`}>{displayDate(item.check_in)} — {displayDate(item.check_out)}: {labels[item.status]}</li>)}</ul>
+      <ul>{result.ranges.map(item => <li key={`${item.check_in}:${item.check_out}`}>{displayDate(item.check_in)} — {displayDate(item.check_out)}: {labels[item.status]}
+        {item.status === "conflict" && !!item.conflicts?.length && <ul aria-label={`Zauzeti termini za ${displayDate(item.check_in)}`}>{item.conflicts.map((conflict, index) => <li key={`${conflict.kind}:${conflict.check_in}:${conflict.check_out}:${index}`}>{conflict.kind === "reservation" ? "Rezervacija ili vreme pripreme" : "Postojeća blokada"}: {displayDate(conflict.check_in)} — {displayDate(conflict.check_out)}</li>)}</ul>}
+      </li>)}</ul>
+      {conflicts && <p>Prikazani su zauzeti rasponi koji sprečavaju uvoz, uključujući vreme pripreme uz rezervaciju. Krajnji datum nije zauzet. Proveri rezervacije ili listu blokada pre novog pregleda.</p>}
       {sourceId && <p>{result.applied ? "Uklonjeno blokada izvora" : "Blokada izabranog izvora za uklanjanje pri potvrdi"}: {result.removed ?? 0}. Ručne blokade i rezervacije se ne uklanjaju.</p>}
       {!!result.removed_ranges?.length && <ul aria-label="Blokade izvora za uklanjanje">{result.removed_ranges.map(item => <li key={`${item.check_in}:${item.check_out}`}>{displayDate(item.check_in)} — {displayDate(item.check_out)}</li>)}</ul>}
       {result.applied ? <p role="status">Uvoz je završen. Novih blokada: {result.created}. Uklanjaš ih pojedinačno u listi blokada.</p> : <>
