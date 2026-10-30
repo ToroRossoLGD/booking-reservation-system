@@ -265,6 +265,7 @@ Launch preparation now takes priority over additional marketplace features. **La
   - [x] One-shot HTTPS URL imports from administrator-approved hosts, with a sanitized snapshot, preview and explicit confirmation. See [URL import setup](docs/occupancy-url-import.md).
   - [x] Named calendar sources with manual reconciliation: preview additions/removals, preserve other sources and reservations, reject stale confirmations and show each source's latest attempt/success. See [calendar sources](docs/occupancy-calendar-sources.md).
   - [ ] Scheduled refresh and automatic last-sync health. Source imports are currently manual; outbound subscriptions depend on external clients' refresh schedules.
+  - [x] Manual source freshness indicator: never imported, conflicting, recent or at least 24 hours old, with a reminder to review the calendar again. This is not live provider synchronization.
 - [ ] Email/push delivery for nightly stays and viewings, reminders, preferences and delivery tracking. Basic account-recovery email belongs to P1; existing legacy reminders do not complete this property feature.
 - [ ] Online short-stay payments and deposits, including signed webhooks, idempotency, refunds, failed-payment recovery and reconciliation. The legacy hourly Stripe integration does not yet provide this nightly flow.
 - [ ] Long-term leases and monthly rental payments.

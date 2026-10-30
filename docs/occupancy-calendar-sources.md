@@ -14,6 +14,8 @@ Each source displays its latest confirmed attempt, success/conflict outcome and 
 
 ## API and deployment
 
+The selected source also shows a manual-import freshness indicator. A conflicting latest attempt takes precedence; otherwise it distinguishes no successful import, a success within 24 hours and an import at least 24 hours old. The 24-hour threshold is a review reminder, not a guarantee that the provider's occupancy is current. While visible, the indicator updates every minute and when the window regains focus. It uses the browser clock and the last loaded source status; **Osveži izvore** reloads server status. No background download or new migration is introduced by this indicator.
+
 - `GET /owner/properties/{id}/occupancy-sources`: owner/admin source list, private/no-store.
 - `POST /owner/properties/{id}/occupancy-sources`: `{ "name": "Channel A" }`; an identical name returns the existing source for safe retries.
 - `DELETE /owner/properties/{id}/occupancy-sources/{source_id}`: remove source and deactivate its blocks.
