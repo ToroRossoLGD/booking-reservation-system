@@ -16,6 +16,7 @@ celery_app = Celery(
         "app.tasks.occupancy_tasks",
         "app.tasks.stay_reminder_tasks",
         "app.tasks.viewing_reminder_tasks",
+        "app.tasks.property_email_digest_tasks",
     ],
 )
 
@@ -26,6 +27,11 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     beat_schedule={
+        "send-property-email-digests": {
+            "task": "send_property_email_digests",
+            "schedule": 300.0,
+            "options": {"expires": 290},
+        },
         "send-viewing-reminders": {
             "task": "send_viewing_reminders",
             "schedule": 300.0,

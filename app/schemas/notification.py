@@ -9,6 +9,15 @@ class StayReminderPreferences(BaseModel):
     enabled: StrictBool
 
 
+class PropertyEmailDigestRead(BaseModel):
+    enabled: bool
+    available: bool
+    verified: bool
+    last_status: Literal["unconfigured", "pending", "accepted", "failed", "unverified"]
+    last_attempt_at: datetime | None
+    last_accepted_at: datetime | None
+
+
 class ReminderDeliveryRead(BaseModel):
     id: int
     kind: Literal["arrival", "departure", "rental_viewing", "sale_viewing"]
