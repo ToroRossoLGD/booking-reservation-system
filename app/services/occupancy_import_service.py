@@ -169,6 +169,7 @@ class OccupancyImportService(StayBlockService):
         apply=False,
         source_id=None,
         source_revision=None,
+        commit=True,
     ):
         if apply and settings.DEMO_MODE:
             raise HTTPException(403, "Calendar import is disabled in demo mode")
@@ -295,7 +296,8 @@ class OccupancyImportService(StayBlockService):
                     clipped=clipped,
                 )
             )
-            await self.db.commit()
+            if commit:
+                await self.db.commit()
         return {
             "ranges": result,
             "ignored": ignored,

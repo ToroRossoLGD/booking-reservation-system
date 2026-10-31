@@ -24,6 +24,7 @@ PATHS = [
     "/sale-inquiries/2/messages",
     "/properties/1/reports",
     "/owner-access/requests",
+    "/owner/properties/1/occupancy-sources/1/sync",
     "/owner/properties/1/occupancy-import/url",
     "/owner/properties/1/photos",
 ]

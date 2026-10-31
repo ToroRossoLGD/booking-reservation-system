@@ -4,6 +4,8 @@ In the owner's short-stay availability panel, enter a private iCal HTTPS link an
 
 This is a one-shot import, not a stored calendar connection. URL changes and cancellations are not automatically applied. Repeated imports without a selected source remain additive; [named sources](occupancy-calendar-sources.md) allow manual reconciliation of their own blocks after preview and confirmation. Recurrence, timed events and additional components remain unsupported; all [file import constraints](occupancy-calendar-import.md) apply.
 
+For opt-in scheduled fetching and encrypted saved links, use the separate [automatic refresh](automatic-calendar-refresh.md) controls on a named source. The one-shot endpoint described here continues not to store URLs.
+
 ## Configuration
 
 Set `OCCUPANCY_IMPORT_ALLOWED_HOSTS` to a comma-separated list of exact provider hostnames, for example `calendar.provider.example,feeds.provider.example`. Use the actual host from the provider's HTTPS export URL. Subdomains are not implicitly trusted; wildcards are not supported. Empty (the default) disables URL fetching while file import continues to work. This setting is read from the application's environment, including the production Compose env file. No schema migration or new dependency is needed.

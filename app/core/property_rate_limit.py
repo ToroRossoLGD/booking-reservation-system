@@ -25,6 +25,10 @@ class Policy:
 MESSAGE_POLICY = Policy("message", 120, 30, 60)
 POLICIES = (
     (
+        re.compile(r"/owner/properties/[^/]+/occupancy-sources/[^/]+/sync"),
+        Policy("calendar-sync", 60, 20, 60),
+    ),
+    (
         re.compile(r"/owner/properties/[^/]+/occupancy-import/url"),
         Policy("calendar-fetch", 30, 6, 60),
     ),

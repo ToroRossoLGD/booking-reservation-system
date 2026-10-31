@@ -22,6 +22,7 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.models.occupancy_import_run import OccupancyImportRun
 from app.models.occupancy_source import OccupancySource, OccupancySourceBlock
+from app.models.occupancy_sync import OccupancySync
 from app.models.stay_block import StayBlock
 from app.models.venue import Venue
 from app.services.occupancy_import_service import OccupancyImportService
@@ -40,6 +41,7 @@ def sources(importer):
     session = importer.db.scalar.side_effect.__self__
     OccupancySource.__table__.create(session.get_bind())
     OccupancySourceBlock.__table__.create(session.get_bind())
+    OccupancySync.__table__.create(session.get_bind())
     return OccupancySourceService(importer.db)
 
 

@@ -26,6 +26,18 @@ test("owner creates and removes a private block from the listing manager", async
   let sourceExists = false;
   let sourceRevision = 0;
   let sourceOwned = false;
+  let automatic = false;
+  let connected = false;
+  await page.route("**/api/owner/properties/7/occupancy-sources/4/sync", route => {
+    if (route.request().method() === "POST") {
+      const data = route.request().postDataJSON();
+      if (data.action === "connect") { expect(data.url).toBe("https://calendar.example/automatic"); expect(data.allow_empty).toBe(false); connected = true; automatic = true; }
+      if (data.action === "pause") automatic = false;
+      if (data.action === "resume") automatic = true;
+      if (data.action === "disconnect") { automatic = false; connected = false; }
+    }
+    return route.fulfill({ json: { available: true, configured: connected, enabled: automatic, allow_empty: false, running: false, overdue: false, next_run_at: null, last_attempt_at: null, last_success_at: null, last_status: connected ? "pending" : "unconfigured" } });
+  });
   const emptyCalendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n";
   await page.route("**/api/owner/properties/7/occupancy-import**", route => {
     expect(route.request().headers().authorization).toBe("Bearer owner-session");
@@ -156,4 +168,21 @@ test("owner creates and removes a private block from the listing manager", async
   await expect(page.getByText("Aktivnih blokada: 0")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("owner-calendar-import.png"), fullPage: true });
+  await page.getByRole("button", { name: "Podesi automatsko osvežavanje" }).click();
+  await page.getByLabel("HTTPS link za automatsko osvežavanje").fill("https://calendar.example/automatic");
+  await page.getByRole("button", { name: "Poveži i uključi automatiku" }).click();
+  expect(connected).toBe(false);
+  await page.getByRole("button", { name: "Potvrdi podešavanje automatike" }).click();
+  await expect(page.getByText(/Automatika je uključena/)).toBeVisible();
+  await expect(page.getByLabel("HTTPS link za automatsko osvežavanje")).toHaveValue("");
+  await page.getByRole("button", { name: "Pauziraj automatiku" }).click();
+  await expect(page.getByText(/Automatika je pauzirana/)).toBeVisible();
+  await page.getByRole("button", { name: "Nastavi automatiku" }).click();
+  await expect(page.getByText(/Automatika je uključena/)).toBeVisible();
+  await page.getByRole("button", { name: "Ukloni sačuvani link" }).click();
+  expect(connected).toBe(true);
+  await page.getByRole("button", { name: "Potvrdi podešavanje automatike" }).click();
+  await expect(page.getByText(/Automatika nije podešena/)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("owner-calendar-automatic.png"), fullPage: true });
 });

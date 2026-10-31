@@ -24,6 +24,6 @@ export default function CalendarImportFreshness({ source }: { source: OccupancyS
   }
   return <div aria-label="Starost uvoza kalendara">
     <p role="status">{message}</p>
-    <p>Ovo je starost ručnog uvoza, ne potvrda trenutne zauzetosti kod drugog provajdera. Promene se ne preuzimaju automatski.</p>
+    <p>Ovo je starost poslednjeg učitanog uvoza, ne potvrda trenutne zauzetosti kod drugog provajdera. Stanje automatike proveri u posebnom panelu.</p>
   </div>;
 }

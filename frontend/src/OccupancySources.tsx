@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
 import CalendarImportFreshness from "./CalendarImportFreshness";
+import OccupancySync from "./OccupancySync";
 
 export type OccupancySource = { id: number; name: string; revision: number; last_attempt_at: string | null; last_success_at: string | null; last_status: "applied" | "conflict" | null };
 
@@ -51,7 +52,7 @@ export default function OccupancySources({ propertyId, value, revision, busy, on
     <button disabled={busy} aria-expanded={open} onClick={() => { if (!open) setLoading(true); setOpen(current => !current); }}>{open ? "Sakrij izvore" : "Uvoz po izvoru kalendara"}</button>
     {value && !open && <p>Izabran je izvor kalendara. Potvrda može ukloniti njegove prethodne blokade.</p>}
     {open && <>
-      <p>Izaberi isti izvor pri svakom uvozu njegovog kompletnog kalendara. Blokade tog izvora koje nedostaju u novom snimku uklanjaju se tek nakon potvrde. Link se ne čuva i nema automatskog osvežavanja.</p>
+      <p>Izaberi isti izvor pri ručnom uvozu njegovog kompletnog kalendara. Ručne izmene se primenjuju nakon potvrde. Automatsko osvežavanje možeš posebno uključiti za izabrani izvor.</p>
       {loading && <p role="status">Učitavanje izvora…</p>}
       <label>Izvor za ovaj uvoz<select disabled={busy || loading} value={value ?? ""} onChange={event => { onChange(event.target.value ? Number(event.target.value) : undefined); setConfirm(false); }}>
         <option value="">Bez izvora — samo dodaj blokade</option>
@@ -60,6 +61,7 @@ export default function OccupancySources({ propertyId, value, revision, busy, on
       </select></label>
       {selected && <><p>Poslednji pokušaj: {timestamp(selected.last_attempt_at)}. {selected.last_status === "conflict" ? "Preklapanje: prethodne blokade su sačuvane." : selected.last_status === "applied" ? "Uvoz uspešan." : "Izvor još nije uvezen."}</p><p>Poslednji uspešan uvoz: {timestamp(selected.last_success_at)}.</p></>}
       {selected && <CalendarImportFreshness key={`${selected.id}:${selected.last_success_at}:${selected.last_status}`} source={selected} />}
+      {selected && <OccupancySync key={selected.id} propertyId={propertyId} sourceId={selected.id} busy={busy} onBusy={onBusy} onChanged={() => { onChange(value); setVersion(current => current + 1); }} />}
       <label>Naziv novog izvora (bez linka)<input maxLength={80} disabled={busy} value={name} onChange={event => setName(event.target.value)} /></label>
       <button disabled={busy || loading || !name.trim()} onClick={() => void change(false)}>Dodaj izvor</button>
       {value && (confirm ? <fieldset disabled={busy}><legend>Ukloniti izvor i sve njegove aktivne blokade? Rezervacije i ostale blokade ostaju.</legend><button onClick={() => void change(true)}>Potvrdi uklanjanje izvora</button><button ref={cancel} onClick={() => setConfirm(false)}>Odustani od uklanjanja izvora</button></fieldset> : <button disabled={busy} onClick={() => setConfirm(true)}>Ukloni izvor i njegove blokade</button>)}
