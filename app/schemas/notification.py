@@ -1,6 +1,11 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, StrictBool
+
+
+class StayReminderPreferences(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    enabled: StrictBool
 
 
 class NotificationRead(BaseModel):

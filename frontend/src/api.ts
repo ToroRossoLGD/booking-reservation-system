@@ -79,6 +79,8 @@ async function request<T>(path: string, options: RequestInit = {}, text = false)
 }
 
 export const api = {
+  stayReminderPreferences: (signal?: AbortSignal) => request<{ enabled: boolean }>("/notifications/stay-reminders", { signal }),
+  setStayReminderPreferences: (enabled: boolean) => request<{ enabled: boolean }>("/notifications/stay-reminders", { method: "PUT", body: JSON.stringify({ enabled }) }),
   occupancySyncStatus: (id: number, source: number, signal?: AbortSignal) => request<CalendarSyncStatus>(`/owner/properties/${id}/occupancy-sources/${source}/sync`, { signal }),
   configureOccupancySync: (id: number, source: number, action: "connect" | "pause" | "resume" | "refresh" | "disconnect", url?: string, allow_empty = false) => request<CalendarSyncStatus>(`/owner/properties/${id}/occupancy-sources/${source}/sync`, { method: "POST", body: JSON.stringify({ action, url, allow_empty }) }),
   occupancySources: (id: number, signal?: AbortSignal) => request<OccupancySource[]>(`/owner/properties/${id}/occupancy-sources`, { signal }),

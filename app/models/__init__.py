@@ -42,6 +42,7 @@ from app.models.saved_search_match import SavedSearchMatch
 from app.models.stay import Stay
 from app.models.stay_block import StayBlock
 from app.models.stay_date_change import StayDateChange
+from app.models.stay_reminder import StayReminderDelivery, StayReminderPreference
 from app.models.support_ticket import SupportMessage, SupportTicket
 from app.models.user import User
 from app.models.venue import Venue
@@ -52,6 +53,8 @@ from app.models.waiver import WaiverAcceptance, WaiverTemplate, WaiverVersion
 from app.models.webhook import WebhookDelivery, WebhookSubscription
 
 __all__ = [
+    "StayReminderDelivery",
+    "StayReminderPreference",
     "OwnerAccessRequest",
     "EmailVerificationToken",
     "SaleInquiry",
