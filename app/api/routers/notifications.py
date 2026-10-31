@@ -17,6 +17,10 @@ from app.services.stay_reminder_service import (
     reminder_preference,
     set_reminder_preference,
 )
+from app.services.viewing_reminder_service import (
+    set_viewing_preference,
+    viewing_preference,
+)
 
 router = APIRouter(
     prefix="/notifications",
@@ -32,6 +36,29 @@ async def get_stay_reminders(
 ):
     response.headers["Cache-Control"] = "private, no-store"
     return {"enabled": await reminder_preference(db, current_user.id)}
+
+
+@router.get("/viewing-reminders", response_model=StayReminderPreferences)
+async def get_viewing_reminders(
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return {"enabled": await viewing_preference(db, current_user.id)}
+
+
+@router.put("/viewing-reminders", response_model=StayReminderPreferences)
+async def update_viewing_reminders(
+    data: StayReminderPreferences,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if settings.DEMO_MODE:
+        raise HTTPException(403, "Reminder preferences are disabled in demo mode")
+    response.headers["Cache-Control"] = "private, no-store"
+    return await set_viewing_preference(db, current_user.id, data.enabled)
 
 
 @router.put("/stay-reminders", response_model=StayReminderPreferences)

@@ -3,8 +3,20 @@ import { afterEach, expect, it, vi } from "vitest";
 import { api } from "./api";
 import StayReminderSettings from "./StayReminderSettings";
 
-vi.mock("./api", () => ({ api: { stayReminderPreferences: vi.fn(), setStayReminderPreferences: vi.fn() } }));
+vi.mock("./api", () => ({ api: { stayReminderPreferences: vi.fn(), setStayReminderPreferences: vi.fn(), viewingReminderPreferences: vi.fn(), setViewingReminderPreferences: vi.fn() } }));
 afterEach(() => { vi.resetAllMocks(); localStorage.clear(); });
+
+it("keeps viewing preferences separate from stay preferences", async () => {
+  vi.mocked(api.viewingReminderPreferences).mockResolvedValue({ enabled: true });
+  vi.mocked(api.setViewingReminderPreferences).mockResolvedValue({ enabled: false });
+  render(<StayReminderSettings viewing />);
+  fireEvent.click(screen.getByRole("button", { name: "Podsetnici za razgledanja" }));
+  fireEvent.click(await screen.findByText("Isključi podsetnike"));
+  expect(await screen.findByText("Podsetnici su isključeni.")).toBeVisible();
+  expect(api.setViewingReminderPreferences).toHaveBeenCalledWith(false);
+  expect(api.stayReminderPreferences).not.toHaveBeenCalled();
+  expect(api.setStayReminderPreferences).not.toHaveBeenCalled();
+});
 
 it("loads only on demand and saves the personal preference", async () => {
   vi.mocked(api.stayReminderPreferences).mockResolvedValue({ enabled: true });

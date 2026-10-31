@@ -15,6 +15,7 @@ celery_app = Celery(
         "app.tasks.health_tasks",
         "app.tasks.occupancy_tasks",
         "app.tasks.stay_reminder_tasks",
+        "app.tasks.viewing_reminder_tasks",
     ],
 )
 
@@ -25,6 +26,11 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     beat_schedule={
+        "send-viewing-reminders": {
+            "task": "send_viewing_reminders",
+            "schedule": 300.0,
+            "options": {"expires": 290},
+        },
         "send-stay-reminders": {
             "task": "send_stay_reminders",
             "schedule": 300.0,
