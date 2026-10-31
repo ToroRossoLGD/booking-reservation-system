@@ -35,6 +35,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 import type { OwnerAccessRequest, OwnerAccessPageData } from "./owner-access-types";
 import type { OccupancyImportResult } from "./OccupancyImport";
 import type { OccupancySource } from "./OccupancySources";
+import type { CalendarSyncStatus } from "./OccupancySync";
 import type { OccupancyImportRun } from "./OccupancyImportHistory";
 
 export const googleLoginUrl = `${API_URL}/auth/google/login`;
@@ -78,6 +79,8 @@ async function request<T>(path: string, options: RequestInit = {}, text = false)
 }
 
 export const api = {
+  occupancySyncStatus: (id: number, source: number, signal?: AbortSignal) => request<CalendarSyncStatus>(`/owner/properties/${id}/occupancy-sources/${source}/sync`, { signal }),
+  configureOccupancySync: (id: number, source: number, action: "connect" | "pause" | "resume" | "refresh" | "disconnect", url?: string, allow_empty = false) => request<CalendarSyncStatus>(`/owner/properties/${id}/occupancy-sources/${source}/sync`, { method: "POST", body: JSON.stringify({ action, url, allow_empty }) }),
   occupancySources: (id: number, signal?: AbortSignal) => request<OccupancySource[]>(`/owner/properties/${id}/occupancy-sources`, { signal }),
   createOccupancySource: (id: number, name: string) => request<OccupancySource>(`/owner/properties/${id}/occupancy-sources`, { method: "POST", body: JSON.stringify({ name }) }),
   removeOccupancySource: (id: number, source: number) => request<void>(`/owner/properties/${id}/occupancy-sources/${source}`, { method: "DELETE" }),

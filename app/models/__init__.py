@@ -16,6 +16,7 @@ from app.models.notification import Notification
 from app.models.occupancy_feed import OccupancyFeed
 from app.models.occupancy_import_run import OccupancyImportRun
 from app.models.occupancy_source import OccupancySource, OccupancySourceBlock
+from app.models.occupancy_sync import OccupancySync
 from app.models.owner_access_request import OwnerAccessRequest
 from app.models.password_reset_token import PasswordResetToken
 from app.models.payment import Payment
@@ -101,6 +102,7 @@ __all__ = [
     "OccupancyImportRun",
     "OccupancySource",
     "OccupancySourceBlock",
+    "OccupancySync",
     "AvailabilityException",
     "WaitlistEntry",
     "WebhookSubscription",

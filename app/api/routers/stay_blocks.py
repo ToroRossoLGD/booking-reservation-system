@@ -13,15 +13,51 @@ from app.schemas.occupancy_import import (
     OccupancySourceRead,
     OccupancyUrlRequest,
 )
+from app.schemas.occupancy_sync import OccupancySyncRead, OccupancySyncWrite
 from app.schemas.stay_block import StayBlockCreate, StayBlockPage, StayBlockRead
 from app.services.occupancy_calendar_service import OccupancyCalendarService
 from app.services.occupancy_feed_service import OccupancyFeedService
 from app.services.occupancy_import_service import OccupancyImportService
 from app.services.occupancy_source_service import OccupancySourceService
+from app.services.occupancy_sync_service import OccupancySyncService
 from app.services.occupancy_url_service import OccupancyUrlService
 from app.services.stay_block_service import StayBlockService
 
 router = APIRouter(tags=["Owner stay blocks"])
+
+
+@router.get(
+    "/owner/properties/{property_id}/occupancy-sources/{source_id}/sync",
+    response_model=OccupancySyncRead,
+)
+async def occupancy_sync_status(
+    property_id: int,
+    source_id: int,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles("owner", "admin")),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return await OccupancySyncService(db).status(property_id, user, source_id)
+
+
+@router.post(
+    "/owner/properties/{property_id}/occupancy-sources/{source_id}/sync",
+    response_model=OccupancySyncRead,
+    dependencies=[Depends(limit_property_account)],
+)
+async def configure_occupancy_sync(
+    property_id: int,
+    source_id: int,
+    data: OccupancySyncWrite,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles("owner", "admin")),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return await OccupancySyncService(db).configure(
+        property_id, user, source_id, data.action, data.url, data.allow_empty
+    )
 
 
 @router.get(

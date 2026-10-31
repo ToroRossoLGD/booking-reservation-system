@@ -264,7 +264,8 @@ Launch preparation now takes priority over additional marketplace features. **La
   - [x] Persistent manual import history: latest 10 confirmed attempts per apartment, timestamps, success/conflict outcomes and counts. This reports manual imports, not automatic sync health.
   - [x] One-shot HTTPS URL imports from administrator-approved hosts, with a sanitized snapshot, preview and explicit confirmation. See [URL import setup](docs/occupancy-url-import.md).
   - [x] Named calendar sources with manual reconciliation: preview additions/removals, preserve other sources and reservations, reject stale confirmations and show each source's latest attempt/success. See [calendar sources](docs/occupancy-calendar-sources.md).
-  - [ ] Scheduled refresh and automatic last-sync health. Source imports are currently manual; outbound subscriptions depend on external clients' refresh schedules.
+  - [x] Opt-in hourly refresh with encrypted provider URLs, pause/resume/disconnect, background leases, conflict/empty-feed protection and last-sync/error/overdue status. See [automatic calendar refresh](docs/automatic-calendar-refresh.md).
+  - [ ] Verify supported provider exports, worker scheduling and recovery with real accounts in private staging before relying on cross-channel synchronization.
   - [x] Manual source freshness indicator: never imported, conflicting, recent or at least 24 hours old, with a reminder to review the calendar again. This is not live provider synchronization.
   - [x] Import conflict details show the occupied date ranges and distinguish reservations/preparation from existing blocks without exposing guest details or private notes.
 - [ ] Email/push delivery for nightly stays and viewings, reminders, preferences and delivery tracking. Basic account-recovery email belongs to P1; existing legacy reminders do not complete this property feature.

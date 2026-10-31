@@ -13,6 +13,7 @@ celery_app = Celery(
         "app.tasks.analytics_tasks",
         "app.tasks.saved_search_tasks",
         "app.tasks.health_tasks",
+        "app.tasks.occupancy_tasks",
     ],
 )
 
@@ -23,6 +24,11 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     beat_schedule={
+        "refresh-occupancy-calendars": {
+            "task": "refresh_occupancy_calendars",
+            "schedule": 60.0,
+            "options": {"expires": 55},
+        },
         "scheduler-heartbeat": {
             "task": "record_scheduler_heartbeat",
             "schedule": 30.0,

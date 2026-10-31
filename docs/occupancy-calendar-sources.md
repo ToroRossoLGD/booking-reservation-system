@@ -24,4 +24,4 @@ The selected source also shows a manual-import freshness indicator. A conflictin
 
 Run `alembic upgrade head` before deployment (migration `d05f26ab1934`). It adds source definitions and a block ownership association; existing blocks remain unassigned. Demo mode disables source creation/removal and import confirmation.
 
-This is **manual reconciliation**, not automatic synchronization. Source definitions store names and status, not provider URLs. Every import still needs a complete snapshot supplied by the owner; scheduled fetching, encrypted saved provider credentials and automatic health reporting remain future work. Never substitute a partial or unrelated calendar for the selected source.
+Manual reconciliation continues to work without a saved link. Sources can now optionally use [automatic refresh](automatic-calendar-refresh.md), with encrypted provider URLs, explicit opt-in and separate connection health. Always supply a complete calendar for the selected source; never substitute a partial or unrelated snapshot.

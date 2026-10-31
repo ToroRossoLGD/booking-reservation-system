@@ -127,6 +127,17 @@ def download_calendar(host, target):
         raw.close()
 
 
+async def fetch_calendar_url(url):
+    host, target = validate_url(url)
+    try:
+        content = await asyncio.wait_for(
+            asyncio.to_thread(download_calendar, host, target), timeout=20
+        )
+    except (OSError, http.client.HTTPException, UnicodeError, ValueError, TimeoutError):
+        raise HTTPException(502, "Calendar could not be downloaded") from None
+    return sanitized_calendar(content)
+
+
 class OccupancyUrlService(StayBlockService):
     async def fetch(self, property_id, user, url):
         listing = await self.authorize(property_id, user)
@@ -134,18 +145,4 @@ class OccupancyUrlService(StayBlockService):
             raise HTTPException(403, "Calendar URL import is disabled in demo mode")
         if listing.offer_type != "short_stay":
             raise HTTPException(400, "Only short stays support calendar import")
-        host, target = validate_url(url)
-        try:
-            content = await asyncio.wait_for(
-                asyncio.to_thread(download_calendar, host, target), timeout=20
-            )
-        except (
-            OSError,
-            http.client.HTTPException,
-            UnicodeError,
-            ValueError,
-            TimeoutError,
-        ):
-            # Do not expose provider URLs (often bearer secrets) in errors/logs.
-            raise HTTPException(502, "Calendar could not be downloaded") from None
-        return {"content": sanitized_calendar(content)}
+        return {"content": await fetch_calendar_url(url)}

@@ -3,6 +3,7 @@ from sqlalchemy import delete, select
 
 from app.core.config import settings
 from app.models.occupancy_source import OccupancySource, OccupancySourceBlock
+from app.models.occupancy_sync import OccupancySync
 from app.models.stay_block import StayBlock
 from app.services.stay_block_service import StayBlockService
 
@@ -65,6 +66,9 @@ class OccupancySourceService(StayBlockService):
         source = await self.get(listing.venue_id, source_id)
         for block in await self.blocks(source.id):
             block.active = False
+        await self.db.execute(
+            delete(OccupancySync).where(OccupancySync.source_id == source.id)
+        )
         await self.db.execute(
             delete(OccupancySourceBlock).where(
                 OccupancySourceBlock.source_id == source.id

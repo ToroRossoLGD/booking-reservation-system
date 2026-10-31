@@ -14,7 +14,7 @@ export type OccupancyImportRun = {
 
 export default function OccupancyImportHistory({ propertyId, revision }: { propertyId: number; revision: number }) {
   const [open, setOpen] = useState(false);
-  return <section aria-label="Istorija ručnog uvoza">
+  return <section aria-label="Istorija uvoza">
     <button aria-expanded={open} onClick={() => setOpen(value => !value)}>{open ? "Sakrij istoriju uvoza" : "Istorija uvoza kalendara"}</button>
     {open && <History key={`${propertyId}:${revision}`} propertyId={propertyId} />}
   </section>;
@@ -35,7 +35,7 @@ function History({ propertyId }: { propertyId: number }) {
   const format = new Intl.DateTimeFormat("sr-Latn-RS", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
   return <div>
     <h4>Poslednjih 10 potvrđenih pokušaja uvoza</h4>
-    <p>Istorija važi za sve oglase istog objekta. Ovo je ručni uvoz, ne automatska sinhronizacija. Pregledi i neispravni fajlovi nisu u istoriji. Raniji uvozi pre uvođenja istorije nisu zabeleženi.</p>
+    <p>Istorija važi za sve oglase istog objekta i obuhvata ručne i automatske uvoze. Pregledi, greške preuzimanja i neispravni fajlovi nisu u istoriji; stanje automatike proveri u posebnom panelu. Raniji uvozi pre uvođenja istorije nisu zabeleženi.</p>
     {loading && <p role="status">Učitavanje istorije…</p>}
     {error && <p role="alert">Istorija nije učitana. Pokušaj ponovo.</p>}
     {rows?.length === 0 && <p role="status">Još nema zabeleženih pokušaja uvoza.</p>}

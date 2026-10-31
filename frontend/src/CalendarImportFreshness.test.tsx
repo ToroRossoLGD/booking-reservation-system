@@ -12,7 +12,7 @@ it("distinguishes never-imported and conflicting sources without suggesting live
   expect(screen.getByRole("status")).toHaveTextContent("još nema uspešan uvoz");
   view.rerender(<CalendarImportFreshness source={{ ...source, last_status: "conflict", last_success_at: now.toISOString() }} />);
   expect(screen.getByRole("status")).toHaveTextContent("poslednji pokušaj je imao preklapanje");
-  expect(screen.getByText(/Promene se ne preuzimaju automatski/)).toBeVisible();
+  expect(screen.getByText(/Stanje automatike proveri u posebnom panelu/)).toBeVisible();
 });
 
 it("becomes stale at 24 hours while open and clears its timer on unmount", () => {
