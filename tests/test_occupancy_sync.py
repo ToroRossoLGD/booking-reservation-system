@@ -13,7 +13,7 @@ from alembic.operations import Operations
 from cryptography.fernet import Fernet
 from fastapi import FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.schema import CreateSchema, DropSchema
 
@@ -22,6 +22,7 @@ from app.core.config import settings
 from app.core.dependencies import get_current_user
 from app.db.base import Base
 from app.db.session import get_db
+from app.models.notification import Notification
 from app.models.occupancy_import_run import OccupancyImportRun
 from app.models.occupancy_source import OccupancySource, OccupancySourceBlock
 from app.models.occupancy_sync import OccupancySync
@@ -68,6 +69,65 @@ async def due(service, source_id):
     row = await service.connection(source_id)
     row.next_run_at = datetime.now(UTC) - timedelta(minutes=1)
     await service.db.commit()
+
+
+@pytest.mark.asyncio
+async def test_health_notifications_are_private_transition_based_and_atomic(setup):
+    source = await connect(setup)
+    sessions = sessions_for(setup)
+
+    async def finish_failure():
+        await due(setup, source.id)
+        job = await module.claim(sessions)
+        await module.finish(sessions, job, None, "fetch_error")
+
+    async def notices():
+        return list(
+            (
+                await setup.db.scalars(select(Notification).order_by(Notification.id))
+            ).all()
+        )
+
+    await finish_failure()
+    await finish_failure()
+    rows = await notices()
+    assert len(rows) == 1
+    assert rows[0].user_id == OWNER.id
+    assert rows[0].action_path == "/owner"
+    assert URL not in rows[0].message and "token=" not in rows[0].message
+    assert f"izvor #{source.id}" in rows[0].message
+
+    await due(setup, source.id)
+    job = await module.claim(sessions)
+    await module.finish(sessions, job, calendar(event()))
+    assert len(await notices()) == 2
+    assert (await notices())[-1].title == "Kalendar se ponovo osvežava"
+    await due(setup, source.id)
+    job = await module.claim(sessions)
+    await module.finish(sessions, job, calendar(event()))
+    assert len(await notices()) == 2
+
+    # An unsuccessful transaction must not persist a notice or suppress a retry.
+    await due(setup, source.id)
+    job = await module.claim(sessions)
+    commit = setup.db.commit
+    setup.db.commit = AsyncMock(side_effect=RuntimeError("commit failed"))
+    with pytest.raises(RuntimeError):
+        await module.finish(sessions, job, None, "fetch_error")
+    await setup.db.rollback()
+    setup.db.commit = commit
+    assert len(await notices()) == 2
+    await module.finish(sessions, job, None, "fetch_error")
+    assert len(await notices()) == 3
+    await due(setup, source.id)
+    job = await module.claim(sessions)
+    await module.finish(sessions, job, None, "key_error")
+    assert len(await notices()) == 4
+    await due(setup, source.id)
+    job = await module.claim(sessions)
+    await setup.configure(1, OWNER, source.id, "pause")
+    assert await module.finish(sessions, job, None, "fetch_error") == "discarded"
+    assert len(await notices()) == 4
 
 
 @pytest.mark.asyncio

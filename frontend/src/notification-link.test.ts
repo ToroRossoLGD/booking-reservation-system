@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { notificationLinkLabel } from "./notification-link";
 
 it("permits known account destinations and strictly internal listing URLs", () => {
+  expect(notificationLinkLabel("/owner")).toBe("Moji oglasi i zauzetost");
   expect(notificationLinkLabel("/owner/stays")).toBe("Rezervacije tvojih stanova");
   expect(notificationLinkLabel("/properties/7")).toBe("Pogledaj oglas");
   expect(notificationLinkLabel("/properties/7?check_in=2030-10-01&check_out=2030-10-04&guests=2")).toBe("Pogledaj oglas");
