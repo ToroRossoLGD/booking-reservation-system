@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { api } from "./api";
+import ReminderHistory from "./ReminderHistory";
 
 function subscribe(callback: () => void) {
   window.addEventListener("storage", callback); window.addEventListener("focus", callback);
@@ -47,6 +48,7 @@ function Settings({ token, viewing }: { token: string; viewing: boolean }) {
       {enabled !== null && <><p role="status">Podsetnici su {enabled ? "uključeni" : "isključeni"}.</p><button className="ph-outline" disabled={busy || !!error} onClick={() => void save()}>{enabled ? "Isključi podsetnike" : "Uključi podsetnike"}</button></>}
       {message && <p role="status">{message}</p>}
       {error && <div role="alert"><p>{error}</p><button disabled={busy} onClick={() => { setError(""); setEnabled(null); setVersion(value => value + 1); }}>Osveži podešavanje</button></div>}
+      <ReminderHistory viewing={viewing} />
     </div>}
   </section>;
 }

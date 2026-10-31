@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -9,10 +9,12 @@ from app.schemas.notification import (
     DismissedNotificationCount,
     NotificationListRead,
     NotificationRead,
+    ReminderHistoryRead,
     StayReminderPreferences,
     UnreadNotificationCount,
 )
 from app.services.notification_service import NotificationService
+from app.services.reminder_history_service import reminder_history
 from app.services.stay_reminder_service import (
     reminder_preference,
     set_reminder_preference,
@@ -26,6 +28,28 @@ router = APIRouter(
     prefix="/notifications",
     tags=["Notifications"],
 )
+
+
+@router.get("/stay-reminders/history", response_model=ReminderHistoryRead)
+async def stay_reminder_history(
+    response: Response,
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return await reminder_history(db, current_user.id, False, offset)
+
+
+@router.get("/viewing-reminders/history", response_model=ReminderHistoryRead)
+async def viewing_reminder_history(
+    response: Response,
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return await reminder_history(db, current_user.id, True, offset)
 
 
 @router.get("/stay-reminders", response_model=StayReminderPreferences)

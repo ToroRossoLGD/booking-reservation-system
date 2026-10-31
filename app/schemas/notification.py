@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, StrictBool
 
@@ -6,6 +7,20 @@ from pydantic import BaseModel, ConfigDict, StrictBool
 class StayReminderPreferences(BaseModel):
     model_config = ConfigDict(extra="forbid")
     enabled: StrictBool
+
+
+class ReminderDeliveryRead(BaseModel):
+    id: int
+    kind: Literal["arrival", "departure", "rental_viewing", "sale_viewing"]
+    reference_id: int
+    scheduled_for: str
+    created_at: datetime
+
+
+class ReminderHistoryRead(BaseModel):
+    items: list[ReminderDeliveryRead]
+    offset: int
+    has_next: bool
 
 
 class NotificationRead(BaseModel):
