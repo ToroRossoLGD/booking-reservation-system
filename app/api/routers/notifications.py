@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.dependencies import get_current_user
 from app.db.session import get_db
 from app.models.user import User
@@ -8,14 +9,42 @@ from app.schemas.notification import (
     DismissedNotificationCount,
     NotificationListRead,
     NotificationRead,
+    StayReminderPreferences,
     UnreadNotificationCount,
 )
 from app.services.notification_service import NotificationService
+from app.services.stay_reminder_service import (
+    reminder_preference,
+    set_reminder_preference,
+)
 
 router = APIRouter(
     prefix="/notifications",
     tags=["Notifications"],
 )
+
+
+@router.get("/stay-reminders", response_model=StayReminderPreferences)
+async def get_stay_reminders(
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return {"enabled": await reminder_preference(db, current_user.id)}
+
+
+@router.put("/stay-reminders", response_model=StayReminderPreferences)
+async def update_stay_reminders(
+    data: StayReminderPreferences,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if settings.DEMO_MODE:
+        raise HTTPException(403, "Reminder preferences are disabled in demo mode")
+    response.headers["Cache-Control"] = "private, no-store"
+    return await set_reminder_preference(db, current_user.id, data.enabled)
 
 
 @router.get(

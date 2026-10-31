@@ -90,6 +90,7 @@ class Settings(BaseSettings):
     CALENDAR_FEED_PAST_DAYS: int = 30
     CALENDAR_FEED_FUTURE_DAYS: int = 365
     OCCUPANCY_IMPORT_ALLOWED_HOSTS: str = ""
+    STAY_REMINDERS_ENABLED: bool = False
     OCCUPANCY_SYNC_ENABLED: bool = False
     OCCUPANCY_SYNC_KEY: str = Field(default="", repr=False)
 
