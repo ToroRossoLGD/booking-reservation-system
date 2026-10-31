@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -15,6 +15,7 @@ class ViewingReminderPreference(Base):
 class ViewingReminderDelivery(Base):
     __tablename__ = "viewing_reminder_deliveries"
     __table_args__ = (
+        Index("ix_viewing_reminder_history", "user_id", "created_at", "id"),
         CheckConstraint(
             "(rental_id IS NULL) <> (sale_id IS NULL)", name="ck_viewing_reminder_kind"
         ),

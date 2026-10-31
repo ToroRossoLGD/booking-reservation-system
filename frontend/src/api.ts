@@ -37,6 +37,7 @@ import type { OccupancyImportResult } from "./OccupancyImport";
 import type { OccupancySource } from "./OccupancySources";
 import type { CalendarSyncStatus } from "./OccupancySync";
 import type { OccupancyImportRun } from "./OccupancyImportHistory";
+import type { ReminderHistoryPage } from "./ReminderHistory";
 
 export const googleLoginUrl = `${API_URL}/auth/google/login`;
 export function occupancySubscriptionUrl(path: string) {
@@ -79,6 +80,7 @@ async function request<T>(path: string, options: RequestInit = {}, text = false)
 }
 
 export const api = {
+  reminderHistory: (viewing: boolean, offset: number, signal?: AbortSignal) => request<ReminderHistoryPage>(`/notifications/${viewing ? "viewing" : "stay"}-reminders/history?offset=${offset}`, { signal }),
   viewingReminderPreferences: (signal?: AbortSignal) => request<{ enabled: boolean }>("/notifications/viewing-reminders", { signal }),
   setViewingReminderPreferences: (enabled: boolean) => request<{ enabled: boolean }>("/notifications/viewing-reminders", { method: "PUT", body: JSON.stringify({ enabled }) }),
   stayReminderPreferences: (signal?: AbortSignal) => request<{ enabled: boolean }>("/notifications/stay-reminders", { signal }),
