@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import StayReminderSettings from "./StayReminderSettings";
 import CalendarDownloadButton from "./CalendarDownloadButton";
 import { viewingCalendar } from "./calendar-export";
 import { api, ApiError } from "./api";
@@ -64,5 +65,6 @@ export default function RentalInquiriesPage({ owner = false, sale = false }: { o
       <nav className="stay-page-nav"><a href="/account/notifications">Obaveštenja</a><a href="/">Pronađi stan</a><a href={sale ? "/sales" : "/rentals"}>Moji upiti</a><a href={sale ? "/owner/sales" : "/owner/rentals"}>Za vlasnike</a><a href={sale ? "/rentals" : "/sales"}>{sale ? "Upiti za najam" : "Upiti za kupovinu"}</a><button disabled={loading} onClick={() => reload()}>Osveži upite</button></nav>
       {error && <div role="alert"><p>{error}</p><a href="/account">Otvori nalog / prijavu</a></div>}
       {loading ? <p role="status">Učitavanje upita…</p> : !error && page && <><p>Ukupno: {page.total}</p>{page.items.length === 0 && <p>Još nema upita za prikaz.</p>}<div className="stay-list">{page.items.map(inquiry => <InquiryCard key={`${inquiry.id}-${inquiry.version}`} inquiry={inquiry} owner={owner} reload={reload} />)}</div><nav className="ph-pagination" aria-label="Stranice upita"><button disabled={offset === 0} onClick={() => reload(Math.max(0, offset - 20))}>Prethodna</button><button disabled={!page.has_next} onClick={() => reload(offset + 20)}>Sledeća</button></nav></>}
+      <StayReminderSettings viewing />
     </main></div>;
 }
