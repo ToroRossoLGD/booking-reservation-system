@@ -269,6 +269,7 @@ Launch preparation now takes priority over additional marketplace features. **La
   - [x] Manual source freshness indicator: never imported, conflicting, recent or at least 24 hours old, with a reminder to review the calendar again. This is not live provider synchronization.
   - [x] Import conflict details show the occupied date ranges and distinguish reservations/preparation from existing blocks without exposing guest details or private notes.
 - [ ] Email/push delivery for nightly stays and viewings, reminders, preferences and delivery tracking. Basic account-recovery email belongs to P1; existing legacy reminders do not complete this property feature.
+  - [x] In-app calendar health notifications for owners: alert on new sync problems and successful recovery, with repeated identical outcomes suppressed. This does not implement email/push delivery. See [calendar health notifications](docs/automatic-calendar-refresh.md#owner-notifications).
 - [ ] Online short-stay payments and deposits, including signed webhooks, idempotency, refunds, failed-payment recovery and reconciliation. The legacy hourly Stripe integration does not yet provide this nightly flow.
 - [ ] Long-term leases and monthly rental payments.
 - [ ] Complete Serbian/English language selection and extend accessibility coverage beyond the core beta flows.

@@ -35,4 +35,12 @@ The server-wide switch is environment-based, so change it on all API/worker inst
 
 Outcomes: `pending`, `applied`, `conflict`, `fetch_error`, `key_error`, `blocked_empty`, `superseded`, `inactive`, or `unconfigured`. The UI polls while the automation panel is open, every 30 seconds, and supports explicit retry/status refresh. Refresh the availability list after a completed job to see updated blocks. Valid automatic imports also appear in the shared import history; fetch failures and empty-feed guards are represented in automatic status instead.
 
+## Owner notifications
+
+The existing in-app inbox alerts the connection owner when a completed attempt changes to a conflict, fetch/format error, encryption-key error or empty-feed guard. A successful import directly following one of these problems sends a recovery notice. Repeating the same outcome does not create another notification; a different problem or a later recurrence after recovery does. Normal successful imports are silent.
+
+Messages identify the listing/source by ID and link to **Moji oglasi i zauzetost**. Open the listing's **Zauzetost** panel and its calendar source to inspect the current status. Messages contain no provider URLs, source names or guest data. They persist atomically with the outcome, so a rolled-back or discarded job cannot create a notice. Ownership changes disable the connection without notifying the previous owner.
+
+These are in-app notifications only, with the inbox's existing read/dismiss controls. Email/push delivery, notification preferences and repeated reminder escalation remain future work. A paused, superseded or reconnected source resets transition context; recovery notifications are only generated when the immediately preceding outcome was a problem. A stopped worker cannot emit notifications: use the overdue indicator and operational monitoring for scheduler outages.
+
 This is eventual, date-only synchronization, not a channel-manager guarantee. Provider publication delays, hourly polling, outages and conflicts can leave stale occupancy. Staging acceptance and operational monitoring remain required before public use.

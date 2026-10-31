@@ -12,6 +12,7 @@ from app.models.occupancy_sync import OccupancySync
 from app.models.property_listing import PropertyListing
 from app.models.venue import Venue
 from app.repositories.stay_repository import StayRepository
+from app.services.calendar_health_notifications import add_calendar_health_notification
 from app.services.occupancy_import_service import OccupancyImportService
 from app.services.occupancy_source_service import OccupancySourceService
 from app.services.occupancy_url_service import fetch_calendar_url, validate_url
@@ -205,6 +206,7 @@ async def finish(sessions, job, content, failure=None):
             return "discarded"
         now = datetime.now(UTC)
         source = await db.get(OccupancySource, job["source_id"])
+        previous_status = row.last_status
         valid = (
             source
             and listing
@@ -247,6 +249,7 @@ async def finish(sessions, job, content, failure=None):
                 row.last_status = "applied" if result["applied"] else "conflict"
                 if result["applied"]:
                     row.last_success_at = now
+        add_calendar_health_notification(db, row, previous_status)
         await db.commit()
         return row.last_status
 

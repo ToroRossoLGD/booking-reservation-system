@@ -1,6 +1,7 @@
 import { parseStayDates } from "./stay-types";
 
 const known: Record<string, string> = {
+  "/owner": "Moji oglasi i zauzetost",
   "/owner-access": "Vlasnički pristup",
   "/sales": "Moji upiti za kupovinu", "/owner/sales": "Upiti za prodaju nekretnina",
   "/moderation": "Prijave i moderacija",
