@@ -21,6 +21,10 @@ from app.models.owner_access_request import OwnerAccessRequest
 from app.models.password_reset_token import PasswordResetToken
 from app.models.payment import Payment
 from app.models.promotion import Promotion
+from app.models.property_email_digest import (
+    PropertyEmailDigest,
+    PropertyEmailDigestItem,
+)
 from app.models.property_listing import PropertyListing
 from app.models.property_photo import PropertyPhoto
 from app.models.property_report import PropertyModerationEvent, PropertyReport
@@ -57,6 +61,8 @@ from app.models.waiver import WaiverAcceptance, WaiverTemplate, WaiverVersion
 from app.models.webhook import WebhookDelivery, WebhookSubscription
 
 __all__ = [
+    "PropertyEmailDigest",
+    "PropertyEmailDigestItem",
     "ViewingReminderDelivery",
     "ViewingReminderPreference",
     "StayReminderDelivery",

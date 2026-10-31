@@ -9,10 +9,12 @@ from app.schemas.notification import (
     DismissedNotificationCount,
     NotificationListRead,
     NotificationRead,
+    PropertyEmailDigestRead,
     ReminderHistoryRead,
     StayReminderPreferences,
     UnreadNotificationCount,
 )
+from app.services import property_email_digest_service as digest
 from app.services.notification_service import NotificationService
 from app.services.reminder_history_service import reminder_history
 from app.services.stay_reminder_service import (
@@ -28,6 +30,27 @@ router = APIRouter(
     prefix="/notifications",
     tags=["Notifications"],
 )
+
+
+@router.get("/email-digest", response_model=PropertyEmailDigestRead)
+async def email_digest_status(
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return await digest.status(db, current_user)
+
+
+@router.put("/email-digest", response_model=PropertyEmailDigestRead)
+async def email_digest_configure(
+    data: StayReminderPreferences,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return await digest.configure(db, current_user, data.enabled)
 
 
 @router.get("/stay-reminders/history", response_model=ReminderHistoryRead)

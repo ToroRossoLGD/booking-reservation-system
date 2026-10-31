@@ -1,4 +1,5 @@
 import { notificationLinkLabel } from "./notification-link";
+import PropertyEmailDigest from "./PropertyEmailDigest";
 import Modal from "./Modal";
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "./api";
@@ -429,6 +430,7 @@ export function AccountDashboard({
                   Nepročitano na ovoj stranici: {notifications.filter((item) => !item.is_read).length}
                 </span>
               </div>
+              <PropertyEmailDigest />
               {notifications.length > 0 && (
                 <div className="notification-toolbar">
                   <button
