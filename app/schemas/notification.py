@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, StrictBool
+from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt, field_validator
 
 
 class StayReminderPreferences(BaseModel):
@@ -10,12 +10,25 @@ class StayReminderPreferences(BaseModel):
 
 
 class PropertyEmailDigestRead(BaseModel):
+    interval_hours: Literal[1, 24]
+    next_run_at: datetime | None
     enabled: bool
     available: bool
     verified: bool
     last_status: Literal["unconfigured", "pending", "accepted", "failed", "unverified"]
     last_attempt_at: datetime | None
     last_accepted_at: datetime | None
+
+
+class PropertyEmailDigestWrite(StayReminderPreferences):
+    interval_hours: StrictInt | None = None
+
+    @field_validator("interval_hours")
+    @classmethod
+    def allowed_interval(cls, value):
+        if value is not None and value not in (1, 24):
+            raise ValueError("Choose 1 or 24 hours")
+        return value
 
 
 class ReminderDeliveryRead(BaseModel):

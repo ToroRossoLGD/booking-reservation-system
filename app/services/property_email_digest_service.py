@@ -40,6 +40,8 @@ async def status(db, user):
     row = await db.get(PropertyEmailDigest, user.id)
     return {
         "enabled": bool(row and row.enabled),
+        "interval_hours": row.interval_hours if row else 1,
+        "next_run_at": row.next_run_at if row and row.enabled else None,
         "available": available(),
         "verified": user.email_verified_at is not None,
         "last_status": row.last_status if row else "unconfigured",
@@ -48,7 +50,7 @@ async def status(db, user):
     }
 
 
-async def configure(db, user, enabled):
+async def configure(db, user, enabled, interval_hours=None):
     if settings.DEMO_MODE:
         raise HTTPException(403, "Email digest preferences are disabled in demo mode")
     # Serialize settings without blocking worker FK KEY SHARE locks on the user.
@@ -69,9 +71,15 @@ async def configure(db, user, enabled):
     )
     if row is None:
         row = PropertyEmailDigest(
-            user_id=user.id, next_run_at=datetime.now(UTC), enabled=False
+            user_id=user.id,
+            next_run_at=datetime.now(UTC),
+            enabled=False,
+            interval_hours=1,
         )
         db.add(row)
+    if interval_hours is not None and interval_hours != row.interval_hours:
+        row.interval_hours = interval_hours
+        row.next_run_at = datetime.now(UTC) + timedelta(hours=interval_hours)
     if enabled and not row.enabled:
         row.cursor = (
             await db.scalar(
@@ -79,7 +87,7 @@ async def configure(db, user, enabled):
             )
             or 0
         )
-        row.next_run_at = datetime.now(UTC) + timedelta(hours=1)
+        row.next_run_at = datetime.now(UTC) + timedelta(hours=row.interval_hours)
         row.attempts = 0
         row.last_status = "pending"
     if row.enabled != enabled:
@@ -137,7 +145,7 @@ async def claim(sessions):
                 )
             ).all()
         )
-        row.next_run_at = now + timedelta(hours=1)
+        row.next_run_at = now + timedelta(hours=row.interval_hours)
         if not ids:
             await db.commit()
             return {"skip": True}

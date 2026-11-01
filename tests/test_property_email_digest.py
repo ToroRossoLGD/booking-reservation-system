@@ -11,7 +11,7 @@ from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from fastapi import FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import create_engine, inspect, select
+from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.schema import CreateSchema, DropSchema
 
@@ -91,6 +91,45 @@ async def test_opt_in_excludes_backlog_and_sends_private_count_once(setup):
     await due(db)
     assert await module.run_email_digests(sessions_for(db)) == {}
     assert sender.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_daily_schedule_and_frequency_changes_preserve_backlog_and_claim(setup):
+    db, sender = setup
+    user = await db.get(User, 2)
+    initial = await module.configure(db, user, False, 24)
+    assert initial["interval_hours"] == 24 and not initial["enabled"]
+    assert initial["next_run_at"] is None
+    await module.configure(db, user, True)
+    row = await db.get(PropertyEmailDigest, 2)
+    baseline = row.cursor
+    assert (
+        timedelta(hours=23, minutes=59)
+        < module.utc(row.next_run_at) - datetime.now(UTC)
+        <= timedelta(hours=24)
+    )
+    await notice(db)
+    # Editing the interval does not re-baseline and lose queued notifications.
+    await module.configure(db, user, True, 1)
+    assert row.cursor == baseline
+    await due(db)
+    job = await module.claim(sessions_for(db))
+    await module.configure(db, user, True, 24)
+    assert row.lease_token == job["token"]
+    assert await module.send_and_finish(sessions_for(db), job) == "accepted"
+    sender.assert_called_once()
+    assert (
+        timedelta(hours=23, minutes=59)
+        < module.utc(row.next_run_at) - datetime.now(UTC)
+        <= timedelta(hours=24)
+    )
+    await due(db)
+    assert await module.run_email_digests(sessions_for(db)) == {}
+    assert (
+        timedelta(hours=23, minutes=59)
+        < module.utc(row.next_run_at) - datetime.now(UTC)
+        <= timedelta(hours=24)
+    )
 
 
 @pytest.mark.asyncio
@@ -201,12 +240,21 @@ async def test_api_auth_strict_consent_and_no_recipient_override(setup):
         path = "/notifications/email-digest"
         assert (await client.get(path)).status_code == 401
         app.dependency_overrides[get_current_user] = lambda: user
+        for interval in (2, 0, -1, "24", True):
+            assert (
+                await client.put(
+                    path, json={"enabled": True, "interval_hours": interval}
+                )
+            ).status_code == 422
+        daily = await client.put(path, json={"enabled": False, "interval_hours": 24})
+        assert daily.status_code == 200 and daily.json()["interval_hours"] == 24
         assert (await client.put(path, json={"enabled": "true"})).status_code == 422
         assert (
             await client.put(path, json={"enabled": True, "email": "other@example.com"})
         ).status_code == 422
         result = await client.put(path, json={"enabled": True})
         assert result.status_code == 200 and result.json()["enabled"]
+        assert result.json()["interval_hours"] == 24
         assert result.headers["cache-control"] == "private, no-store"
         assert user.email not in result.text
         app.dependency_overrides[get_current_user] = lambda: test_stays.OTHER
@@ -237,6 +285,34 @@ def test_migration_and_task_registration():
         celery_app.conf.beat_schedule["send-property-email-digests"]["task"]
         == "send_property_email_digests"
     )
+
+
+def test_frequency_migration_preserves_existing_preference():
+    spec = importlib.util.spec_from_file_location(
+        "frequency_migration",
+        Path("alembic/versions/d61f82ab7590_email_digest_frequency.py"),
+    )
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    engine = create_engine("sqlite://")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "CREATE TABLE property_email_digests "
+                "(user_id INTEGER PRIMARY KEY, enabled BOOLEAN NOT NULL)"
+            )
+        )
+        connection.execute(text("INSERT INTO property_email_digests VALUES (2, 1)"))
+        migration.op = Operations(MigrationContext.configure(connection))
+        migration.upgrade()
+        assert tuple(
+            connection.execute(text("SELECT * FROM property_email_digests")).one()
+        ) == (2, 1, 1)
+        migration.downgrade()
+        assert tuple(
+            connection.execute(text("SELECT * FROM property_email_digests")).one()
+        ) == (2, 1)
+    engine.dispose()
 
 
 @pytest.mark.asyncio

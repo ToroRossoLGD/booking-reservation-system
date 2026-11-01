@@ -82,7 +82,7 @@ async function request<T>(path: string, options: RequestInit = {}, text = false)
 
 export const api = {
   emailDigestStatus: (signal?: AbortSignal) => request<EmailDigestStatus>("/notifications/email-digest", { signal }),
-  setEmailDigest: (enabled: boolean) => request<EmailDigestStatus>("/notifications/email-digest", { method: "PUT", body: JSON.stringify({ enabled }) }),
+  setEmailDigest: (enabled: boolean, interval_hours?: 1 | 24) => request<EmailDigestStatus>("/notifications/email-digest", { method: "PUT", body: JSON.stringify({ enabled, interval_hours }) }),
   reminderHistory: (viewing: boolean, offset: number, signal?: AbortSignal) => request<ReminderHistoryPage>(`/notifications/${viewing ? "viewing" : "stay"}-reminders/history?offset=${offset}`, { signal }),
   viewingReminderPreferences: (signal?: AbortSignal) => request<{ enabled: boolean }>("/notifications/viewing-reminders", { signal }),
   setViewingReminderPreferences: (enabled: boolean) => request<{ enabled: boolean }>("/notifications/viewing-reminders", { method: "PUT", body: JSON.stringify({ enabled }) }),
