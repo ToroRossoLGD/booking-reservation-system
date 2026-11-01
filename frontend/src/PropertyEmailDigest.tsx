@@ -26,11 +26,11 @@ function Panel({ token }: { token: string }) {
     api.emailDigestStatus(controller.signal).then(value => { if (!controller.signal.aborted) setStatus(value); }).catch(() => { if (!controller.signal.aborted) setError("Podešavanje nije učitano. Pokušaj ponovo."); });
     return () => controller.abort();
   }, [open, version]);
-  async function change(enabled: boolean, interval?: 1 | 24) {
+  async function change(enabled: boolean, interval?: 1 | 24, retry = false) {
     if (!status || working.current || snapshot() !== token) return;
     working.current = true; setBusy(true); setError("");
     try {
-      const result = await (interval === undefined ? api.setEmailDigest(enabled) : api.setEmailDigest(enabled, interval));
+      const result = await (retry ? api.retryEmailDigest() : interval === undefined ? api.setEmailDigest(enabled) : api.setEmailDigest(enabled, interval));
       if (live.current && snapshot() === token) setStatus(result);
     } catch { if (live.current) setError("Promena nije potvrđena. Osveži status pre novog pokušaja."); }
     finally { working.current = false; if (live.current) setBusy(false); }
@@ -49,6 +49,7 @@ function Panel({ token }: { token: string }) {
         {!status.available && <p>Email sažetak nije aktiviran na serveru.</p>}
         {!status.verified && <p>Prvo <a href="/verify-email">verifikuj email adresu</a>.</p>}
         {status.last_status === "failed" && <p role="alert">Poslednji pokušaj nije uspeo. Posle tri uzastopna neuspeha slanje se isključuje. Proveri podešavanje sa administratorom.</p>}
+        {status.last_status === "failed" && <div><p>Ponovni pokušaj zadržava obaveštenja koja čekaju slanje i ponovo uključuje buduće sažetke. Zakazuje posao; ne šalje poruku odmah. Posle nejasnog SMTP prekida moguć je duplikat.</p><button disabled={busy || !!error || !status.available || !status.verified} onClick={() => void change(true, undefined, true)}>Ponovi i uključi slanje</button></div>}
         <p>Poslednji pokušaj: {time(status.last_attempt_at)}. Poslednje SMTP prihvatanje: {time(status.last_accepted_at)}.</p>
         <p>SMTP prihvatanje ne potvrđuje prijem ili čitanje. Pri prekidu veze ili restartu moguć je ponovljen sažetak.</p>
         <button disabled={busy || !!error || (!status.enabled && (!status.available || !status.verified))} onClick={() => void change(!status.enabled)}>{status.enabled ? "Isključi email sažetak" : "Uključi email sažetak"}</button>

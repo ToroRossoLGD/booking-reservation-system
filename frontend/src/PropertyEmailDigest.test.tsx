@@ -3,9 +3,31 @@ import { afterEach, expect, it, vi } from "vitest";
 import { api } from "./api";
 import PropertyEmailDigest, { type EmailDigestStatus } from "./PropertyEmailDigest";
 
-vi.mock("./api", () => ({ api: { emailDigestStatus: vi.fn(), setEmailDigest: vi.fn() } }));
+vi.mock("./api", () => ({ api: { emailDigestStatus: vi.fn(), setEmailDigest: vi.fn(), retryEmailDigest: vi.fn() } }));
 afterEach(() => { vi.resetAllMocks(); localStorage.clear(); });
 const status: EmailDigestStatus = { interval_hours: 1, next_run_at: null, enabled: false, verified: true, available: true, last_status: "unconfigured", last_attempt_at: null, last_accepted_at: null };
+
+it("retries a failure with explicit renewed consent without resetting the baseline", async () => {
+  vi.mocked(api.emailDigestStatus).mockResolvedValue({ ...status, last_status: "failed" });
+  vi.mocked(api.retryEmailDigest).mockResolvedValue({ ...status, enabled: true, last_status: "pending" });
+  render(<PropertyEmailDigest />);
+  fireEvent.click(screen.getByRole("button", { name: "Email sažetak obaveštenja" }));
+  fireEvent.click(await screen.findByText("Ponovi i uključi slanje"));
+  expect(await screen.findByText("Email sažetak je uključen.")).toBeVisible();
+  expect(api.retryEmailDigest).toHaveBeenCalledTimes(1);
+  expect(api.setEmailDigest).not.toHaveBeenCalled();
+  expect(screen.queryByText("Ponovi i uključi slanje")).toBeNull();
+});
+
+it("blocks retry until status is refreshed after an uncertain request", async () => {
+  vi.mocked(api.emailDigestStatus).mockResolvedValue({ ...status, last_status: "failed" });
+  vi.mocked(api.retryEmailDigest).mockRejectedValue(new Error());
+  render(<PropertyEmailDigest />);
+  fireEvent.click(screen.getByRole("button", { name: "Email sažetak obaveštenja" }));
+  fireEvent.click(await screen.findByText("Ponovi i uključi slanje"));
+  expect(await screen.findByText("Promena nije potvrđena. Osveži status pre novog pokušaja.")).toBeVisible();
+  expect(screen.getByText("Ponovi i uključi slanje")).toBeDisabled();
+});
 
 it("changes frequency without enabling email and shows the persisted schedule", async () => {
   vi.mocked(api.emailDigestStatus).mockResolvedValue(status);

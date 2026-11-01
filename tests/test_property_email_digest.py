@@ -168,6 +168,80 @@ async def test_failed_delivery_retries_then_disables_without_marking_accepted(se
 
 
 @pytest.mark.asyncio
+async def test_manual_retry_preserves_queued_and_accepted_items(setup):
+    db, sender = setup
+    user = await db.get(User, 2)
+    await module.configure(db, user, True, 24)
+    await notice(db)
+    await due(db)
+    await module.run_email_digests(sessions_for(db))
+    row = await db.get(PropertyEmailDigest, 2)
+    baseline, accepted_at = row.cursor, row.last_accepted_at
+    await notice(db)
+    await notice(db)
+    sender.side_effect = EmailDeliveryError("failed")
+    for _ in range(3):
+        await due(db)
+        await module.run_email_digests(sessions_for(db))
+    assert not row.enabled
+    attempts = sender.call_count
+    result = await module.retry_failed(db, user)
+    assert result["enabled"] and result["last_status"] == "pending"
+    assert row.cursor == baseline and row.last_accepted_at == accepted_at
+    assert row.interval_hours == 24 and row.attempts == 0
+    assert sender.call_count == attempts
+    with pytest.raises(HTTPException) as duplicate:
+        await module.retry_failed(db, user)
+    assert duplicate.value.status_code == 409
+    sender.side_effect = None
+    assert await module.run_email_digests(sessions_for(db)) == {"accepted": 1}
+    assert "2 novih" in sender.call_args.args[2]
+    assert len(list((await db.scalars(select(PropertyEmailDigestItem))).all())) == 3
+
+
+@pytest.mark.asyncio
+async def test_retry_requires_auth_failed_state_verified_address_and_no_active_lease(
+    setup, monkeypatch
+):
+    db, sender = setup
+    user = await db.get(User, 2)
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[get_db] = lambda: db
+    path = "/notifications/email-digest/retry"
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        assert (await client.post(path)).status_code == 401
+        app.dependency_overrides[get_current_user] = lambda: user
+        assert (await client.post(path)).status_code == 404
+        await module.configure(db, user, True)
+        assert (await client.post(path)).status_code == 409
+        row = await db.get(PropertyEmailDigest, 2)
+        row.last_status = "failed"
+        row.lease_until = datetime.now(UTC) + timedelta(minutes=5)
+        await db.commit()
+        assert (await client.post(path)).status_code == 409
+        row.lease_until = None
+        user.email_verified_at = None
+        await db.commit()
+        assert (await client.post(path)).status_code == 409
+        user.email_verified_at = datetime.now(UTC)
+        await db.commit()
+        monkeypatch.setattr(settings, "PROPERTY_EMAIL_DIGEST_ENABLED", False)
+        assert (await client.post(path)).status_code == 503
+        monkeypatch.setattr(settings, "PROPERTY_EMAIL_DIGEST_ENABLED", True)
+        monkeypatch.setattr(settings, "DEMO_MODE", True)
+        assert (await client.post(path)).status_code == 403
+        monkeypatch.setattr(settings, "DEMO_MODE", False)
+        result = await client.post(path)
+        assert result.status_code == 200 and result.json()["last_status"] == "pending"
+        assert result.headers["cache-control"] == "private, no-store"
+        assert (await client.post(path)).status_code == 409
+    sender.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_expired_claim_replaced_and_post_smtp_rollback_is_not_success(setup):
     db, sender = setup
     await module.configure(db, await db.get(User, 2), True)
@@ -360,6 +434,23 @@ async def test_postgres_exclusive_claim_and_delivery(monkeypatch):
         )
         assert sum(result.get("accepted", 0) for result in results) == 1
         sender.assert_called_once()
+        async with sessions() as db:
+            await notice(db)
+            await due(db)
+        sender.side_effect = EmailDeliveryError("failed")
+        await module.run_email_digests(sessions)
+
+        async def retry():
+            async with sessions() as db:
+                try:
+                    await module.retry_failed(db, await db.get(User, 2))
+                    return True
+                except HTTPException as error:
+                    assert error.status_code == 409
+                    return False
+
+        outcomes = await asyncio.gather(retry(), retry())
+        assert sorted(outcomes) == [False, True]
     finally:
         async with engine.begin() as connection:
             await connection.execute(DropSchema(schema, cascade=True))

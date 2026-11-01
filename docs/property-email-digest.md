@@ -30,7 +30,15 @@ Successful SMTP submission records the included notification IDs and `accepted` 
 
 SMTP and database commits cannot form one transaction. A provider may accept a message just before an error, worker crash or database failure; retry can send a duplicate count summary. This is explicitly not exactly-once email delivery. Delivery-marker records survive inbox dismissal and contain only user/notification IDs. Providers' delivery receipts, bounces, complaints, push transport and per-event/channel preferences remain future work. Do not log SMTP credentials, recipient addresses or message bodies in worker tracing.
 
-## API
+## Manual retry
+
+After resolving an email delivery problem, use **Ponovi i uključi slanje** in the digest panel. This explicitly re-enables future digest delivery and queues another attempt for the next worker run, including when three failures previously disabled the preference. It does not send SMTP inline. The opt-in baseline, accepted-item markers, normal hourly/daily interval and last-attempt/acceptance timestamps are preserved; only the retry budget is reset and status changes to pending.
+
+This differs from ordinary re-enabling, which deliberately establishes a new baseline and skips older pending notifications. Use retry to retain the backlog. Already accepted items remain excluded, but SMTP ambiguity can still duplicate a summary if an earlier provider acceptance was not committed locally.
+
+Authenticated `POST /notifications/email-digest/retry` takes no payload and applies only to the current account. The server requires an existing failed preference, a verified email, enabled delivery and no live worker lease. Concurrent/repeated requests cannot queue the same failure twice: pending/accepted states return 409, as does an active lease. Missing preferences return 404; unavailable delivery returns 503 and demo mode returns 403. Responses are private/no-store. A failed/uncertain browser request requires refreshing status before retrying again.
+
+## API status and preferences
 
 Authenticated `GET /notifications/email-digest` returns `enabled`, server `available`, account `verified`, `interval_hours`, `next_run_at`, `last_status`, `last_attempt_at` and `last_accepted_at`. `PUT` requires a strict `enabled` boolean and optionally a strict integer `interval_hours` of 1 or 24. Omission or null preserves the saved interval. The account/address comes from authentication, not the request body. Responses are private/no-store and never expose email addresses or delivery identifiers. Disabling remains available when server delivery is off; demo mode rejects mutations.
 

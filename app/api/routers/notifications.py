@@ -54,6 +54,16 @@ async def email_digest_configure(
     return await digest.configure(db, current_user, data.enabled, data.interval_hours)
 
 
+@router.post("/email-digest/retry", response_model=PropertyEmailDigestRead)
+async def retry_email_digest(
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return await digest.retry_failed(db, current_user)
+
+
 @router.get("/stay-reminders/history", response_model=ReminderHistoryRead)
 async def stay_reminder_history(
     response: Response,
