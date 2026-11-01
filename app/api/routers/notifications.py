@@ -10,6 +10,7 @@ from app.schemas.notification import (
     NotificationListRead,
     NotificationRead,
     PropertyEmailDigestRead,
+    PropertyEmailDigestWrite,
     ReminderHistoryRead,
     StayReminderPreferences,
     UnreadNotificationCount,
@@ -44,13 +45,13 @@ async def email_digest_status(
 
 @router.put("/email-digest", response_model=PropertyEmailDigestRead)
 async def email_digest_configure(
-    data: StayReminderPreferences,
+    data: PropertyEmailDigestWrite,
     response: Response,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     response.headers["Cache-Control"] = "private, no-store"
-    return await digest.configure(db, current_user, data.enabled)
+    return await digest.configure(db, current_user, data.enabled, data.interval_hours)
 
 
 @router.get("/stay-reminders/history", response_model=ReminderHistoryRead)

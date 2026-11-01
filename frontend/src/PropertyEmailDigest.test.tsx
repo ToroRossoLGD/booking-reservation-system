@@ -5,7 +5,18 @@ import PropertyEmailDigest, { type EmailDigestStatus } from "./PropertyEmailDige
 
 vi.mock("./api", () => ({ api: { emailDigestStatus: vi.fn(), setEmailDigest: vi.fn() } }));
 afterEach(() => { vi.resetAllMocks(); localStorage.clear(); });
-const status: EmailDigestStatus = { enabled: false, verified: true, available: true, last_status: "unconfigured", last_attempt_at: null, last_accepted_at: null };
+const status: EmailDigestStatus = { interval_hours: 1, next_run_at: null, enabled: false, verified: true, available: true, last_status: "unconfigured", last_attempt_at: null, last_accepted_at: null };
+
+it("changes frequency without enabling email and shows the persisted schedule", async () => {
+  vi.mocked(api.emailDigestStatus).mockResolvedValue(status);
+  vi.mocked(api.setEmailDigest).mockResolvedValue({ ...status, interval_hours: 24 });
+  render(<PropertyEmailDigest />);
+  fireEvent.click(screen.getByRole("button", { name: "Email sažetak obaveštenja" }));
+  fireEvent.change(await screen.findByLabelText("Učestalost email sažetka"), { target: { value: "24" } });
+  await screen.findByText("Email sažetak je isključen.");
+  expect(vi.mocked(api.setEmailDigest)).toHaveBeenCalledWith(false, 24);
+  expect(await screen.findByDisplayValue("Jednom dnevno")).toBeVisible();
+});
 
 it("requires explicit verified opt-in and supports disabling", async () => {
   vi.mocked(api.emailDigestStatus).mockResolvedValue(status);

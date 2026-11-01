@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -8,7 +8,11 @@ from app.db.base import Base
 
 class PropertyEmailDigest(Base):
     __tablename__ = "property_email_digests"
-    __table_args__ = (Index("ix_property_email_digest_due", "enabled", "next_run_at"),)
+    __table_args__ = (
+        Index("ix_property_email_digest_due", "enabled", "next_run_at"),
+        CheckConstraint("interval_hours IN (1, 24)", name="ck_email_digest_interval"),
+    )
+    interval_hours: Mapped[int] = mapped_column(default=1, server_default="1")
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     enabled: Mapped[bool] = mapped_column(default=False)
     cursor: Mapped[int] = mapped_column(default=0)
