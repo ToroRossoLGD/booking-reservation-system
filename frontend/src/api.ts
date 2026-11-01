@@ -81,6 +81,7 @@ async function request<T>(path: string, options: RequestInit = {}, text = false)
 }
 
 export const api = {
+  retryEmailDigest: () => request<EmailDigestStatus>("/notifications/email-digest/retry", { method: "POST" }),
   emailDigestStatus: (signal?: AbortSignal) => request<EmailDigestStatus>("/notifications/email-digest", { signal }),
   setEmailDigest: (enabled: boolean, interval_hours?: 1 | 24) => request<EmailDigestStatus>("/notifications/email-digest", { method: "PUT", body: JSON.stringify({ enabled, interval_hours }) }),
   reminderHistory: (viewing: boolean, offset: number, signal?: AbortSignal) => request<ReminderHistoryPage>(`/notifications/${viewing ? "viewing" : "stay"}-reminders/history?offset=${offset}`, { signal }),

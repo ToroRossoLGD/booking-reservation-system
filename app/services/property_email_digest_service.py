@@ -98,6 +98,42 @@ async def configure(db, user, enabled, interval_hours=None):
     return await status(db, current_user)
 
 
+async def retry_failed(db, user):
+    if settings.DEMO_MODE:
+        raise HTTPException(403, "Email digest retries are disabled in demo mode")
+    if not available():
+        raise HTTPException(503, "Email digest delivery is unavailable")
+    current_user = await db.scalar(
+        select(User)
+        .where(User.id == user.id)
+        .with_for_update(key_share=True)
+        .execution_options(populate_existing=True)
+    )
+    if not current_user.email_verified:
+        raise HTTPException(409, "Verify your email before retrying")
+    row = await db.scalar(
+        select(PropertyEmailDigest)
+        .where(PropertyEmailDigest.user_id == user.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if row is None:
+        raise HTTPException(404, "Email digest preference not found")
+    if row.last_status != "failed" or (
+        row.lease_until and utc(row.lease_until) > datetime.now(UTC)
+    ):
+        raise HTTPException(409, "There is no failed digest available to retry")
+    # Preserve the opt-in baseline, accepted items and chosen normal interval.
+    row.enabled = True
+    row.attempts = 0
+    row.last_status = "pending"
+    row.next_run_at = datetime.now(UTC)
+    row.lease_token = None
+    row.lease_until = None
+    await db.commit()
+    return await status(db, current_user)
+
+
 async def claim(sessions):
     now = datetime.now(UTC)
     async with sessions() as db:
