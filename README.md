@@ -278,6 +278,7 @@ Launch preparation now takes priority over additional marketplace features. **La
   - [x] In-app calendar health notifications for owners: alert on new sync problems and successful recovery, with repeated identical outcomes suppressed. This does not implement email/push delivery. See [calendar health notifications](docs/automatic-calendar-refresh.md#owner-notifications).
 - [ ] Online short-stay payments and deposits, including signed webhooks, idempotency, refunds, failed-payment recovery and reconciliation. The legacy hourly Stripe integration does not yet provide this nightly flow.
 - [ ] Long-term leases and monthly rental payments.
+  - [x] Shared rental agreement proposals, tenant acceptance, monthly rent/deposit schedules and owner-recorded payments with audit history. Includes private participant access, version checks and protection against overlapping accepted rental agreements. Online collection, signing, amendments and nightly-calendar integration remain open. See [rental agreements](docs/rental-agreements.md).
 - [ ] Complete Serbian/English language selection and extend accessibility coverage beyond the core beta flows.
 
 Online payments, lease generation and external calendars are not technical prerequisites for a portfolio demo, but **this project's public launch is intentionally deferred until P2 is also complete**. Registration hardening is implemented; prioritize any existing-account review, production configuration and a verified deployment next.

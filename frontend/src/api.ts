@@ -39,6 +39,7 @@ import type { CalendarSyncStatus } from "./OccupancySync";
 import type { OccupancyImportRun } from "./OccupancyImportHistory";
 import type { ReminderHistoryPage } from "./ReminderHistory";
 import type { EmailDigestStatus } from "./PropertyEmailDigest";
+import type { RentalAgreement, AgreementInput, AgreementAction, RentalCharge, ChargeEvent } from "./rental-agreement-types";
 
 export const googleLoginUrl = `${API_URL}/auth/google/login`;
 export function occupancySubscriptionUrl(path: string) {
@@ -81,6 +82,12 @@ async function request<T>(path: string, options: RequestInit = {}, text = false)
 }
 
 export const api = {
+  rentalAgreements: (id: number, offset: number, signal?: AbortSignal) => request<RentalAgreement[]>(`/rental-inquiries/${id}/agreements?offset=${offset}`, { signal }),
+  proposeRentalAgreement: (id: number, data: AgreementInput) => request<RentalAgreement>(`/rental-inquiries/${id}/agreements`, { method: "POST", body: JSON.stringify(data) }),
+  decideRentalAgreement: (id: number, version: number, action: AgreementAction) => request<RentalAgreement>(`/rental-agreements/${id}/decision`, { method: "POST", body: JSON.stringify({ version, action }) }),
+  rentalCharges: (id: number, signal?: AbortSignal) => request<RentalCharge[]>(`/rental-agreements/${id}/charges`, { signal }),
+  recordRentalPayment: (id: number, charge: number, version: number, paid: boolean) => request<RentalCharge>(`/rental-agreements/${id}/charges/${charge}`, { method: "POST", body: JSON.stringify({ version, paid }) }),
+  rentalChargeEvents: (id: number, charge: number, signal?: AbortSignal) => request<ChargeEvent[]>(`/rental-agreements/${id}/charges/${charge}/events`, { signal }),
   retryEmailDigest: () => request<EmailDigestStatus>("/notifications/email-digest/retry", { method: "POST" }),
   emailDigestStatus: (signal?: AbortSignal) => request<EmailDigestStatus>("/notifications/email-digest", { signal }),
   setEmailDigest: (enabled: boolean, interval_hours?: 1 | 24) => request<EmailDigestStatus>("/notifications/email-digest", { method: "PUT", body: JSON.stringify({ enabled, interval_hours }) }),

@@ -26,6 +26,9 @@ PATHS = [
     "/owner-access/requests",
     "/owner/properties/1/occupancy-sources/1/sync",
     "/owner/properties/1/occupancy-import/url",
+    "/rental-inquiries/1/agreements",
+    "/rental-agreements/1/decision",
+    "/rental-agreements/1/charges/1",
     "/owner/properties/1/photos",
 ]
 

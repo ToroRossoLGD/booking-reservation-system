@@ -8,6 +8,7 @@ import { rentalStatus } from "./rental-types";
 import { displayDate, stayMoney } from "./stay-types";
 import RentalTermsDisplay from "./RentalTermsDisplay";
 import RentalConversation from "./RentalConversation";
+import RentalAgreements from "./RentalAgreements";
 import "./stays.css";
 import "./rentals.css";
 
@@ -45,6 +46,7 @@ function InquiryCard({ inquiry, owner, reload }: { inquiry: RentalInquiry | Sale
     </fieldset>}
     {busy && <p role="status">Čuvanje…</p>}{error && <p role="alert">{error}</p>}
     <RentalConversation sale={sale} inquiryId={inquiry.id} owner={owner} active={active} unreadCount={inquiry.unread_count} />
+    {!sale && <RentalAgreements inquiry={inquiry as RentalInquiry} owner={owner} />}
   </article>;
 }
 
