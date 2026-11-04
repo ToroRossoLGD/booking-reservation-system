@@ -25,6 +25,12 @@ class Policy:
 MESSAGE_POLICY = Policy("message", 120, 30, 60)
 POLICIES = (
     (
+        re.compile(
+            r"/rental-inquiries/[^/]+/agreements|/rental-agreements/[^/]+/(?:decision|charges/[^/]+)"
+        ),
+        Policy("rental-agreement", 60, 20, 60),
+    ),
+    (
         re.compile(r"/owner/properties/[^/]+/occupancy-sources/[^/]+/sync"),
         Policy("calendar-sync", 60, 20, 60),
     ),

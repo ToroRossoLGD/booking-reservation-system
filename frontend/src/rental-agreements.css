@@ -1,0 +1,9 @@
+.rental-agreements { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #d9dfda; }
+.rental-agreement-card { padding: 1rem; margin: 1rem 0; border: 1px solid #d9dfda; border-radius: 12px; }
+.rental-agreements fieldset { min-width: 0; margin: 1rem 0; padding: 1rem; border: 1px solid #d9dfda; border-radius: 8px; }
+.rental-agreements label { display: grid; gap: .35rem; margin: .75rem 0; }
+.rental-agreements input, .rental-agreements textarea { box-sizing: border-box; width: 100%; min-width: 0; padding: .6rem; }
+.rental-agreements button { margin: .25rem; white-space: normal; max-width: 100%; }
+.agreement-note { white-space: pre-wrap; overflow-wrap: anywhere; }
+.rental-charge-list { padding-left: 1.2rem; }
+.rental-charge-list > li { padding: .75rem 0; border-bottom: 1px solid #e4e8e4; }
