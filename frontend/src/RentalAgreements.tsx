@@ -4,6 +4,7 @@ import type { RentalInquiry } from "./rental-types";
 import type { AgreementAction, AgreementInput, RentalAgreement } from "./rental-agreement-types";
 import { displayDate, stayMoney } from "./stay-types";
 import RentalPaymentPlan from "./RentalPaymentPlan";
+import RentalTerminationPanel from "./RentalTerminationPanel";
 import "./rental-agreements.css";
 
 const snapshot = () => localStorage.getItem("bookica_token") ?? "";
@@ -52,18 +53,19 @@ function Panel({ inquiry, owner, token }: { inquiry: RentalInquiry; owner: boole
     <button disabled={busy} aria-expanded={open} onClick={() => { setRows(null); setError(""); setConfirm(null); setOffset(0); setOpen(v => !v); }}>Dogovor o najmu i kirije</button>
     {open && <>
       <p>Predlog i potvrda uslova u aplikaciji služe za zajedničku evidenciju dogovora. Ne stvaraju elektronski potpis niti naplatu. Dogovor ne blokira kalendar rezervacija na dan.</p>
-      <p>Prihvatanje pravi mesečni raspored od početnog datuma, uz zaseban depozit. Prihvaćeni uslovi se ne menjaju u aplikaciji; za izmenu ili raskid dogovorite se direktno.</p>
+      <p>Prihvatanje pravi mesečni raspored od početnog datuma, uz zaseban depozit. Raniji završetak zahteva predlog vlasnika i potvrdu stanara. Za druge izmene dogovorite se direktno.</p>
       {!rows && !error && <p role="status">Učitavanje dogovora…</p>}
       {rows?.length === 0 && <p>Nema dogovora na ovoj stranici.</p>}
       {rows?.map(row => <div className="rental-agreement-card" key={row.id}>
         <h4>Dogovor #{row.id} · {statuses[row.status]}</h4>
         <p>{displayDate(row.start_date)} — {displayDate(row.end_date)} (krajnji datum nije uključen), {row.months} meseci.</p>
         <p>Mesečna kirija: <strong>{stayMoney(row.monthly_cents, row.currency)}</strong>. Depozit: {stayMoney(row.deposit_cents, row.currency)}.</p>
-        <p>Ukupna planirana kirija: {stayMoney(row.monthly_cents * row.months, row.currency)}. Depozit se vodi odvojeno; povraćaj depozita nije obuhvaćen.</p>
+        <p>Prvobitna ukupna kirija: {stayMoney(row.monthly_cents * row.months, row.currency)}. Depozit se vodi odvojeno; povraćaj depozita nije obuhvaćen.</p>
+        {row.terminated_on && <p role="status">Dogovoren raniji završetak: {displayDate(row.terminated_on)} (datum nije uključen). Ukidanje budućih kirija prikazano je u rasporedu.</p>}
         {row.notes && <p className="agreement-note">{row.notes}</p>}
         {row.status === "proposed" && <div><button disabled={busy || !!error} onClick={() => setConfirm({ row, action: owner ? "withdraw" : "accept" })}>{owner ? "Povuci predlog najma" : "Prihvati uslove najma"}</button>{!owner && <button disabled={busy || !!error} onClick={() => setConfirm({ row, action: "decline" })}>Odbij predlog najma</button>}</div>}
         {confirm?.row.id === row.id && <fieldset disabled={busy}><legend>{confirm.action === "accept" ? "Potvrdi prikazane uslove i raspored kirija" : "Potvrdi promenu predloga"}</legend><button onClick={() => void mutate()}>Potvrdi odluku o najmu</button><button ref={cancel} onClick={() => setConfirm(null)}>Odustani od odluke</button></fieldset>}
-        {row.status === "accepted" && <RentalPaymentPlan agreement={row} owner={owner} token={token} />}
+        {row.status === "accepted" && <><RentalPaymentPlan key={`${row.id}:${row.version}`} agreement={row} owner={owner} token={token} /><RentalTerminationPanel agreement={row} owner={owner} token={token} onAccepted={() => reload()} /></>}
       </div>)}
       {owner && active && offset === 0 && rows && !rows.some(r => ["proposed", "accepted"].includes(r.status)) && <Proposal inquiry={inquiry} disabled={busy || !!error} onSubmit={data => void mutate(data)} />}
       {error && <p role="alert">{error}</p>}

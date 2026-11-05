@@ -39,7 +39,7 @@ import type { CalendarSyncStatus } from "./OccupancySync";
 import type { OccupancyImportRun } from "./OccupancyImportHistory";
 import type { ReminderHistoryPage } from "./ReminderHistory";
 import type { EmailDigestStatus } from "./PropertyEmailDigest";
-import type { RentalAgreement, AgreementInput, AgreementAction, RentalCharge, ChargeEvent } from "./rental-agreement-types";
+import type { RentalAgreement, AgreementInput, AgreementAction, RentalCharge, ChargeEvent, RentalTermination, TerminationInput } from "./rental-agreement-types";
 
 export const googleLoginUrl = `${API_URL}/auth/google/login`;
 export function occupancySubscriptionUrl(path: string) {
@@ -83,6 +83,9 @@ async function request<T>(path: string, options: RequestInit = {}, text = false)
 
 export const api = {
   rentalAgreements: (id: number, offset: number, signal?: AbortSignal) => request<RentalAgreement[]>(`/rental-inquiries/${id}/agreements?offset=${offset}`, { signal }),
+  rentalTerminations: (id: number, offset: number, signal?: AbortSignal) => request<RentalTermination[]>(`/rental-agreements/${id}/terminations?offset=${offset}`, { signal }),
+  proposeRentalTermination: (id: number, data: TerminationInput) => request<RentalTermination>(`/rental-agreements/${id}/terminations`, { method: "POST", body: JSON.stringify(data) }),
+  decideRentalTermination: (id: number, termination: number, version: number, action: AgreementAction) => request<RentalTermination>(`/rental-agreements/${id}/terminations/${termination}/decision`, { method: "POST", body: JSON.stringify({ version, action }) }),
   proposeRentalAgreement: (id: number, data: AgreementInput) => request<RentalAgreement>(`/rental-inquiries/${id}/agreements`, { method: "POST", body: JSON.stringify(data) }),
   decideRentalAgreement: (id: number, version: number, action: AgreementAction) => request<RentalAgreement>(`/rental-agreements/${id}/decision`, { method: "POST", body: JSON.stringify({ version, action }) }),
   rentalCharges: (id: number, signal?: AbortSignal) => request<RentalCharge[]>(`/rental-agreements/${id}/charges`, { signal }),

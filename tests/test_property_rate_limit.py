@@ -29,6 +29,8 @@ PATHS = [
     "/rental-inquiries/1/agreements",
     "/rental-agreements/1/decision",
     "/rental-agreements/1/charges/1",
+    "/rental-agreements/1/terminations",
+    "/rental-agreements/1/terminations/1/decision",
     "/owner/properties/1/photos",
 ]
 

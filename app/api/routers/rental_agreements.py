@@ -12,8 +12,11 @@ from app.schemas.rental_agreement import (
     ChargeEventRead,
     ChargeRead,
     ChargeUpdate,
+    TerminationCreate,
+    TerminationRead,
 )
 from app.services.rental_agreement_service import RentalAgreementService
+from app.services.rental_termination_service import RentalTerminationService
 
 
 def private_response(response: Response):
@@ -21,6 +24,51 @@ def private_response(response: Response):
 
 
 router = APIRouter(tags=["Rental agreements"], dependencies=[Depends(private_response)])
+
+
+@router.get(
+    "/rental-agreements/{agreement_id}/terminations",
+    response_model=list[TerminationRead],
+)
+async def termination_history(
+    agreement_id: int,
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await RentalTerminationService(db).history(agreement_id, user, offset)
+
+
+@router.post(
+    "/rental-agreements/{agreement_id}/terminations",
+    response_model=TerminationRead,
+    status_code=201,
+    dependencies=[Depends(limit_property_account)],
+)
+async def propose_termination(
+    agreement_id: int,
+    data: TerminationCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_verified_user),
+):
+    return await RentalTerminationService(db).propose(agreement_id, data, user)
+
+
+@router.post(
+    "/rental-agreements/{agreement_id}/terminations/{termination_id}/decision",
+    response_model=TerminationRead,
+    dependencies=[Depends(limit_property_account)],
+)
+async def decide_termination(
+    agreement_id: int,
+    termination_id: int,
+    data: AgreementAction,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_verified_user),
+):
+    return await RentalTerminationService(db).decide(
+        agreement_id, termination_id, data, user
+    )
 
 
 @router.get(

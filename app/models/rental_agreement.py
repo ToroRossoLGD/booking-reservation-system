@@ -64,6 +64,7 @@ class RentalAgreement(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    terminated_on: Mapped[date | None] = mapped_column(Date)
 
 
 class RentalCharge(Base):
@@ -82,6 +83,7 @@ class RentalCharge(Base):
     paid: Mapped[bool] = mapped_column(default=False)
     version: Mapped[int] = mapped_column(default=1)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    voided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class RentalChargeEvent(Base):
@@ -97,3 +99,36 @@ class RentalChargeEvent(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
+
+
+class RentalTermination(Base):
+    __tablename__ = "rental_terminations"
+    __table_args__ = (
+        UniqueConstraint(
+            "agreement_id", "request_id", name="uq_rental_termination_request"
+        ),
+        CheckConstraint(
+            "status IN ('proposed', 'accepted', 'declined', 'withdrawn')",
+            name="ck_rental_termination_status",
+        ),
+        Index(
+            "uq_rental_termination_active",
+            "agreement_id",
+            unique=True,
+            postgresql_where=text("status IN ('proposed', 'accepted')"),
+            sqlite_where=text("status IN ('proposed', 'accepted')"),
+        ),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    agreement_id: Mapped[int] = mapped_column(
+        ForeignKey("rental_agreements.id"), index=True
+    )
+    request_id: Mapped[str] = mapped_column(String(36))
+    end_date: Mapped[date] = mapped_column(Date)
+    notes: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), default="proposed")
+    version: Mapped[int] = mapped_column(default=1)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
