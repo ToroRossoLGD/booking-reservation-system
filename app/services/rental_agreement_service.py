@@ -3,7 +3,7 @@ from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.core.config import settings
 from app.models.notification import Notification
@@ -212,7 +212,10 @@ class RentalAgreementService:
                     RentalAgreement.venue_id == agreement.venue_id,
                     RentalAgreement.status == "accepted",
                     RentalAgreement.start_date < agreement.end_date,
-                    RentalAgreement.end_date > agreement.start_date,
+                    func.coalesce(
+                        RentalAgreement.terminated_on, RentalAgreement.end_date
+                    )
+                    > agreement.start_date,
                 )
             )
             if overlap:
@@ -285,7 +288,11 @@ class RentalAgreementService:
         )
         if charge is None:
             raise HTTPException(404, "Charge not found")
-        if agreement.status != "accepted" or charge.version != data.version:
+        if (
+            agreement.status != "accepted"
+            or charge.version != data.version
+            or charge.voided_at is not None
+        ):
             raise HTTPException(
                 409, "Payment record changed; refresh before continuing"
             )

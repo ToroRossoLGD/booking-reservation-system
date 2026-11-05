@@ -44,6 +44,7 @@ class AgreementRead(BaseModel):
     version: int
     created_at: datetime
     accepted_at: datetime | None
+    terminated_on: date | None
 
 
 class ChargeRead(BaseModel):
@@ -55,6 +56,7 @@ class ChargeRead(BaseModel):
     paid: bool
     version: int
     updated_at: datetime | None
+    voided_at: datetime | None
 
 
 class ChargeEventRead(BaseModel):
@@ -63,3 +65,22 @@ class ChargeEventRead(BaseModel):
     paid: bool
     version: int
     created_at: datetime
+
+
+class TerminationCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    request_id: UUID
+    version: int = Field(ge=1, strict=True)
+    end_date: date
+    notes: str = Field(min_length=1, max_length=2000)
+
+
+class TerminationRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    end_date: date
+    notes: str
+    status: Literal["proposed", "accepted", "declined", "withdrawn"]
+    version: int
+    created_at: datetime
+    decided_at: datetime | None

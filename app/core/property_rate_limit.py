@@ -26,7 +26,7 @@ MESSAGE_POLICY = Policy("message", 120, 30, 60)
 POLICIES = (
     (
         re.compile(
-            r"/rental-inquiries/[^/]+/agreements|/rental-agreements/[^/]+/(?:decision|charges/[^/]+)"
+            r"/rental-inquiries/[^/]+/agreements|/rental-agreements/[^/]+/(?:decision|charges/[^/]+|terminations(?:/[^/]+/decision)?)"
         ),
         Policy("rental-agreement", 60, 20, 60),
     ),
